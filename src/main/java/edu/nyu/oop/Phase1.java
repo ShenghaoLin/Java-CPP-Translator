@@ -10,20 +10,30 @@ import java.util.Set;
 
 public class Phase1 {
 
+	/* Reading import class repeatedly until all imported files (including 
+	 * files imported by imported files), and return a set of GNode instances
+	 * corrsponding them.
+	 */
     static Set<GNode> parse(Node n) {
+
         NodeSet unsolved = new NodeSet();
         NodeSet solved = new NodeSet();
+
         unsolved.add((GNode) n);
         do {
             unsolved.addAll(JavaFiveImportParser.parse(unsolved.get(0)));
             solved.add(unsolved.remove(0));
+
+        //Loop until there is no unsolved files
         } while (!unsolved.isEmpty());
+
         return solved;
     }
 
 }
 
 class NodeSet extends LinkedList<GNode> implements Set<GNode> {
+	
     @Override
     public boolean add(GNode gNode) {
         if (this.contains(gNode)){
