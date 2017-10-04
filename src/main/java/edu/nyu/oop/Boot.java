@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.Reader;
 import java.util.List;
+import java.util.Set;
 
 import edu.nyu.oop.util.JavaFiveImportParser;
 import edu.nyu.oop.util.NodeUtil;
@@ -57,7 +58,8 @@ public class Boot extends Tool {
             bool("cppFilePrinter", "cppFilePrinter", false, "Print example cpp file into output directory.").
             bool("printJavaImportCode", "printJavaImportCode", false, "Print Java code for imports of primary source file.").
             bool("printSymbolTable", "printSymbolTable", false, "Print symbol table for Java Ast.").
-            bool("printConfig", "printConfig", false, "Output application configuration to screen.");
+            bool("printConfig", "printConfig", false, "Output application configuration to screen.").
+            bool("printPhase1", "printPhase1", false, "Print the output of phase 1");
   }
 
   @Override
@@ -122,6 +124,13 @@ public class Boot extends Tool {
       SymbolTable table = new SymbolTableBuilder(runtime).getTable(n);
       new SymbolTablePrinter(runtime, table).full();
     }
+
+    if (runtime.test("printPhase1")) {
+      Set<GNode> set = Phase1.parse(n);
+      for (GNode node : set) {
+        runtime.console().format(n).pln().flush();
+      }
+    }
   }
 
   /**
@@ -129,7 +138,6 @@ public class Boot extends Tool {
    *
    * @param args The command line arguments.
    */
-  public static void main(String[] args) {
-    new Boot().run(args);
+  public static void main(String[] args) {new Boot().run(args);
   }
 }
