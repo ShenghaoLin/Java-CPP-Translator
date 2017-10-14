@@ -59,7 +59,8 @@ public class Boot extends Tool {
             bool("printJavaImportCode", "printJavaImportCode", false, "Print Java code for imports of primary source file.").
             bool("printSymbolTable", "printSymbolTable", false, "Print symbol table for Java Ast.").
             bool("printConfig", "printConfig", false, "Output application configuration to screen.").
-            bool("printPhase1", "printPhase1", false, "Print the output of phase 1");
+            bool("printPhase1", "printPhase1", false, "Print the output of phase 1").
+            bool("printPhase2", "printPhase2", false, "Print the output of phase 2");
   }
 
   @Override
@@ -131,6 +132,13 @@ public class Boot extends Tool {
         runtime.console().format(n).pln().flush();
       }
     }
+
+    if (runtime.test("printPhase2")) {
+      Phase2Visitor visitor = new Phase2Visitor();
+      visitor.traverse(n);
+      visitor.printClassRepresentations();
+    }
+
   }
 
   /**
