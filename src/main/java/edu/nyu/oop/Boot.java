@@ -129,7 +129,7 @@ public class Boot extends Tool {
     if (runtime.test("printPhase1")) {
       Set<GNode> set = Phase1.parse(n);
       for (GNode node : set) {
-        runtime.console().format(n).pln().flush();
+        runtime.console().format(node).pln().flush();
       }
     }
 

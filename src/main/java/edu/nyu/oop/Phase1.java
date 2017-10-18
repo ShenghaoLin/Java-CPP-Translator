@@ -7,6 +7,7 @@ import xtc.tree.Node;
 import java.util.Collection;
 import java.util.LinkedList;
 import java.util.Set;
+import java.util.List;
 
 public class Phase1 {
 
@@ -18,10 +19,16 @@ public class Phase1 {
 
         NodeSet unsolved = new NodeSet();
         NodeSet solved = new NodeSet();
+        List<GNode> tmp;
 
         unsolved.add((GNode) n);
         do {
-            unsolved.addAll(JavaFiveImportParser.parse(unsolved.get(0)));
+            tmp = JavaFiveImportParser.parse(unsolved.get(0));
+            for (Object o : tmp) {
+                if ((!unsolved.contains(o))&&(!solved.contains(o))) {
+                    unsolved.add((GNode) o);
+                }
+            }
             solved.add(unsolved.remove(0));
 
         //Loop until there is no unsolved files
