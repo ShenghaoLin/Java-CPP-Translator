@@ -4,56 +4,66 @@ import edu.nyu.oop.util.JavaFiveImportParser;
 import xtc.tree.GNode;
 import xtc.tree.Node;
 
-import java.util.Collection;
-import java.util.LinkedList;
-import java.util.Set;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Queue;
+import java.util.Set;
+
+import java.nio.file.Path;
+import java.nio.file.Paths;
 
 public class Phase1 {
 
-	/* Reading import class repeatedly until all imported files (including 
-	 * files imported by imported files), and return a set of GNode instances
-	 * corrsponding them.
-	 */
-    static Set<GNode> parse(Node n) {
+    /* default constructor */
+    public Phase1() {}
 
-        NodeSet unsolved = new NodeSet();
-        NodeSet solved = new NodeSet();
-        List<GNode> tmp;
+    /** parse the Java files and their dependencies
+      *
+      * @param   n  Node of type Node
+      * @return     List of Java ASTs
+      */ 
+    public static List<GNode> parse(Node n) {
 
-        unsolved.add((GNode) n);
-        do {
-            tmp = JavaFiveImportParser.parse(unsolved.get(0));
-            for (Object o : tmp) {
-                if ((!unsolved.contains(o))&&(!solved.contains(o))) {
-                    unsolved.add((GNode) o);
-                }
+        GNode node = (GNode) n;
+        Set<Path> paths = new HashSet<Path>();
+        List<GNode> ast = new ArrayList<GNode>();
+
+        parse(node, paths, ast);
+
+        return ast;
+    }
+
+    /** parse the Java files and their dependencies recursively
+      *
+      * @param      n  Node of type Node
+      * @param  files  HashMap of files to make sure no duplicates
+      * @param    ast  List of ASTs
+      */
+    private static void parse(GNode node, Set<Path> paths, List<GNode> ast) {
+
+        // use a queue of nodes to find dependencies and process them
+        Queue<GNode> nodes = new ArrayDeque<GNode>();
+        nodes.add(node);
+
+        while(!nodes.isEmpty()) {
+
+            GNode next = nodes.poll();
+
+            //test if seen to avoid cyclical dependencies
+            String loc = next.getLocation().file;
+
+            // obtain path and convert  to absolute path to ensure uniqueness
+            Path path = Paths.get(loc);
+            path = path.toAbsolutePath();
+
+            // if file hasn't been visited, process it
+            if(!paths.contains(path)) {
+                paths.add(path);
+                ast.add(next);
+                nodes.addAll(JavaFiveImportParser.parse(next));
             }
-            solved.add(unsolved.remove(0));
-
-        //Loop until there is no unsolved files
-        } while (!unsolved.isEmpty());
-
-        return solved;
-    }
-
-}
-
-class NodeSet extends LinkedList<GNode> implements Set<GNode> {
-	
-    @Override
-    public boolean add(GNode gNode) {
-        if (this.contains(gNode)){
-            return false;
         }
-        return super.add(gNode);
-    }
-
-    @Override
-    public boolean addAll(Collection<? extends GNode> collection) {
-        for (GNode n : collection) {
-            this.add(n);
-        }
-        return true;
     }
 }
