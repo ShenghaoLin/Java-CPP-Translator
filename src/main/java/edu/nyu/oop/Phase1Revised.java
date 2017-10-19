@@ -4,10 +4,7 @@ import edu.nyu.oop.util.JavaFiveImportParser;
 import xtc.tree.GNode;
 import xtc.tree.Node;
 
-import java.util.Collection;
-import java.util.LinkedList;
-import java.util.Set;
-import java.util.List;
+import java.util.*;
 
 
 public class Phase1Revised {
