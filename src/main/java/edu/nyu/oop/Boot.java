@@ -4,7 +4,6 @@ import java.io.File;
 import java.io.IOException;
 import java.io.Reader;
 import java.util.List;
-import java.util.Set;
 
 import edu.nyu.oop.util.JavaFiveImportParser;
 import edu.nyu.oop.util.NodeUtil;
@@ -60,7 +59,7 @@ public class Boot extends Tool {
             bool("printSymbolTable", "printSymbolTable", false, "Print symbol table for Java Ast.").
             bool("printConfig", "printConfig", false, "Output application configuration to screen.").
             bool("printPhase1", "printPhase1", false, "Print the output of phase 1").
-            bool("printPhase2", "printPhase2", false, "Print the output of phase 2");
+            bool("printPhase2", "printPhase2", false, "Print the output of phase 2 step 1");
   }
 
   @Override
@@ -134,9 +133,8 @@ public class Boot extends Tool {
     }
 
     if (runtime.test("printPhase2")) {
-      Phase2Visitor visitor = new Phase2Visitor();
-      visitor.traverse(n);
-      visitor.printClassRepresentations();
+      Node ast = Phase2.runPhase2(n);
+      runtime.console().format(ast).pln().flush();
     }
 
   }
