@@ -14,40 +14,34 @@ public class Phase2 {
         Phase2Visitor visitor = new Phase2Visitor();
         visitor.traverse(n);
         //Build list of class representations (java.lang, inheritance)
-        ClassRepList unfilled = visitor.getClassRepresentations();
-        ClassRepList filled = getFilledClassRepList(unfilled);
+        ObjectRepList unfilled = visitor.getObjectRepresentations();
+        ObjectRepList filled = getFilledObjectRepList(unfilled);
         //Build C++ AST from class representations
         return buildCppAst(filled);
     }
 
-    public static ClassRepList getFilledClassRepList(ClassRepList unfilled) {
-        ClassRepList filled = new ClassRepList();
+    public static ObjectRepList getFilledObjectRepList(ObjectRepList unfilled) {
+        ObjectRepList filled = new ObjectRepList();
 
         //Adding java.lang classes manually
-        ClassRep objectRep = new ClassRep("Object");
-        objectRep.addMethodName("hashCode");
-        objectRep.addMethodName("equals");
-        objectRep.addMethodName("getClass");
-        objectRep.addMethodName("toString");
+        ObjectRep objectRep = new ObjectRep("Object");
+        //TODO: MANUALLY BUILD OBJECT HERE
         filled.add(objectRep);
-        ClassRep stringRep = new ClassRep("String");
-        stringRep.addMethodName("length");
-        stringRep.addMethodName("charAt");
+        ObjectRep stringRep = new ObjectRep("String");
+        //TODO: MANUALLY BUILD STRING HERE
         filled.add(stringRep);
-        ClassRep classRep = new ClassRep("Class");
-        classRep.addMethodName("getName");
-        classRep.addMethodName("getSuperclass");
-        classRep.addMethodName("isInstance");
+        ObjectRep classRep = new ObjectRep("Class");
+        //TODO: MANUALLY BUILD CLASS HERE
         filled.add(classRep);
 
         //Add classes from unfilled
         int finished = 0;
         while (finished != unfilled.size()) {
-            for (ClassRep cr : unfilled) {
-                if (!filled.contains(cr)) {
+            for (ObjectRep rep : unfilled) {
+                if (!filled.contains(rep)) {
                     //Don't add until parent class is already in filled, makes sure classes are in descending inheritance order
-                    if (cr.getParentName() == null | filled.getFromName(cr.getParentName()) != null) {
-                        filled.add(cr);
+                    if (rep.getParentName() == null | filled.getFromName(rep.getParentName()) != null) {
+                        filled.add(rep);
                         finished += 1;
                     }
                 }
@@ -55,71 +49,111 @@ public class Phase2 {
         }
 
         //Iterate through class representations and get inherited methods
-        for(ClassRep cr : filled) {
+        for(ObjectRep rep : filled) {
             //Skip Object, it has no parent
-            if (cr.getName().equals("Object"))
+            if (rep.getName().equals("Object"))
                 continue;
 
             //Skip class with main method
-            if (cr.getMethodNames().contains("main"))
-                continue;
+            boolean main = false;
+            for (edu.nyu.oop.ObjectRep.Method method : rep.methods) {
+                if(method.method_name.equals("main"))
+                    continue;
+            }
 
             //If no other parent, set parent to Object
-            if (cr.getParentName() == null)
-                cr.setParentName("Object");
+            if (rep.getParentName() == null)
+                rep.setParentName("Object");
 
-            //Inherit un-overridden methods and variables
-            ClassRep parent = filled.getFromName(cr.getParentName());
-            for (String methodName : parent.getMethodNames()) {
-                if (!cr.getMethodNames().contains(methodName))
-                    cr.addMethodName(methodName);
-            }
-            for (String variableName : parent.getVariableNames()) {
-                if (!cr.getVariableNames().contains(variableName))
-                    cr.addVariableName(variableName);
-            }
+            //TODO: INHERITANCE
+            ObjectRep parent = filled.getFromName(rep.getParentName());
+            //for (String methodName : parent.getMethodNames()) {
+            //    if (!rep.getMethodNames().contains(methodName))
+            //        rep.addMethodName(methodName);
+            //}
+            //for (String variableName : parent.getVariableNames()) {
+            //    if (!rep.getVariableNames().contains(variableName))
+            //        rep.addVariableName(variableName);
+            //}
         }
 
         return filled;
     }
 
-    public static Node buildCppAst(ClassRepList classRepList) {
+    public static Node buildCppAst(ObjectRepList ObjectRepList) {
         Node root = GNode.create("CompilationUnit");
 
-        //STILL NEED TO REAL PACKAGE INFO
+        //STILL NEED TO GET REAL PACKAGE INFO
         Node packageDeclaration = GNode.create("PackageDeclaration");
         Node packageName = GNode.create("?????");
         packageDeclaration.add(packageName);
         root.add(packageDeclaration);
 
-        for (ClassRep cr : classRepList)
-            root.add(buildClassNode(cr));
+        for (ObjectRep rep : ObjectRepList)
+            root.add(buildClassNode(rep));
 
         return root;
     }
 
-    public static Node buildClassNode(ClassRep classRep) {
-        //Create root
+    public static Node buildClassNode(ObjectRep rep) {
+        //Root
         Node root = GNode.create("ClassDeclaration");
 
         //Name
-        Node className = GNode.create(classRep.getName());
+        Node className = GNode.create("Class Name", rep.getName());
         root.add(className);
 
+        //Constructors
+        //TODO: Build constructor node
+
         //Methods
-        for(String method : classRep.getMethodNames()) {
+        for(edu.nyu.oop.ObjectRep.Method method : rep.methods) {
             Node methodDeclaration = GNode.create("MethodDeclaration");
-            Node methodName = GNode.create(method);
-            methodDeclaration.add(methodName);
+
+            Node accessModifier = GNode.create("Access Modifier", method.access_modifier);
+            methodDeclaration.add(accessModifier);
+
+            Node isStatic = GNode.create("Is Static", method.is_static);
+            methodDeclaration.add(isStatic);
+
+            Node name = GNode.create("Method Name", method.method_name);
+            methodDeclaration.add(name);
+
+            Node returnType = GNode.create("Return Type", method.return_type);
+            methodDeclaration.add(returnType);
+
+            Node parameterTypes = GNode.create("Parameter Types", method.parameter_types);
+            methodDeclaration.add(parameterTypes);
+
+            Node parameterNames = GNode.create("Parameter Names", method.parameter_names);
+            methodDeclaration.add(parameterNames);
+
             root.add(methodDeclaration);
         }
 
-        //Variables
-        for(String variable : classRep.getVariableNames()) {
-            Node declarator = GNode.create("Declarator");
-            Node variableName = GNode.create(variable);
-            declarator.add(variableName);
-            root.add(declarator);
+        //Fields
+        for(ObjectRep.Field field : rep.fields) {
+            Node fieldDeclaration = GNode.create("Field");
+
+            Node accessModifier = GNode.create("Access Modifier", field.access_modifier);
+            fieldDeclaration.add(accessModifier);
+
+            Node isStatic = GNode.create("Is Static", field.is_static);
+            fieldDeclaration.add(isStatic);
+
+            Node fieldType = GNode.create("Field Type", field.field_type);
+            fieldDeclaration.add(fieldType);
+
+            Node fieldName = GNode.create("Field Name", field.field_name);
+            fieldDeclaration.add(fieldName);
+
+            Node isInitialized = GNode.create("Is Initialized", field.is_initialized);
+            fieldDeclaration.add(isInitialized);
+
+            Node initial = GNode.create("Initial", field.initial);
+            fieldDeclaration.add(initial);
+
+            root.add(fieldDeclaration);
         }
 
         return root;
@@ -127,29 +161,48 @@ public class Phase2 {
 
     public static class Phase2Visitor extends Visitor {
         private Logger logger = org.slf4j.LoggerFactory.getLogger(this.getClass());
-        private ClassRepList classRepresentations = new ClassRepList();
+        private ObjectRepList objectRepresentations = new ObjectRepList();
 
         public void visitCompilationNode(GNode n) {
             visit(n);
         }
 
         public void visitClassDeclaration(GNode n) {
-            classRepresentations.add(new ClassRep(n.getString(1)));
+            objectRepresentations.add(new ObjectRep(n.getString(1)));
             visit(n);
         }
 
         public void visitExtension(GNode n) {
-            classRepresentations.getCurrent().setParentName(n.getNode(0).getNode(0).getString(0));
+            objectRepresentations.getCurrent().setParentName(n.getNode(0).getNode(0).getString(0));
+            visit(n);
+        }
+
+        public void visitConstructorDeclaration(GNode n) {
+            //TODO: Visit constructor and call objectRepresentations.getCurrent().addConstructor()
             visit(n);
         }
 
         public void visitMethodDeclaration(GNode n) {
-            classRepresentations.getCurrent().addMethodName(n.getString(3));
+            //TODO: SEE NOT SURES
+            String accessModifier = n.getNode(0).getNode(0).getString(0);
+            boolean isStatic = false; //NOT SURE
+            String returnType = ""; //NOT SURE
+            String methodName = n.getString(3);
+            ArrayList<String> parameterTypes = new ArrayList<String>(); //NOT SURE
+            ArrayList<String> parameterNames = new ArrayList<String>(); //NOT SURE
+            objectRepresentations.getCurrent().addMethod(accessModifier, isStatic, returnType, methodName, parameterTypes, parameterNames);
             visit(n);
         }
 
-        public void visitDeclarator(GNode n) {
-            classRepresentations.getCurrent().addVariableName(n.getString(0));
+        public void visitFieldDeclaration(GNode n) {
+            //TODO: SEE NOT SURES
+            String accessModifier = ""; //NOT SURE
+            boolean isStatic = false;
+            String fieldType = n.getNode(1).getStringProperty("QualifiedIdentifier");
+            String fieldName = n.getNode(2).getNode(0).getString(0);
+            boolean isInitialized = false; //NOT SURE
+            String initial = ""; //NOT SURE
+            objectRepresentations.getCurrent().addField(accessModifier, isStatic, fieldType, fieldName, isInitialized, initial);
             visit(n);
         }
 
@@ -161,59 +214,18 @@ public class Phase2 {
             for (Object o : n) if (o instanceof Node) dispatch((Node) o);
         }
 
-        public ClassRepList getClassRepresentations() {
-            return classRepresentations;
+        public ObjectRepList getObjectRepresentations() {
+            return objectRepresentations;
         }
     }
 
-    public static class ClassRep {
-        private String name;
-        private String parentName; // Name of the most immediately inherited class
-        private ArrayList<String> variableNames; // List of all variable names
-        private ArrayList<String> methodNames; // List of all method names
+    public static class ObjectRepList extends ArrayList<ObjectRep> {
+        public ObjectRep getCurrent() { return this.get(this.size()-1); }
 
-        public ClassRep(String name){
-            this.name = name;
-            this.parentName = null;
-            this.variableNames = new ArrayList<String>();
-            this.methodNames = new ArrayList<String>();
-        }
-
-        public String getName() { return this.name; }
-
-        public void setName(String name) { this.name = name; }
-
-        public String getParentName() { return this.parentName; }
-
-        public void setParentName(String parentName){
-            this.parentName = parentName;
-        }
-
-        public ArrayList<String> getVariableNames() {
-            return variableNames;
-        }
-
-        public void addVariableName(String variableName) {
-            this.variableNames.add(variableName);
-        }
-
-        public ArrayList<String> getMethodNames() { return this.methodNames; }
-
-        public void addMethodName(String methodName) {
-            // PREVENTS OVERLOADED METHODS FOR NOW -- WILL HAVE TO CHANGE THIS LATER -- METHOD REP CLASS?
-            if (!this.methodNames.contains(methodName))
-                this.methodNames.add(methodName);
-        }
-
-    }
-
-    public static class ClassRepList extends ArrayList<ClassRep> {
-        public ClassRep getCurrent() { return this.get(this.size()-1); }
-
-        public ClassRep getFromName(String name) {
-            for(ClassRep cr : this) {
-                if(cr.getName().equals(name))
-                    return cr;
+        public ObjectRep getFromName(String name) {
+            for(ObjectRep rep : this) {
+                if(rep.getName().equals(name))
+                    return rep;
             }
             return null;
         }

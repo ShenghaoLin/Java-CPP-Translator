@@ -5,8 +5,8 @@ import java.util.ArrayList;
 
 public class ObjectRep {
 
-	public String name;
-	public ObjectRep parent;
+	private String name;
+	private String parentName;
 
 	public ArrayList<Field> fields = new ArrayList<Field>();
 	public ArrayList<Constructor> constructors = new ArrayList<Constructor>();
@@ -37,12 +37,11 @@ public class ObjectRep {
 		public ArrayList<String> parameter_names = new ArrayList<String>();
 	}
 
-	public ObjectRep(String name, ObjectRep parent) {
+	public ObjectRep(String name) {
 		this.name = name;
-		this.parent = parent;
 	}
 
-	public addField(String access_modifier, boolean is_static, String field_type, String field_name, boolean is_initialized, String initial) {
+	public void addField(String access_modifier, boolean is_static, String field_type, String field_name, boolean is_initialized, String initial) {
 		Field new_field = new Field();
 		new_field.access_modifier = access_modifier;
 		new_field.is_static = is_static;
@@ -53,7 +52,7 @@ public class ObjectRep {
 		fields.add(new_field);
 	}
 
-	public addConstructor(String access_modifier, String constructor_name, ArrayList<String> parameter_types, ArrayList<String> parameter_names) {
+	public void addConstructor(String access_modifier, String constructor_name, ArrayList<String> parameter_types, ArrayList<String> parameter_names) {
 		Constructor new_constructor = new Constructor();
 		new_constructor.access_modifier = access_modifier;
 		new_constructor.constructor_name = constructor_name;
@@ -62,13 +61,38 @@ public class ObjectRep {
 		constructors.add(new_constructor);
 	}
 
-	public addMethod(String access_modifier, boolean is_static, String method_name, ArrayList<String> parameter_types, ArrayList<String> parameter_names) {
+	public void addMethod(String access_modifier, boolean is_static, String return_type, String method_name, ArrayList<String> parameter_types, ArrayList<String> parameter_names) {
 		Method new_method = new Method();
 		new_method.access_modifier = access_modifier;
 		new_method.is_static = is_static;
+		new_method.return_type = return_type;
 		new_method.method_name = method_name;
 		new_method.parameter_types = parameter_types;
 		new_method.parameter_names = parameter_names;
 		methods.add(new_method);
+	}
+
+	public Field getCurrentField() {
+		return this.fields.get(this.fields.size()-1);
+	}
+
+	public Constructor getCurrentConstructor() {
+		return this.constructors.get(this.constructors.size()-1);
+	}
+
+	public Method getCurrentMethod() {
+		return this.methods.get(this.methods.size()-1);
+	}
+
+	public String getName() {
+		return this.name;
+	}
+
+	public String getParentName() {
+		return this.parentName;
+	}
+
+	public void setParentName(String parentName) {
+		this.parentName = parentName;
 	}
 }
