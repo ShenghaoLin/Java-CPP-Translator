@@ -5,7 +5,15 @@ import xtc.tree.GNode;
 import xtc.tree.Node;
 import xtc.tree.Visitor;
 
+import edu.nyu.oop.ObjectRep.Field;
+import edu.nyu.oop.ObjectRep.Constructor;
+import edu.nyu.oop.ObjectRep.Method;
+import edu.nyu.oop.ObjectRep.Parameter;
+import edu.nyu.oop.ObjectRep.VTable;
+import edu.nyu.oop.ObjectRep.VMethod;
+
 import java.util.ArrayList;
+import java.util.Iterator;
 
 public class Phase2 {
 
@@ -25,13 +33,25 @@ public class Phase2 {
 
         //Adding java.lang classes manually
         ObjectRep objectRep = new ObjectRep("Object");
-        //TODO: MANUALLY BUILD OBJECT HERE
+        objectRep.addMethod("Public", true, "int", "hashCode", new ArrayList<Parameter>());
+        ArrayList<Parameter> equalsParameters = new ArrayList<Parameter>();
+        equalsParameters.add(new Parameter("Object", "o"));
+        objectRep.addMethod("Public", true, "boolean", "equals", equalsParameters);
+        objectRep.addMethod("Public", true, "Class", "getClass", new ArrayList<Parameter>());
+        objectRep.addMethod("Public", true, "String", "toString", new ArrayList<Parameter>());
         filled.add(objectRep);
         ObjectRep stringRep = new ObjectRep("String");
-        //TODO: MANUALLY BUILD STRING HERE
+        stringRep.addMethod("Public", true, "int", "length", new ArrayList<Parameter>());
+        ArrayList<Parameter> charAtParameters = new ArrayList<Parameter>();
+        charAtParameters.add(new Parameter("int", "i"));
+        stringRep.addMethod("Public", true, "char", "charAt", charAtParameters);
         filled.add(stringRep);
         ObjectRep classRep = new ObjectRep("Class");
-        //TODO: MANUALLY BUILD CLASS HERE
+        classRep.addMethod("Public", true, "String", "getName", new ArrayList<Parameter>());
+        classRep.addMethod("Public", true, "Class", "getSuperclass", new ArrayList<Parameter>());
+        ArrayList<Parameter> isInstanceParameters = new ArrayList<Parameter>();
+        isInstanceParameters.add(new Parameter("Object", "o"));
+        classRep.addMethod("Public", true, "boolean", "isInstance", isInstanceParameters);
         filled.add(classRep);
 
         //Add classes from unfilled
@@ -39,7 +59,7 @@ public class Phase2 {
         while (finished != unfilled.size()) {
             for (ObjectRep rep : unfilled) {
                 if (!filled.contains(rep)) {
-                    //Don't add until parent class is already in filled, makes sure classes are in descending inheritance order
+                    //Don't add until parent class is already in filled, makes sure classes are in descending inheritance order, needed for inheritance
                     if (rep.getParentName() == null | filled.getFromName(rep.getParentName()) != null) {
                         filled.add(rep);
                         finished += 1;
@@ -48,15 +68,18 @@ public class Phase2 {
             }
         }
 
-        //Iterate through class representations and get inherited methods
+        //Iterate through class representations and build vtables/inherited fields
         for(ObjectRep rep : filled) {
+            //Add class methods to the vtable
+            for (Method method : rep.methods)
+                rep.addVMethod(rep.getName(), method);
+
             //Skip Object, it has no parent
             if (rep.getName().equals("Object"))
                 continue;
 
             //Skip class with main method
-            boolean main = false;
-            for (edu.nyu.oop.ObjectRep.Method method : rep.methods) {
+            for (Method method : rep.methods) {
                 if(method.method_name.equals("main"))
                     continue;
             }
@@ -65,16 +88,20 @@ public class Phase2 {
             if (rep.getParentName() == null)
                 rep.setParentName("Object");
 
-            //TODO: INHERITANCE
+            //Add parent methods to the vtable
             ObjectRep parent = filled.getFromName(rep.getParentName());
-            //for (String methodName : parent.getMethodNames()) {
-            //    if (!rep.getMethodNames().contains(methodName))
-            //        rep.addMethodName(methodName);
-            //}
-            //for (String variableName : parent.getVariableNames()) {
-            //    if (!rep.getVariableNames().contains(variableName))
-            //        rep.addVariableName(variableName);
-            //}
+            for (Method method : parent.methods) {
+                if(!rep.vtable.check(method))
+                    rep.addVMethod(parent.getName(), method);
+            }
+            for (VMethod vmethod : parent.vtable) {
+                if(!rep.vtable.check(vmethod.method))
+                    rep.addVMethod(vmethod);
+            }
+
+            //Add inherited fields
+            for (Field field : parent.fields)
+                rep.fields.add(field);
         }
 
         return filled;
@@ -83,7 +110,7 @@ public class Phase2 {
     public static Node buildCppAst(ObjectRepList ObjectRepList) {
         Node root = GNode.create("CompilationUnit");
 
-        //STILL NEED TO GET REAL PACKAGE INFO
+        //TODO: STILL NEED TO GET REAL PACKAGE INFO
         Node packageDeclaration = GNode.create("PackageDeclaration");
         Node packageName = GNode.create("?????");
         packageDeclaration.add(packageName);
@@ -96,66 +123,68 @@ public class Phase2 {
     }
 
     public static Node buildClassNode(ObjectRep rep) {
-        //Root
-        Node root = GNode.create("ClassDeclaration");
-
-        //Name
-        Node className = GNode.create("Class Name", rep.getName());
-        root.add(className);
-
-        //Constructors
-        //TODO: Build constructor node
-
-        //Methods
-        for(edu.nyu.oop.ObjectRep.Method method : rep.methods) {
-            Node methodDeclaration = GNode.create("MethodDeclaration");
-
-            Node accessModifier = GNode.create("Access Modifier", method.access_modifier);
-            methodDeclaration.add(accessModifier);
-
-            Node isStatic = GNode.create("Is Static", method.is_static);
-            methodDeclaration.add(isStatic);
-
-            Node name = GNode.create("Method Name", method.method_name);
-            methodDeclaration.add(name);
-
-            Node returnType = GNode.create("Return Type", method.return_type);
-            methodDeclaration.add(returnType);
-
-            Node parameterTypes = GNode.create("Parameter Types", method.parameter_types);
-            methodDeclaration.add(parameterTypes);
-
-            Node parameterNames = GNode.create("Parameter Names", method.parameter_names);
-            methodDeclaration.add(parameterNames);
-
-            root.add(methodDeclaration);
+        Node name = GNode.create("ClassName", rep.getName());
+        Node vtablePointer = GNode.create("VTablePointer");
+        Node fields = GNode.create("FieldDeclarations");
+        for(Field field : rep.fields) {
+            fields.add(buildFieldNode(field));
         }
-
-        //Fields
-        for(ObjectRep.Field field : rep.fields) {
-            Node fieldDeclaration = GNode.create("Field");
-
-            Node accessModifier = GNode.create("Access Modifier", field.access_modifier);
-            fieldDeclaration.add(accessModifier);
-
-            Node isStatic = GNode.create("Is Static", field.is_static);
-            fieldDeclaration.add(isStatic);
-
-            Node fieldType = GNode.create("Field Type", field.field_type);
-            fieldDeclaration.add(fieldType);
-
-            Node fieldName = GNode.create("Field Name", field.field_name);
-            fieldDeclaration.add(fieldName);
-
-            Node isInitialized = GNode.create("Is Initialized", field.is_initialized);
-            fieldDeclaration.add(isInitialized);
-
-            Node initial = GNode.create("Initial", field.initial);
-            fieldDeclaration.add(initial);
-
-            root.add(fieldDeclaration);
+        Node constructors = GNode.create("ConstructorDeclarations");
+        for(Constructor constructor : rep.constructors) {
+            constructors.add(buildConstructorNode(constructor));
         }
+        Node methods = GNode.create("MethodDeclarations");
+        for(Method method : rep.methods) {
+            methods.add(buildMethodNode(method));
+        }
+        Node vtable = buildVTableNode(rep.vtable);
+        return GNode.create("ClassDeclaration", name, vtablePointer, fields, constructors, methods, vtable);
+    }
 
+    public static Node buildFieldNode(Field field) {
+        Node accessModifier = GNode.create("AccessModifier", field.access_modifier);
+        Node isStatic = GNode.create("IsStatic", String.valueOf(field.is_static));
+        Node type = GNode.create("FieldType", field.field_type);
+        Node name = GNode.create("FieldName", field.field_name);
+        Node initial = GNode.create("Initial", field.initial);
+        return GNode.create("Field", accessModifier, isStatic, type, name, initial);
+    }
+
+    public static Node buildConstructorNode(Constructor constructor) {
+        Node accessModifier = GNode.create("AccessModifier", constructor.access_modifier);
+        Node name = GNode.create("ConstructorName", constructor.constructor_name);
+        Node parameters = GNode.create("Parameters");
+        for(Parameter p : constructor.parameters) {
+            Node parameterType = GNode.create("ParameterType", p.type);
+            Node parameterName = GNode.create("ParameterName", p.name);
+            Node parameter = GNode.create("Parameter", parameterType, parameterName);
+            parameters.add(parameter);
+        }
+        return GNode.create("ConstructorDeclaration", accessModifier, name, parameters);
+    }
+
+    public static Node buildMethodNode(Method method) {
+        Node accessModifier = GNode.create("AccessModifier", method.access_modifier);
+        Node isStatic = GNode.create("IsStatic", String.valueOf(method.is_static));
+        Node returnType = GNode.create("ReturnType", method.return_type);
+        Node name = GNode.create("MethodName", method.method_name);
+        Node parameters = GNode.create("Parameters");
+        for(Parameter p : method.parameters) {
+            Node parameterType = GNode.create("ParameterType", p.type);
+            Node parameterName = GNode.create("ParameterName", p.name);
+            Node parameter = GNode.create("Parameter", parameterType, parameterName);
+            parameters.add(parameter);
+        }
+        return GNode.create("MethodDeclaration", accessModifier, isStatic, returnType, name, parameters);
+    }
+
+    public static Node buildVTableNode(VTable vtable) {
+        Node root = GNode.create("VTable");
+        for(VMethod vmethod : vtable) {
+            Node className = GNode.create("ClassName", vmethod.className);
+            Node methodName = GNode.create("MethodName", vmethod.method.method_name);
+            root.add(GNode.create("VMethod", className, methodName));
+        }
         return root;
     }
 
@@ -178,31 +207,98 @@ public class Phase2 {
         }
 
         public void visitConstructorDeclaration(GNode n) {
-            //TODO: Visit constructor and call objectRepresentations.getCurrent().addConstructor()
+            //Modifiers
+            String accessModifier = "";
+            boolean isStatic = false;
+            Iterator modifierIter = n.getNode(0).iterator();
+            while(modifierIter.hasNext()) {
+                Node modifierNode = (Node) modifierIter.next();
+                if(modifierNode.getString(0).equals("static"))
+                    isStatic = true;
+                else
+                    accessModifier = modifierNode.getString(0);
+            }
+
+            //Name
+            String name = n.getString(2);
+
+            //Parameters
+            ArrayList<Parameter> parameters = new ArrayList<Parameter>();
+            Iterator parametersIter = n.getNode(4).iterator();
+            while(parametersIter.hasNext()) {
+                Node parameterNode = (Node) parametersIter.next();
+                String parameterType = parameterNode.getNode(1).getNode(0).getString(0);
+                String parameterName = parameterNode.getString(3);
+                parameters.add(new Parameter(parameterType, parameterName));
+            }
+
             visit(n);
         }
 
         public void visitMethodDeclaration(GNode n) {
-            //TODO: SEE NOT SURES
-            String accessModifier = n.getNode(0).getNode(0).getString(0);
-            boolean isStatic = false; //NOT SURE
-            String returnType = ""; //NOT SURE
+            //Modifiers
+            String accessModifier = "";
+            boolean isStatic = false;
+            Iterator modifierIter = n.getNode(0).iterator();
+            while(modifierIter.hasNext()) {
+                Node modifierNode = (Node) modifierIter.next();
+                if(modifierNode.getString(0).equals("static"))
+                    isStatic = true;
+                else
+                    accessModifier = modifierNode.getString(0);
+            }
+
+            //Return type
+            String returnType;
+            Node returnNode = n.getNode(2);
+            if(returnNode.getName().equals("VoidType"))
+                returnType = "void";
+            else
+                returnType = returnNode.getNode(0).getString(0);
+
+            //Method name
             String methodName = n.getString(3);
-            ArrayList<String> parameterTypes = new ArrayList<String>(); //NOT SURE
-            ArrayList<String> parameterNames = new ArrayList<String>(); //NOT SURE
-            objectRepresentations.getCurrent().addMethod(accessModifier, isStatic, returnType, methodName, parameterTypes, parameterNames);
+
+            //Parameters
+            ArrayList<Parameter> parameters = new ArrayList<Parameter>();
+            Iterator parametersIter = n.getNode(4).iterator();
+            while(parametersIter.hasNext()) {
+                Node parameterNode = (Node) parametersIter.next();
+                String parameterType = parameterNode.getNode(1).getNode(0).getString(0);
+                String parameterName = parameterNode.getString(3);
+                parameters.add(new Parameter(parameterType, parameterName));
+            }
+
+            objectRepresentations.getCurrent().addMethod(accessModifier, isStatic, returnType, methodName, parameters);
             visit(n);
         }
 
         public void visitFieldDeclaration(GNode n) {
-            //TODO: SEE NOT SURES
-            String accessModifier = ""; //NOT SURE
+            //Modifiers
+            Iterator modifierIter = n.getNode(0).iterator();
             boolean isStatic = false;
-            String fieldType = n.getNode(1).getStringProperty("QualifiedIdentifier");
+            String accessModifier = "";
+            while(modifierIter.hasNext()) {
+                Node modifierNode = (Node) modifierIter.next();
+                if(modifierNode.getString(0).equals("static"))
+                    isStatic = true;
+                else
+                    accessModifier = modifierNode.getString(0);
+            }
+
+            //Type
+            String fieldType = n.getNode(1).getNode(0).getString(0);
+
+            //Name
             String fieldName = n.getNode(2).getNode(0).getString(0);
-            boolean isInitialized = false; //NOT SURE
-            String initial = ""; //NOT SURE
-            objectRepresentations.getCurrent().addField(accessModifier, isStatic, fieldType, fieldName, isInitialized, initial);
+
+            //Initialization
+            String initial = null;
+            Node initialNode = n.getNode(2).getNode(0).getNode(2);
+            if(initialNode != null)
+                initial = initialNode.getString(0);
+
+            objectRepresentations.getCurrent().addField(accessModifier, isStatic, fieldType, fieldName, initial);
             visit(n);
         }
 
