@@ -21,26 +21,56 @@ public class Phase2 {
         ObjectRepList filled = getFilledObjectRepList(unfilled);
 
         //Build C++ AST from class representations
-        return buildCppAst(filled);
+        //return buildCppAst(filled);
+        return GNode.create("some bullshit");
     }
 
     public static ObjectRepList getFilledObjectRepList(ObjectRepList unfilled) {
 
         // manually add Object, String, Class to reprepsentation list
-        ObjectRepList filled = InitializeRepList();
+        ObjectRepList filled = initializeRepList();
         // manutal addition is finished!
 
-        // fill filled list using contents of unfilled
+        // fill filled list using contents of unfilled, method also considers hierarchy
         filled = fill(filled, unfilled);
+        // heiarchical order is determined!
+
+        // process the v-table for each object except Object, String, Class and Main containing object
+        for (ObjectRep rep : filled) {
+
+            if (!rep.name.equals("Object") && !rep.name.equals("String") && !rep.name.equals("Class")) {
+
+                boolean flag = true;
+
+                // using flags and iteration to determine if main is in representation
+                for (Method method : rep.classRep.methods) if (method.method_name.equals("main")) flag = false;
+
+                // if main is not there, then process output and replace new with the old
+                if (flag) {
+                    ObjectRep new_rep = process(rep, rep.parent);
+                    int replace_idx = filled.getIndexFromName(rep.name);
+                    filled.set(replace_idx, new_rep);
+                } 
+            }
+
+            // don't forget to update the parents after replacing so that logic works, "bubbling down"
+            for (ObjectRep rep_sub : filled) {
+                if (rep_sub.parent != null) {
+                    int parent_index = filled.getIndexFromName(rep_sub.name);
+                    rep_sub.parent = filled.get(parent_index);
+                }
+            }
+        }
 
         //Iterate through class representations and build vtables/inherited fields
+        /*
         for(ObjectRep rep : filled) {
 
-            /* add v-table methods manually using the traversal mechanism
+            /* add v-table methods manually using the traversal mechanism TO-DO
             //Add class methods to the vtable
             for (Method method : rep.methods)
                 rep.addVMethod(rep.getName(), method);
-            */
+            
 
             //Skip Object, it has no parent
             if (rep.getName().equals("Object")) continue;
@@ -70,25 +100,105 @@ public class Phase2 {
             for (Field field : parent.fields)
                 rep.fields.add(field);
         }
+        */
 
         return filled;
     }
 
+    public static ObjectRep process(ObjectRep current, ObjectRep parent) {
+
+        // first process the methods of the class declaration
+        // note: constructor processing is not required at the moment
+        // fields are simply expanded out in visitor with corresponding method definitions
+        // similarly update methods using relationship between an object and its parent
+        // constructors are basically simple, multiple constructors currently not allowed
+
+        ArrayList<Field> updated_fields = determineFields(parent.vtable.fields, current.classRep.methods, current, parent);
+
+        current.vtable.fields = updated_fields;
+
+        ArrayList<VMethod> updated_v_methods = determineVMethods();
+
+        current_vtable.methods = updated_v_methods;
+
+        return current;
+
+    }
+
+    public static ArrayList<VMethod> determineVMethods() {
+
+    }
+
+    public static ArrayList<Field> determineFields(ArrayList<Field> parent_fields, ArrayList<Method> current_methods, ObjectRep current, ObjectRep parent) {
+
+
+        ArrayList<Field> updated_fields = new ArrayList<Field>();
+
+        // determine method declarations dependent on parent declarations (overwritten or not)
+        for (Field parent_field : parent_fields) {
+            // boolean to check if something was updated
+            boolean not_updated = true;
+            // loop over current methods to determine what has been overwritten and what hasn't, this will ensure preservation of order too
+            for (Method current_method : current_methods) {
+                // if the field is class don't process anything, preprocessing for this is already achieved in ObjectRep initialization
+                if (parent_field.field_name.equals("Class")) {
+                    not_updated = false;
+                }
+                // if method is overwritten by child, need extra processing
+                else if (parent_field.field_name.replaceFirst("*","").equals(current_method.method_name)) {
+                    // process parameters correctly into field declaration
+                    String parameters = "";
+                    ArrayList<Parameter> params = current_method.parameters;
+                    for (Parameter param : params) {
+                        if (params.indexOf(param) == params.size() - 1) parameters += param.type;
+                        else parameters += param.type + ",";
+                    }
+                    updated_fields.add(new Field(current_method.access_modifier, true, current_method.return_type, "*"+current_method.method_name, parameters));
+                    not_updated = false;
+                }
+            }
+            // if method wasn't overwritten, modify its args and simply add to updated_fields list
+            if (not_updated) updated_fields.add(new Field(parent_field.access_modifier, parent_field.is_static, parent_field.field_type, parent_field.field_name, parent_field.initial.replaceFirst(parent.name, current.name)));
+        }
+
+        // dump rest of methods in current_methods into updated_fields and set precedent for order + preserve order
+        for (Method current_method : current_methods) {
+            // loop over updated fields to ensure if something was added in, if so ignore, else dump
+            for (Field updated_field : updated_fields) {
+                // if not already declared, declare it now
+                if (!current_method.method_name.equals(updated_field.field_name.replaceFirst("*",""))) {
+                    // process parameters correctly into field declaration
+                    String parameters = "";
+                    ArrayList<Parameter> params = current_method.parameters;
+                    for (Parameter param : params) {
+                        if (params.indexOf(param) == params.size() - 1) parameters += param.type;
+                        else parameters += param.type + ",";
+                    }
+                    updated_fields.add(new Field(current_method.access_modifier, true, current_method.return_type, "*"+current_method.method_name, parameters));
+                }
+            }
+        }
+
+        return updated_fields;
+    }
+
     public static ObjectRepList fill(ObjectRepList filled, ObjectRepList unfilled) {
 
-        //Add classes from unfilled
-        int finished = 0;
-        while (finished != unfilled.size()) {
+        //Add classes from unfilled, keep doing this until filled has same size as unfilled
+        while (filled.size() < unfilled.size() + 3) {
 
             for (ObjectRep rep : unfilled) {
 
-                if (!filled.contains(rep)) {
+                // if no parent set parent to ObjectRep, which will be at filled.get(0)
+                if (rep.parent == null) {
+                    rep.parent = filled.get(0);
+                }
 
-                    //Don't add until parent class is already in filled, makes sure classes are in descending inheritance order, needed for inheritance
-                    if (rep.getParentName() == null || filled.getFromName(rep.getParentName()) != null) {
-                        filled.add(rep);
-                        finished++;
-                    }
+                //Don't add until parent class is already in filled, makes sure classes are in inheritance order, i.e. if a class iherits a class it should be further down the list
+                if (filled.getFromName(rep.parent.name) != null) {
+                    int parent_idx = filled.getIndexFromName(rep.parent.name);
+                    rep.parent = filled.get(parent_idx);
+                    filled.add(rep);
                 }
             }
         }
@@ -96,7 +206,7 @@ public class Phase2 {
         return filled;
     }
 
-    public static ObjectRepList InitializeRepList() {
+    public static ObjectRepList initializeRepList() {
 
         ObjectRepList filled = new ObjectRepList();
 
@@ -115,22 +225,24 @@ public class Phase2 {
         Method toString = new Method("public", true, "String", "toString", params);
         objectRep.classRep.methods.add(toString);
         // class representation for Object filled, now do V-Table filling
-        Field v_hashCode = new Field("public", false, "int32_t", "(*hashCode)", "(Object)");
+        Field v_hashCode = new Field("public", false, "int32_t", "*hashCode", "Object");
         objectRep.vtable.fields.add(v_hashCode);
-        Field v_equals = new Field("public", false, "bool", "(*equals)", "(Object, Object)");
+        Field v_equals = new Field("public", false, "bool", "*equals", "Object, Object");
         objectRep.vtable.fields.add(v_equals);
-        Field v_getClass = new Field("public", false, "Class", "(*getClass)", "(Object)");
+        Field v_getClass = new Field("public", false, "Class", "*getClass", "Object");
         objectRep.vtable.fields.add(v_getClass);
-        Field v_toString = new Field("public", false, "String", "(*toString)", "(Object)");
+        Field v_toString = new Field("public", false, "String", "*toString", "Object");
         objectRep.vtable.fields.add(v_toString);
-        VMethod v_method_hashCode = new VMethod("public", false, "hashCode", "(&__Object::__hashCode)");
+        VMethod v_method_hashCode = new VMethod("public", false, "hashCode", "&__Object::__hashCode");
         objectRep.vtable.methods.add(v_method_hashCode);
-        VMethod v_method_equals = new VMethod("public", false, "equals", "(&__Object::__equals)");
+        VMethod v_method_equals = new VMethod("public", false, "equals", "&__Object::__equals");
         objectRep.vtable.methods.add(v_method_equals);
-        VMethod v_method_getClass = new VMethod("public", false, "getClass", "(&__Object::__getClass)");
+        VMethod v_method_getClass = new VMethod("public", false, "getClass", "&__Object::__getClass");
         objectRep.vtable.methods.add(v_method_getClass);
-        VMethod v_method_toString = new VMethod("public", false, "toString", "(&__Object::__toString)");
+        VMethod v_method_toString = new VMethod("public", false, "toString", "&__Object::__toString");
         objectRep.vtable.methods.add(v_method_toString);
+        // set parent to null
+        objectRep.parent = null;
         // object is created!
         filled.add(objectRep);
 
@@ -157,29 +269,30 @@ public class Phase2 {
         Method charAt = new Method("public", true, "char", "charAt", params);
         stringRep.classRep.methods.add(charAt);
         // class representation for String filled, now do V-Table filling
-        v_hashCode = new Field("public", false, "int32_t", "(*hashCode)", "(String)");
+        v_hashCode = new Field("public", false, "int32_t", "*hashCode", "String");
         stringRep.vtable.fields.add(v_hashCode);
-        v_equals = new Field("public", false, "bool", "(*equals)", "(String, Object)");
+        v_equals = new Field("public", false, "bool", "*equals", "String, Object");
         stringRep.vtable.fields.add(v_equals);
-        v_getClass = new Field("public", false, "Class", "(*getClass)", "(String)");
+        v_getClass = new Field("public", false, "Class", "*getClass", "String");
         stringRep.vtable.fields.add(v_getClass);
-        v_toString = new Field("public", false, "String", "(*toString)", "(String)");
+        v_toString = new Field("public", false, "String", "*toString", "String");
         stringRep.vtable.fields.add(v_toString);
-        Field v_length = new Field("public", false, "int32_t", "(*length)", "(String)");
+        Field v_length = new Field("public", false, "int32_t", "*length", "String");
         stringRep.vtable.fields.add(v_length);
-        Field v_charAt = new Field("public", false, "int32_t", "(*length)", "(String)");
+        Field v_charAt = new Field("public", false, "char", "*charAt", "String");
         stringRep.vtable.fields.add(v_charAt);
-        v_method_hashCode = new VMethod("public", false, "hashCode", "(&__String::__class())");
+        v_method_hashCode = new VMethod("public", false, "hashCode", "&__String::__class()");
         stringRep.vtable.methods.add(v_method_hashCode);
-        v_method_equals = new VMethod("public", false, "equals", "(&__String::equals)");
+        v_method_equals = new VMethod("public", false, "equals", "&__String::equals");
         stringRep.vtable.methods.add(v_method_equals);
-        v_method_getClass = new VMethod("public", false, "getClass", "((Class(*)(String)&__Object::getClass");
+        v_method_getClass = new VMethod("public", false, "getClass", "(Class(*)(String) &__Object::getClass");
         stringRep.vtable.methods.add(v_method_getClass);
-        v_method_toString = new VMethod("public", false, "toString", "(&__toString::toString");
+        v_method_toString = new VMethod("public", false, "toString", "&__toString::toString");
         stringRep.vtable.methods.add(v_method_toString);
-        VMethod v_method_charAt = new VMethod("public", false, "charAt", "(&__String::charAt)");
+        VMethod v_method_charAt = new VMethod("public", false, "charAt", "&__String::charAt");
         stringRep.vtable.methods.add(v_method_charAt);
-
+        // set parent to Object
+        stringRep.parent = objectRep;
         // String is created!
         filled.add(stringRep);
 
@@ -201,46 +314,49 @@ public class Phase2 {
         classRep.classRep.methods.add(toString);
         Method getName = new Method("public", true, "String", "getName", params);
         classRep.classRep.methods.add(getName);
-        Method getSuperclass = new Method("public", true, "Class", "getSuperclass", params);
-        classRep.classRep.methods.add(getSuperclass);
+        Method getSuperClass = new Method("public", true, "Class", "getSuperclass", params);
+        classRep.classRep.methods.add(getSuperClass);
         params.add(new Parameter("Object", "o"));
         Method isInstance = new Method("public", true, "bool", "isInstance", params);
         classRep.classRep.methods.add(isInstance);
         // class representation for Class filled, now do V-Table filling
-        v_hashCode = new Field("public", false, "int32_t", "(*hashCode)", "(Class)");
+        v_hashCode = new Field("public", false, "int32_t", "*hashCode", "Class");
         classRep.vtable.fields.add(v_hashCode);
-        v_equals = new Field("public", false, "bool", "(*equals)", "(Class, Object)");
+        v_equals = new Field("public", false, "bool", "*equals", "Class, Object");
         classRep.vtable.fields.add(v_equals);
-        v_getClass = new Field("public", false, "Class", "(*getClass)", "(Class)");
+        v_getClass = new Field("public", false, "Class", "*getClass", "Class");
         classRep.vtable.fields.add(v_getClass);
-        v_toString = new Field("public", false, "String", "(*toString)", "(Class)");
+        v_toString = new Field("public", false, "String", "*toString", "Class");
         classRep.vtable.fields.add(v_toString);
-        Field v_getName = new Field("public", false, "String", "(*getName)", "(Class)");
+        Field v_getName = new Field("public", false, "String", "*getName", "Class");
         classRep.vtable.fields.add(v_getName);
-        Field v_getSuperclass = new Field("public", false, "String", "(*getSuperclass)", "(Class)");
-        classRep.vtable.fields.add(v_getSuperclass);
-        Field v_isInstance = new Field("public", false, "String", "(*isInstance)", "(Class)");
+        Field v_getSuperClass = new Field("public", false, "String", "*getSuperclass", "Class");
+        classRep.vtable.fields.add(v_getSuperClass);
+        Field v_isInstance = new Field("public", false, "String", "*isInstance", "Class");
         classRep.vtable.fields.add(v_isInstance);
-        v_method_hashCode = new VMethod("public", false, "hashCode", "((int32_t(*)(Class)) &__Object::hashCode)");
+        v_method_hashCode = new VMethod("public", false, "hashCode", "(int32_t(*)(Class) &__Object::hashCode");
         classRep.vtable.methods.add(v_method_hashCode);
-        v_method_equals = new VMethod("public", false, "equals", "((bool(*)(Class,Object)) &__Object::equals)");
+        v_method_equals = new VMethod("public", false, "equals", "(bool(*)(Class,Object) &__Object::equals");
         classRep.vtable.methods.add(v_method_equals);
-        v_method_getClass = new VMethod("public", false, "getClass", "((Class(*)(Class)) &__Object::getClass)");
+        v_method_getClass = new VMethod("public", false, "getClass", "(Class(*)(Class) &__Object::getClass");
         classRep.vtable.methods.add(v_method_getClass);
-        v_method_toString = new VMethod("public", false, "toString", "(&__Class::toString)");
+        v_method_toString = new VMethod("public", false, "toString", "&__Class::toString");
         classRep.vtable.methods.add(v_method_toString);
-        VMethod v_method_getName = new VMethod("public", false, "getName", "(&__Class::getName)");
+        VMethod v_method_getName = new VMethod("public", false, "getName", "&__Class::getName");
         classRep.vtable.methods.add(v_method_getName);
-        VMethod v_method_getSuperClass = new VMethod("public", false, "getSuperclass", "(&__Class::getSuperclass)");
+        VMethod v_method_getSuperClass = new VMethod("public", false, "getSuperclass", "&__Class::getSuperclass");
         classRep.vtable.methods.add(v_method_getSuperClass);
-        VMethod v_method_isInstance = new VMethod("public", false, "isInstance", "(&__Class::isInstance)");
+        VMethod v_method_isInstance = new VMethod("public", false, "isInstance", "&__Class::isInstance");
         classRep.vtable.methods.add(v_method_isInstance);
+        // set parent to object
+        classRep.parent = objectRep;
         // class is created!
         filled.add(classRep);
 
         return filled;
     }
 
+    /*
     public static Node buildCppAst(ObjectRepList ObjectRepList) {
         Node root = GNode.create("CompilationUnit");
 
@@ -321,6 +437,7 @@ public class Phase2 {
         }
         return root;
     }
+    */
 
     public static class Phase2Visitor extends Visitor {
 
@@ -335,7 +452,7 @@ public class Phase2 {
         }
 
         public void visitExtension(GNode n) {
-            objectReps.getCurrent().setParentName(n.getNode(0).getNode(0).getString(0));
+            objectReps.getCurrent().parent = new ObjectRep(n.getNode(0).getNode(0).getString(0));
             visit(n);
         }
 
@@ -490,8 +607,14 @@ public class Phase2 {
         public ObjectRep getCurrent() { return this.get(this.size()-1); }
 
         public ObjectRep getFromName(String name) {
-            for(ObjectRep rep : this) if(rep.getName().equals(name)) return rep;
+            for (ObjectRep rep : this) if(rep.name.equals(name)) return rep;
             return null;
+        }
+
+        public int getIndexFromName(String name) {
+            int counter = 0;
+            for (ObjectRep rep : this) if (rep.name.equals(name)) return counter; else counter++;
+            return -1;
         }
     }
 }
