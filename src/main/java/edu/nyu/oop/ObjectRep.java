@@ -4,8 +4,8 @@ import java.util.ArrayList;
 
 public class ObjectRep {
 
-	private String name;
-	private String parentName;
+	public String name;
+	public ObjectRep parent = null;
 
 	public ClassRep classRep;
 	public VTable vtable;
@@ -18,7 +18,7 @@ public class ObjectRep {
 
 	public static class VTable {
 		public ArrayList<Field> fields = new ArrayList<Field>();
-		public ArrayList<Method> methods = new ArrayList<Method>();
+		public ArrayList<VMethod> methods = new ArrayList<VMethod>();
 	}
 
 	public ObjectRep(String name) {
@@ -30,27 +30,15 @@ public class ObjectRep {
 		classRep.fields.add(__vptr);
 		Field __vtable = new Field("public", true, "__" + this.name + "_VT", "__vtable", "");
 		classRep.fields.add(__vtable);
-		Constructor constructor = new Constructor("public", "__" + this.name + "()", null);
+		Constructor constructor = new Constructor("public", "__" + this.name + "()", new ArrayList<Parameter>());
 		classRep.constructors.add(constructor);
-		Method class_name = new Method("public", true, "Class", "__class()", null);
+		Method class_name = new Method("public", true, "Class", "__class()", new ArrayList<Parameter>());
 		classRep.methods.add(class_name);
 
 		this.vtable = new VTable();
-		Field __isa = new Field("public", false, "Class", "__isa", "");
-		vtable.fields.add(__isa);
-		Method __isa = new Method("public", false, "", "__isa", "(__" + this.name + "::__class())");
-		vtable.methods.add(__isa);
-	}
-
-	public String getName() {
-		return this.name;
-	}
-
-	public String getParentName() {
-		return this.parentName;
-	}
-
-	public void setParentName(String parentName) {
-		this.parentName = parentName;
+		Field __isa_field = new Field("public", false, "Class", "__isa", "");
+		vtable.fields.add(__isa_field);
+		VMethod __isa_method = new VMethod("public", false, "__isa", "(__" + this.name + "::__class())");
+		vtable.methods.add(__isa_method);
 	}
 }
