@@ -37,22 +37,17 @@ public class Phase2 {
 
         // Adding java.lang structure manually for Object
         ObjectRep objectRep = new ObjectRep("Object");
-        ArrayList<Parameter> forHashCode = new ArrayListM<Parameter>();
+        ArrayList<Parameter> params = new ArrayListM<Parameter>();
         forHashCode.add(new Parameter("Object", "o"));
-        Method hashCode = new Method("public", true, "int32_t", "hashCode", forHashCode);
+        Method hashCode = new Method("public", true, "int32_t", "hashCode", params);
         objectRep.classRep.methods.add(hashCode);
-        ArrayList<Parameter> forEquals = new ArrayList<Parameter>();
-        forEquals.add(new Parameter("Object", "o"));
-        forEquals.add(new Parameter("Object", "o"));
-        Method equals = new Method("public", true, "bool", "equals", forEquals);
+        params.add(new Parameter("Object", "o"));
+        Method equals = new Method("public", true, "bool", "equals", params);
         objectRep.classRep.methods.add(equals);
-        ArrayList<Parameters> forGetClass = new ArrayList<Parameter>();
-        forGetClass.add(new Parameter("Object", "o"));
-        Method getClass = new Method("public", true, "Class", "getClass", forGetClass);
+        params.remove(1);
+        Method getClass = new Method("public", true, "Class", "getClass", params);
         objectRep.classRep.methods.add(getClass);
-        ArrayList<Parameters> forToString = new ArrayList<Parameter>();
-        forToString.add(new Parameter("Object", "o"));
-        Method toString = new Method("public", true, "String", "toString", forToString);
+        Method toString = new Method("public", true, "String", "toString", params);
         objectRep.classRep.methods.add(toString);
         // class representation for Object filled, now do V-Table filling
         Field v_hashCode = new Field("public", false, "int32_t", "(*hashCode)(Object)");
@@ -75,34 +70,31 @@ public class Phase2 {
         filled.add(objectRep);
 
         // Adding java.lang structure manually for String
+
+
+        // Adding java.lang structure manually for Class
         ObjectRep classRep = new ObjectRep("Class");
         Field name = new Field("public", false, "String", "name", "");
         classRep.classRep.fields.add(name);
         Field parent = new Field("public", false, "Class", "parent", "");
         classRep.classRep.fields.add(parent);
-        ArrayList<Parameter> forClassConstructor = new ArrayList<Parameter>();
-        forClassConstructor.add(new Parameter("String", "name"));
-        forClassConstructor.add(new Parameter("Class", "parent"));
+        params = new ArrayList<Parameter>();
+        params.add(new Parameter("String", "name"));
+        params.add(new Parameter("Class", "parent"));
         Constructor classConstructor = new Constructor("public", "__" + this.name, forClassConstructor);
         classRep.classRep.constructors.remove(0);
         classRep.classRep.constructors.add(classConstructor);
-        ArrayList<Parameter> forToStringClass = new ArrayList<Parameter>();
-        forToStringClass.add(new Parameter("Class", "c"));
-        Method toStringClass = new Method("public", true, "String", "toString", forToStringClass);
-        classRep.classRep.add(toStringClass);
-        ArrayList<Parameter> forGetNameClass = new ArrayList<Parameter>();
-        forGetNameClass.add(new Parameter("Class", "c"));
-        Method getNameClass = new Method("public", true, "String", "getName", forGetNameClass);
-        classRep.classRep.add(getNameClass);
-        ArrayList<Parameter> forGetSuperClass = new ArrayList<Parameter>();
-        forGetSuperClass.add(new Parameter("Class", "c"));
-        Method getSuperClass = new Method("public", true, "Class", "getSuperclass", forGetSuperClass);
-        classRep.classRep.add(getSuperClass);
-        ArrayList<Parameter> forIsInstanceClass = new ArrayList<Parameter>();
-        forIsInstanceClass.add(new Parameter("Class", "c"));
-        forIsInstanceClass.add(new Parameter("Object", "o"));
-        Method isInstanceClass = new Method("public", true, "bool", "isInstance", forIsInstanceClass);
-        classRep.classRep.add(isInstanceClass);
+        params = new ArrayList<Parameter>();
+        params.add(new Parameter("Class", "c"));
+        toString = new Method("public", true, "String", "toString", params);
+        classRep.classRep.add(toString);
+        Method getName = new Method("public", true, "String", "getName", params);
+        classRep.classRep.add(getName);
+        Method getSuperclass = new Method("public", true, "Class", "getSuperclass", params);
+        classRep.classRep.add(getSuperclass);
+        params.add(new Parameter("Object", "o"));
+        Method isInstance = new Method("public", true, "bool", "isInstance", params);
+        classRep.classRep.add(isInstance);
         // class representation for Class filled, now do V-Table filling
         v_hashCode = new Field("public", false, "int32_t", "(*hashCode)(Class)");
         classRep.vtable.fields.add(v_hashCode);
@@ -114,8 +106,8 @@ public class Phase2 {
         classRep.vtable.fields.add(v_toString);
         v_getName = new Field("public", false, "String", "(*getName)(Class)");
         classRep.vtable.fields.add(v_getName);
-        v_getSuperClass = new Field("public", false, "String", "(*getSuperclass)(Class)");
-        classRep.vtable.fields.add(v_getSuperClass);
+        v_getSuperclass = new Field("public", false, "String", "(*getSuperclass)(Class)");
+        classRep.vtable.fields.add(v_getSuperclass);
         v_isInstance = new Field("public", false, "String", "(*isInstance)(Class)");
         classRep.vtable.fields.add(v_isInstance);
         v_method_hashCode = new Method("public", false, "", "hashCode((int32_t(*)(Class))", "__&Object::__hashCode)");
@@ -132,32 +124,10 @@ public class Phase2 {
         classRep.vtable.methods.add(v_method_getSuperClass);
         Method v_method_isInstance = new Method("public", false, "", "isInstance", "(__&Class::__isInstance)");
         classRep.vtable.methods.add(v_method_isInstance);
-
-
-
-
-
-        
-        objectRep.addMethod("Public", true, "int", "hashCode", new ArrayList<Parameter>());
-        ArrayList<Parameter> equalsParameters = new ArrayList<Parameter>();
-        equalsParameters.add(new Parameter("Object", "o"));
-        objectRep.addMethod("Public", true, "boolean", "equals", equalsParameters);
-        objectRep.addMethod("Public", true, "Class", "getClass", new ArrayList<Parameter>());
-        objectRep.addMethod("Public", true, "String", "toString", new ArrayList<Parameter>());
-        filled.add(objectRep);
-        ObjectRep stringRep = new ObjectRep("String");
-        stringRep.addMethod("Public", true, "int", "length", new ArrayList<Parameter>());
-        ArrayList<Parameter> charAtParameters = new ArrayList<Parameter>();
-        charAtParameters.add(new Parameter("int", "i"));
-        stringRep.addMethod("Public", true, "char", "charAt", charAtParameters);
-        filled.add(stringRep);
-        ObjectRep classRep = new ObjectRep("Class");
-        classRep.addMethod("Public", true, "String", "getName", new ArrayList<Parameter>());
-        classRep.addMethod("Public", true, "Class", "getSuperclass", new ArrayList<Parameter>());
-        ArrayList<Parameter> isInstanceParameters = new ArrayList<Parameter>();
-        isInstanceParameters.add(new Parameter("Object", "o"));
-        classRep.addMethod("Public", true, "boolean", "isInstance", isInstanceParameters);
+        // class is created!
         filled.add(classRep);
+
+        // manutal addition is finished!
 
         //Add classes from unfilled
         int finished = 0;
