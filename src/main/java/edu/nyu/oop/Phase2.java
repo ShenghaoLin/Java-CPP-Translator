@@ -18,21 +18,126 @@ import java.util.Iterator;
 public class Phase2 {
 
     public static Node runPhase2(Node n) {
+
         //Traverse Java AST
         Phase2Visitor visitor = new Phase2Visitor();
         visitor.traverse(n);
+
         //Build list of class representations (java.lang, inheritance)
         ObjectRepList unfilled = visitor.getObjectRepresentations();
         ObjectRepList filled = getFilledObjectRepList(unfilled);
+
         //Build C++ AST from class representations
         return buildCppAst(filled);
     }
 
     public static ObjectRepList getFilledObjectRepList(ObjectRepList unfilled) {
+
         ObjectRepList filled = new ObjectRepList();
 
-        //Adding java.lang classes manually
+        // Adding java.lang structure manually for Object
         ObjectRep objectRep = new ObjectRep("Object");
+        ArrayList<Parameter> forHashCode = new ArrayListM<Parameter>();
+        forHashCode.add(new Parameter("Object", "o"));
+        Method hashCode = new Method("public", true, "int32_t", "hashCode", forHashCode);
+        objectRep.classRep.methods.add(hashCode);
+        ArrayList<Parameter> forEquals = new ArrayList<Parameter>();
+        forEquals.add(new Parameter("Object", "o"));
+        forEquals.add(new Parameter("Object", "o"));
+        Method equals = new Method("public", true, "bool", "equals", forEquals);
+        objectRep.classRep.methods.add(equals);
+        ArrayList<Parameters> forGetClass = new ArrayList<Parameter>();
+        forGetClass.add(new Parameter("Object", "o"));
+        Method getClass = new Method("public", true, "Class", "getClass", forGetClass);
+        objectRep.classRep.methods.add(getClass);
+        ArrayList<Parameters> forToString = new ArrayList<Parameter>();
+        forToString.add(new Parameter("Object", "o"));
+        Method toString = new Method("public", true, "String", "toString", forToString);
+        objectRep.classRep.methods.add(toString);
+        // class representation for Object filled, now do V-Table filling
+        Field v_hashCode = new Field("public", false, "int32_t", "(*hashCode)(Object)");
+        objectRep.vtable.fields.add(v_hashCode);
+        Field v_equals = new Field("public", false, "bool", "(*equals)(Object, Object)");
+        objectRep.vtable.fields.add(v_equals);
+        Field v_getClass = new Field("public", false, "Class", "(*getClass)(Object)");
+        objectRep.vtable.fields.add(v_getClass);
+        Field v_toString = new Field("public", false, "String", "(*toString)(Object)");
+        objectRep.vtable.fields.add(v_toString);
+        Method v_method_hashCode = new Method("public", false, "", "hashCode", "(__&Object::__hashCode)");
+        objectRep.vtable.methods.add(v_method_hashCode);
+        Method v_method_equals = new Method("public", false, "", "equals", "(__&Object::__equals)");
+        objectRep.vtable.methods.add(v_method_equals);
+        Method v_method_getClass = new Method("public", false, "", "getClass", "(__&Object::__getClass)");
+        objectRep.vtable.methods.add(v_method_getClass);
+        Method v_method_toString = new Method("public", false, "", "toString", "(__&Object::__toString)");
+        objectRep.vtable.methods.add(v_method_toString);
+        // object is created!
+        filled.add(objectRep);
+
+        // Adding java.lang structure manually for String
+        ObjectRep classRep = new ObjectRep("Class");
+        Field name = new Field("public", false, "String", "name", "");
+        classRep.classRep.fields.add(name);
+        Field parent = new Field("public", false, "Class", "parent", "");
+        classRep.classRep.fields.add(parent);
+        ArrayList<Parameter> forClassConstructor = new ArrayList<Parameter>();
+        forClassConstructor.add(new Parameter("String", "name"));
+        forClassConstructor.add(new Parameter("Class", "parent"));
+        Constructor classConstructor = new Constructor("public", "__" + this.name, forClassConstructor);
+        classRep.classRep.constructors.remove(0);
+        classRep.classRep.constructors.add(classConstructor);
+        ArrayList<Parameter> forToStringClass = new ArrayList<Parameter>();
+        forToStringClass.add(new Parameter("Class", "c"));
+        Method toStringClass = new Method("public", true, "String", "toString", forToStringClass);
+        classRep.classRep.add(toStringClass);
+        ArrayList<Parameter> forGetNameClass = new ArrayList<Parameter>();
+        forGetNameClass.add(new Parameter("Class", "c"));
+        Method getNameClass = new Method("public", true, "String", "getName", forGetNameClass);
+        classRep.classRep.add(getNameClass);
+        ArrayList<Parameter> forGetSuperClass = new ArrayList<Parameter>();
+        forGetSuperClass.add(new Parameter("Class", "c"));
+        Method getSuperClass = new Method("public", true, "Class", "getSuperclass", forGetSuperClass);
+        classRep.classRep.add(getSuperClass);
+        ArrayList<Parameter> forIsInstanceClass = new ArrayList<Parameter>();
+        forIsInstanceClass.add(new Parameter("Class", "c"));
+        forIsInstanceClass.add(new Parameter("Object", "o"));
+        Method isInstanceClass = new Method("public", true, "bool", "isInstance", forIsInstanceClass);
+        classRep.classRep.add(isInstanceClass);
+        // class representation for Class filled, now do V-Table filling
+        v_hashCode = new Field("public", false, "int32_t", "(*hashCode)(Class)");
+        classRep.vtable.fields.add(v_hashCode);
+        v_equals = new Field("public", false, "bool", "(*equals)(Class, Object)");
+        classRep.vtable.fields.add(v_equals);
+        v_getClass = new Field("public", false, "Class", "(*getClass)(Class)");
+        classRep.vtable.fields.add(v_getClass);
+        v_toString = new Field("public", false, "String", "(*toString)(Class)");
+        classRep.vtable.fields.add(v_toString);
+        v_getName = new Field("public", false, "String", "(*getName)(Class)");
+        classRep.vtable.fields.add(v_getName);
+        v_getSuperClass = new Field("public", false, "String", "(*getSuperclass)(Class)");
+        classRep.vtable.fields.add(v_getSuperClass);
+        v_isInstance = new Field("public", false, "String", "(*isInstance)(Class)");
+        classRep.vtable.fields.add(v_isInstance);
+        v_method_hashCode = new Method("public", false, "", "hashCode((int32_t(*)(Class))", "__&Object::__hashCode)");
+        classRep.vtable.methods.add(v_method_hashCode);
+        v_method_equals = new Method("public", false, "", "equals((bool(*)(Class,Object))", "__&Object::__equals)");
+        classRep.vtable.methods.add(v_method_equals);
+        v_method_getClass = new Method("public", false, "", "getClass((Class(*)(Class))", "__&Object::__getClass)");
+        classRep.vtable.methods.add(v_method_getClass);
+        v_method_toString = new Method("public", false, "", "toString", "__&Class::__toString)");
+        classRep.vtable.methods.add(v_method_toString);
+        Method v_method_getName = new Method("public", false, "", "getName", "__&Class::__getName)");
+        classRep.vtable.methods.add(v_method_getName);
+        Method v_method_getSuperClass = new Method("public", false, "", "getSuperclass", "(__&Class::__getSuperClass)");
+        classRep.vtable.methods.add(v_method_getSuperClass);
+        Method v_method_isInstance = new Method("public", false, "", "isInstance", "(__&Class::__isInstance)");
+        classRep.vtable.methods.add(v_method_isInstance);
+
+
+
+
+
+        
         objectRep.addMethod("Public", true, "int", "hashCode", new ArrayList<Parameter>());
         ArrayList<Parameter> equalsParameters = new ArrayList<Parameter>();
         equalsParameters.add(new Parameter("Object", "o"));
