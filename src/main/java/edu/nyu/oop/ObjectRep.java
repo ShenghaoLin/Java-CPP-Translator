@@ -33,7 +33,7 @@ public class ObjectRep {
 		Constructor constructor = new Constructor("public", "__" + this.name + "()", null);
 		classRep.constructors.add(constructor);
 		Method class_name = new Method("public", true, "Class", "__class()", null);
-		classRep.methods.add(class_name;
+		classRep.methods.add(class_name);
 
 		this.vtable = new VTable();
 		Field __isa = new Field("public", false, "Class", "__isa", "");
