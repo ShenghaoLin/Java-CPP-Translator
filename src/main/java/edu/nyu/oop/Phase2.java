@@ -493,8 +493,14 @@ public class Phase2 {
         Node packageDeclaration = GNode.create("PackageDeclaration", packageName);
         root.add(packageDeclaration);
 
+        Node forwardDeclarations = GNode.create("ForwardDeclarations");
+        root.add(forwardDeclarations);
+
         // process each object representation and create its class node
-        for (ObjectRep rep : ObjectRepList) root.add(buildClassNode(rep));
+        for (ObjectRep rep : ObjectRepList) {
+            forwardDeclarations.add(rep.name);
+            root.add(buildClassNode(rep));
+        }
 
         return root;
     }
