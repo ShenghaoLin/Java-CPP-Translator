@@ -516,7 +516,7 @@ public class Phase2 {
         for(Method method : rep.classRep.methods) {
             methods.add(buildMethodNode(method));
         }
-        Node vtable = buildVTableNode(rep.vtable.fields, rep.vtable.methods);
+        Node vtable = buildVTableNode(rep.vtable.fields, rep.vtable.methods, rep.name);
         return GNode.create("ClassDeclaration", name, fields, constructors, methods, vtable);
     }
 
@@ -554,8 +554,8 @@ public class Phase2 {
         return GNode.create("MethodDeclaration", isStatic, returnType, name, parameters);
     }
 
-    public static Node buildVTableNode(ArrayList<Field> vfields, ArrayList<VMethod> vmethods) {
-        Node root = GNode.create("VTable");
+    public static Node buildVTableNode(ArrayList<Field> vfields, ArrayList<VMethod> vmethods, String name) {
+        Node root = GNode.create("VTable", name);
         for (Field vfield : vfields) {
             Node fieldType = GNode.create("FieldType", vfield.field_type);
             Node fieldName = GNode.create("FieldName", vfield.field_name);
