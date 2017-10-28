@@ -5,7 +5,7 @@ import java.util.ArrayList;
 public class ObjectRep {
 
 	public String name;
-	public ObjectRep parent = null;
+	public ObjectRep parent;
 
 	public ClassRep classRep;
 	public VTable vtable;
@@ -24,6 +24,7 @@ public class ObjectRep {
 	public ObjectRep(String name) {
 
 		this.name = name;
+		this.parent = null;
 
 		this.classRep = new ClassRep();
 		Field __vptr = new Field("public", false, "__" + this.name + "_VT*", "__vptr", "");
@@ -36,9 +37,9 @@ public class ObjectRep {
 		classRep.methods.add(class_name);
 
 		this.vtable = new VTable();
-		Field __isa_field = new Field("public", false, "Class", "__isa", "");
+		Field __isa_field = new Field("public", false, "Class", "__is_a", "");
 		vtable.fields.add(__isa_field);
-		VMethod __isa_method = new VMethod("public", false, "__isa", "(__" + this.name + "::__class())");
+		VMethod __isa_method = new VMethod("public", false, "__is_a", "(__" + this.name + "::__class())");
 		vtable.methods.add(__isa_method);
 	}
 }
