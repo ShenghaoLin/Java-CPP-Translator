@@ -11,7 +11,7 @@ import java.util.HashSet;
 
 public class Phase2 {
 
-    String packageName = "";
+    static String packageName = "";
 
     public static Node runPhase2(Node n) {
 
@@ -516,8 +516,8 @@ public class Phase2 {
         for(Method method : rep.classRep.methods) {
             methods.add(buildMethodNode(method));
         }
-        Node vtable = buildVTableNode(rep.vtable);
-        return GNode.create("ClassDeclaration", name, vtablePointer, fields, constructors, methods, vtable);
+        Node vtable = buildVTableNode(rep.vtable.fields, rep.vtable.methods);
+        return GNode.create("ClassDeclaration", name, fields, constructors, methods, vtable);
     }
 
     public static Node buildFieldNode(Field field) {
@@ -554,9 +554,7 @@ public class Phase2 {
         return GNode.create("MethodDeclaration", isStatic, returnType, name, parameters);
     }
 
-    public static Node buildVTableNode(VTable vtable) {
-        ArrayList<Field> vfields = vtable.fields;
-        ArrayList<VMethod> vemthods = vtable.methods;
+    public static Node buildVTableNode(ArrayList<Field> vfields, ArrayList<VMethod> vmethods) {
         Node root = GNode.create("VTable");
         for (Field vfield : vfields) {
             Node fieldType = GNode.create("FieldType", vfield.field_type);
