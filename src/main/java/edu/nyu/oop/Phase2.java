@@ -11,6 +11,8 @@ import java.util.HashSet;
 
 public class Phase2 {
 
+    String packageName = "";
+
     public static Node runPhase2(Node n) {
 
         boolean dump = false;
@@ -24,8 +26,7 @@ public class Phase2 {
         ObjectRepList filled = getFilledObjectRepList(unfilled, dump);
 
         //Build C++ AST from class representations
-        //return buildCppAst(filled);
-        return GNode.create("some bullshit");
+        return buildCppAst(filled);
     }
 
     public static ObjectRepList getFilledObjectRepList(ObjectRepList unfilled, boolean dump) {
@@ -483,35 +484,36 @@ public class Phase2 {
         return filled;
     }
 
-    /*
     public static Node buildCppAst(ObjectRepList ObjectRepList) {
+
+        // create root
         Node root = GNode.create("CompilationUnit");
 
-        //TODO: STILL NEED TO GET REAL PACKAGE INFO
-        Node packageDeclaration = GNode.create("PackageDeclaration");
-        Node packageName = GNode.create("?????");
-        packageDeclaration.add(packageName);
+        // declare package and add to root
+        Node packageDeclaration = GNode.create("PackageDeclaration", packageName);
         root.add(packageDeclaration);
 
-        for (ObjectRep rep : ObjectRepList)
-            root.add(buildClassNode(rep));
+        // process each object representation and create its class node
+        for (ObjectRep rep : ObjectRepList) root.add(buildClassNode(rep));
 
         return root;
     }
 
     public static Node buildClassNode(ObjectRep rep) {
-        Node name = GNode.create("ClassName", rep.getName());
-        Node vtablePointer = GNode.create("VTablePointer");
+
+        // create node for name of class
+        Node name = GNode.create("ClassName", rep.name);
+
+        // create node for field declarations, dump contents of field declarations
         Node fields = GNode.create("FieldDeclarations");
-        for(Field field : rep.fields) {
-            fields.add(buildFieldNode(field));
-        }
+        for(Field field : rep.classRep.fields) fields.add(buildFieldNode(field));
+
         Node constructors = GNode.create("ConstructorDeclarations");
-        for(Constructor constructor : rep.constructors) {
+        for(Constructor constructor : rep.classRep.constructors) {
             constructors.add(buildConstructorNode(constructor));
         }
         Node methods = GNode.create("MethodDeclarations");
-        for(Method method : rep.methods) {
+        for(Method method : rep.classRep.methods) {
             methods.add(buildMethodNode(method));
         }
         Node vtable = buildVTableNode(rep.vtable);
@@ -519,16 +521,14 @@ public class Phase2 {
     }
 
     public static Node buildFieldNode(Field field) {
-        Node accessModifier = GNode.create("AccessModifier", field.access_modifier);
         Node isStatic = GNode.create("IsStatic", String.valueOf(field.is_static));
         Node type = GNode.create("FieldType", field.field_type);
         Node name = GNode.create("FieldName", field.field_name);
         Node initial = GNode.create("Initial", field.initial);
-        return GNode.create("Field", accessModifier, isStatic, type, name, initial);
+        return GNode.create("Field", isStatic, type, name, initial);
     }
 
     public static Node buildConstructorNode(Constructor constructor) {
-        Node accessModifier = GNode.create("AccessModifier", constructor.access_modifier);
         Node name = GNode.create("ConstructorName", constructor.constructor_name);
         Node parameters = GNode.create("Parameters");
         for(Parameter p : constructor.parameters) {
@@ -537,11 +537,10 @@ public class Phase2 {
             Node parameter = GNode.create("Parameter", parameterType, parameterName);
             parameters.add(parameter);
         }
-        return GNode.create("ConstructorDeclaration", accessModifier, name, parameters);
+        return GNode.create("ConstructorDeclaration", name, parameters);
     }
 
     public static Node buildMethodNode(Method method) {
-        Node accessModifier = GNode.create("AccessModifier", method.access_modifier);
         Node isStatic = GNode.create("IsStatic", String.valueOf(method.is_static));
         Node returnType = GNode.create("ReturnType", method.return_type);
         Node name = GNode.create("MethodName", method.method_name);
@@ -552,19 +551,29 @@ public class Phase2 {
             Node parameter = GNode.create("Parameter", parameterType, parameterName);
             parameters.add(parameter);
         }
-        return GNode.create("MethodDeclaration", accessModifier, isStatic, returnType, name, parameters);
+        return GNode.create("MethodDeclaration", isStatic, returnType, name, parameters);
     }
 
     public static Node buildVTableNode(VTable vtable) {
+        ArrayList<Field> vfields = vtable.fields;
+        ArrayList<VMethod> vemthods = vtable.methods;
         Node root = GNode.create("VTable");
-        for(VMethod vmethod : vtable) {
-            Node className = GNode.create("ClassName", vmethod.className);
-            Node methodName = GNode.create("MethodName", vmethod.method.method_name);
-            root.add(GNode.create("VMethod", className, methodName));
+        for (Field vfield : vfields) {
+            Node fieldType = GNode.create("FieldType", vfield.field_type);
+            Node fieldName = GNode.create("FieldName", vfield.field_name);
+            Node initial = GNode.create("Initial", vfield.initial);
+            Node vNode = GNode.create("VField", fieldType, fieldName, initial);
+            root.add(vNode);
+
+        }
+        for(VMethod vmethod : vmethods) {
+            Node methodName = GNode.create("MethodName", vmethod.method_name);
+            Node initial = GNode.create("Initial", vmethod.initial);
+            Node vMethod = GNode.create("VMethod", methodName, initial);
+            root.add(vMethod);
         }
         return root;
     }
-    */
 
     public static class Phase2Visitor extends Visitor {
 
@@ -572,6 +581,11 @@ public class Phase2 {
         private ObjectRepList objectReps = new ObjectRepList();
 
         public void visitCompilationNode(GNode n) { visit(n); }
+
+        public void visitPackageDeclaration(GNode n){
+             Phase2.packageName = n.getNode(1).getString(0);
+             visit(n);
+         }
 
         public void visitClassDeclaration(GNode n) {
             objectReps.add(new ObjectRep(n.getString(1)));
