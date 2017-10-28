@@ -89,6 +89,16 @@ public class Phase2 {
 
         }
 
+        int idx = 0;
+        for (ObjectRep rep3 : filled) {
+            ArrayList<Method> methods = rep3.classRep.methods;
+            for (Method method : methods) {
+                if (method.method_name.equals("main")) idx = filled.getIndexFromName(rep3.name);
+            }
+        }
+
+        filled.remove(idx);
+
         // if you want to view the contents before everything is processed into nodes activate dump
         if (dump) printBeforeNodes(filled);
 
@@ -493,12 +503,12 @@ public class Phase2 {
         Node packageDeclaration = GNode.create("PackageDeclaration", packageName);
         root.add(packageDeclaration);
 
-        Node forwardDeclarations = GNode.create("ForwardDeclarations");
-        root.add(forwardDeclarations);
+        Node forwardDeclaration = GNode.create("ForwardDeclaration");
+        root.add(forwardDeclaration);
 
         // process each object representation and create its class node
         for (ObjectRep rep : ObjectRepList) {
-            forwardDeclarations.add(rep.name);
+            forwardDeclaration.add(rep.name);
             root.add(buildClassNode(rep));
         }
 
@@ -561,7 +571,8 @@ public class Phase2 {
     }
 
     public static Node buildVTableNode(ArrayList<Field> vfields, ArrayList<VMethod> vmethods, String name) {
-        Node root = GNode.create("VTable", name);
+        Node root = GNode.create("VTableLayout");
+        root.add(name);
         for (Field vfield : vfields) {
             Node fieldType = GNode.create("FieldType", vfield.field_type);
             Node fieldName = GNode.create("FieldName", vfield.field_name);
