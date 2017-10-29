@@ -18,12 +18,14 @@ public class Phase3 extends Visitor {
 
     private String outputLocation = XtcProps.get("output.location");
 
+
     String className;
+
 
     public Phase3() {
         Writer w = null;
         try {
-            FileOutputStream fos = new FileOutputStream(outputLocation + "/output.h");
+            FileOutputStream fos = new FileOutputStream(outputLocation + "output.h");
             OutputStreamWriter ows = new OutputStreamWriter(fos, "utf-8");
             w = new BufferedWriter(ows);
             this.printer = new Printer(w);
@@ -34,161 +36,204 @@ public class Phase3 extends Visitor {
         printer.register(this);
     }
 
+
     public void print(GNode ast) {
         headOfFile();
         dispatch(ast);
         printer.flush();
     }
 
+
+
     private void headOfFile() {
         printer.pln("#pragma once");
         printer.pln();
-        printer.pln("#include \"java_lang.h\"");
-        printer.pln();
-        printer.pln("using namespace java::lang;");
-        printer.pln();
+        printer.pln("#include <stdint.h>");
+        printer.pln("#include <string>");
+        printer.pln().pln();
     }
 
 
-    static String packageName = null;
+    //String packageName = null;
 
-    public void visitPackageDeclaration(GNode node){
-        
-        /*
+    public void visitPackageDeclaration(GNode n){
 
-        for(int i =0; i < n.getNode(0).size(); i++){
-            packageName = n.getNode(0).getString(i); //null if no package
-            if (packageName != null){
-                printer.pln("namespace " + packageName + " {");
-                printer.incr().indent();
+        printer.pln("namespace " + n.getString(0)+ "{");
+        visit(n);
+
+
+    }
+
+
+    public void visitForwardDeclarations(GNode n){
+        printer.incr();
+        for (int i=0; i<n.size(); i++){
+            printer.indent().pln("struct __"+n.getString(i)+";");
+            printer.indent().pln("struct __"+n.getString(i)+"_VT;");
+            printer.pln();
+        }
+        printer.pln();
+        for (int i=0; i<n.size(); i++){
+            printer.indent().pln("typedef __"+n.getString(i)+"* "+n.getString(i)+";");
+        }
+        printer.pln().pln();
+        visit(n);
+
+    }
+
+
+    public void visitClassDeclaration(GNode n){
+        className = n.getString(0);
+        visit(n);
+    }
+
+
+
+    public void visitDataLayout(GNode n){
+
+        printer.indent().pln("struct __" + className+ " {");
+        printer.pln();
+        visit(n);
+        printer.decr().indent().pln("};");
+        printer.pln().pln().pln();
+
+    }
+
+    String modifier2;
+    String VT_name;
+    public void visitFieldDeclarations(GNode n){
+
+        printer.incr();
+        for (int x = 0; x<n.size(); x++){
+            VT_name = "__"+className+"_VT";
+            if(n.getNode(x).getNode(0).getString(0).equals("true")){
+
+                modifier2 = "static ";
+
             }
+            else {
+                modifier2 = "";
+            }
+            if(n.getNode(x).getNode(1).getString(0).equals(VT_name) && n.getNode(x).getNode(2).getString(0).equals("__vtable")){
+                continue;
+            }
+            printer.indent().pln(modifier2+n.getNode(x).getNode(1).getString(0)+" "+n.getNode(x).getNode(2).getString(0)+";");
+
+
         }
         printer.pln();
         visit(n);
-        for (int i=0; i<n.getNode(0).size(); i++){
-            printer.decr().indent().pln("}"); //i times
-        }
-        */
-        printer.pln("namespace " + node.getString(0) + " {");
-        printer.pln();
-        visit(node);
+
+
     }
 
-    public void visitForwardDeclarations(GNode node) {
 
-        for (int i = 0; i < node.size(); i++){
-            printer.indent().pln("struct __" + node.getString(i) + ";");
-            printer.indent().pln("struct __" + node.getString(i) + "_VT;");
-            printer.pln();
-        }
-        for (int j = 0; j < node.size(); j++){
-            printer.pln("typedef __" + node.getString(j) + "* " + node.getString(j) + ";");
+    public void visitConstructorDeclarations(GNode n){
+
+        for(int x = 0; x<n.size(); x++ ){
+            printer.indent().p("__" + className + "(");
+            printParameters((GNode)n.getNode(x).getNode(1)); //NOT SURE
+            printer.pln(");");
+
         }
         printer.pln();
-        visit(node);
+        visit(n);
+
+
     }
 
-    public void visitClassDeclaration(GNode node) { 
 
-        className = node.getNode(0).getString(0);
-        printer.pln("struct __" + className + " {");
-        printer.pln();
-        visit(node);
-    }
-
-    public void visitFieldDeclarations(GNode node) {
-
-        for (int i = 0; i < node.size(); i++) {
-            if (node.getNode(i).getNode(0).getString(0).equals("false")) {
-                printer.indent().pln("" + node.getNode(i).getNode(1).getString(0) + " " + node.getNode(i).getNode(2).getString(0) + " " + node.getNode(i).getNode(3).getString(0) + ";");
+    String modifier;
+    public void visitMethodDeclarations(GNode n){
+        for(int x = 0; x<n.size(); x++){
+            if(n.getNode(x).getNode(0).getString(0).equals("true")){
+                modifier = "static ";
             }
             else {
-                printer.indent().pln("static " + node.getNode(i).getNode(1).getString(0) + " " + node.getNode(i).getNode(2).getString(0) + " " + node.getNode(i).getNode(3).getString(0) + ";");
+                modifier = "";
             }
-            
-        }
-        printer.pln();
-        visit(node);
-    }
 
-    public void visitConstructorDeclarations(GNode node) {
-
-        for (int i = 0; i < node.size(); i++) {
-            printer.indent().p(" __" + node.getNode(i).getNode(0).getString(0) + "(");
-            if (node.getNode(i).getNode(1).size() > 0) {
-                int lastIndex = node.getNode(i).getNode(1).size() - 1;
-                for (int j = 0; j < node.getNode(i).size(); i++) {
-                    if (j == lastIndex) printer.indent().p(node.getNode(i).getNode(1).getNode(j).getNode(0).getString(0) + " " + node.getNode(i).getNode(1).getNode(j).getNode(1).getString(0));
-                    else printer.indent().p(node.getNode(i).getNode(1).getNode(j).getNode(0).getString(0) + " " + node.getNode(i).getNode(1).getNode(j).getNode(1).getString(0) + ", ");
-                }
+            if(n.getNode(x).getNode(1).getString(0).equals("Class") && n.getNode(x).getNode(2).getString(0).equals("__class()")){
+                continue;
             }
+
+            printer.indent().p(modifier+n.getNode(x).getNode(1).getString(0)+" "+n.getNode(x).getNode(2).getString(0)+"(");
+            printParameters((GNode)n.getNode(x).getNode(3)); //NOT SURE
             printer.pln(");");
+
         }
-        printer.pln();
-        visit(node);
+        printer.pln().pln();
+        printer.indent().pln("static Class __class();");
+        printer.pln().pln();
+        visit(n);
+
     }
 
-    public void visitMethodDeclarations(GNode node) {
 
-        for(int i = 0; i < node.size(); i++){
-            if (node.getNode(i).getNode(0).getString(0).equals("false")) {
-                printer.indent().p("" + node.getNode(i).getNode(1).getString(0) + " " + node.getNode(i).getNode(2).getString(0) + "(");
-            }
-            else {
-                printer.indent().p("static " + node.getNode(i).getNode(1).getString(0) + " " + node.getNode(i).getNode(2).getString(0) + "(");
-            }
-            if (node.getNode(i).getNode(3).size() > 0) {
-                for (int j = 0; j < node.getNode(i).getNode(3).size(); j++) {
-                    if (j == 0 && node.size() == 1) printer.p(node.getNode(i).getNode(3).getNode(j).getNode(0).getString(0));
-                    else if (j == node.getNode(i).getNode(3).size() - 1) printer.p(node.getNode(i).getNode(3).getNode(j).getNode(0).getString(0) + " " + node.getNode(i).getNode(3).getNode(j).getNode(1).getString(0));
-                    else printer.indent().p(node.getNode(i).getNode(3).getNode(j).getNode(0).getString(0) + " " + node.getNode(i).getNode(3).getNode(j).getNode(1).getString(0) + ", ");
-                }
-            }
-            printer.pln(");");
+
+    public void visitVFieldDec(GNode n){
+        printer.indent().pln("static __"+className+"_VT __vtable;");
+        printer.pln();
+        visit(n);
+    }
+
+
+    public void visitVTableLayout(GNode n){
+        printer.indent().pln("struct __"+n.getString(0)+"_VT {");
+        printer.incr().indent().pln("Class __is_a;");
+        printer.pln().pln();
+        visit(n);
+        printer.decr().indent().pln("{");
+        printer.indent().pln("}");
+        printer.decr().indent().pln("};");
+        printer.pln().pln().pln();
+
+    }
+
+
+    public void visitVFields(GNode n){
+
+        for(int i=1; i<n.size(); i++){
+            printer.indent().pln(n.getNode(i).getNode(0).getString(0)+" ("+n.getNode(i).getNode(1).getString(0)+
+                    ")("+n.getNode(i).getNode(2).getString(0)+");");
         }
-        printer.pln();
-        printer.pln("};");
-        printer.pln();
-        visit(node);
+        printer.pln().pln();
+
     }
 
-    public void visitVTableLayout(GNode node) {
-        printer.pln("struct __" + className + "_VT {");
-        printer.pln();
-        visit(node);
-        printer.pln("};");
-        printer.pln("};");
-    }
 
-    public void visitVFields(GNode node){
-        for(int i = 0; i < node.size(); i++) {
-            if (i == 0) {
-                printer.pln(node.getNode(i).getNode(0).getString(0) + " " + node.getNode(i).getNode(1).getString(0) + ";");
-                printer.pln();
+    public void visitVMethods(GNode n){
+
+        printer.indent().pln("__"+className+"_VT()");
+        printer.indent().pln(": __is_a(__"+className+"::__class()),");
+        printer.incr();
+
+        for(int i = 0; i<n.size(); i++){
+
+            if(n.getNode(i).getNode(0).getString(0).equals("__is_a") && n.getNode(i).getNode(1).getString(0).equals("(__"+className+"::__class())")){
+                continue;
             }
-            else printer.pln(node.getNode(i).getNode(0).getString(0) + " (" + node.getNode(i).getNode(1).getString(0) + ")(" + node.getNode(i).getNode(2).getString(0) + ");");
+            printer.indent().pln(n.getNode(i).getNode(0).getString(0)+n.getNode(i).getNode(1).getString(0)+",");
         }
-        printer.pln();
-        visit(node);
+        visit(n);
+
     }
 
-    public void visitVMethods(GNode node){
-        printer.pln("__" + className + "_VT()");
-        for (int i = 0; i < node.size(); i++) {
-            if (i == 0) printer.pln(":" + node.getNode(i).getNode(0).getString(0) + node.getNode(i).getNode(1).getString(0) + ",");
-            else if (i == node.size() - 1) {
-                printer.pln(node.getNode(i).getNode(0).getString(0) + node.getNode(i).getNode(1).getString(0));
-                printer.pln("{");
-                printer.pln("}");
+
+
+    public void printParameters(GNode n){
+        for (int x = 0; x < n.size() ; x++){
+            printer.p(n.getNode(x).getNode(0).getString(0));
+            if (x != (n.size()-1)){
+                printer.p(",");
             }
-            else printer.pln(node.getNode(i).getNode(0).getString(0) + node.getNode(i).getNode(1).getString(0) + ",");
         }
-        
-        visit(node);
-
     }
+
+
 
     public void visit(Node n) {
         for (Object o : n) if (o instanceof Node) dispatch((Node) o);
     }
+
 }
