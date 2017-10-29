@@ -31,9 +31,9 @@ public class ObjectRep {
 		// __vtable
 		classRep.fields.add(new Field("public", true, "__" + this.name + "_VT", "__vtable", ""));
 		// default constructor
-		classRep.constructors.add(new Constructor("public", "__" + this.name + "()", new ArrayList<Parameter>()));
+		classRep.constructors.add(new Constructor("public", this.name, new ArrayList<Parameter>()));
 		// class name
-		classRep.methods.add(new Method("public", true, "Class", "__class()", new ArrayList<Parameter>()));
+		classRep.methods.add(new Method("public", true, "Class", "__class", new ArrayList<Parameter>()));
 
 		this.vtable = new VTable();
 		// __is_a
