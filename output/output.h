@@ -17,27 +17,23 @@ namespace inputs{
   struct __A;
   struct __A_VT;
 
-  struct __B;
-  struct __B_VT;
-
 
   typedef __Object* Object;
   typedef __String* String;
   typedef __Class* Class;
   typedef __A* A;
-  typedef __B* B;
 
 
   struct __Object {
 
     __Object_VT* __vptr;
 
-    __Object();
+    static __Object();
 
-    static int32_t hashCode(Object);
-    static bool equals(Object);
-    static Class getClass(Object);
-    static String toString(Object);
+    static int32_t hashCode(Object o);
+    static bool equals(Object o);
+    static Class getClass(Object o);
+    static String toString(Object o);
 
 
     static Class __class();
@@ -76,12 +72,12 @@ namespace inputs{
     __String_VT* __vptr;
     std::string data;
 
-    __String(std::string);
+    static ____String(std::string data);
 
-    static int32_t hashCode(String,int32_t);
-    static bool equals(String,int32_t);
-    static int32_t length(String,int32_t);
-    static char charAt(String,int32_t);
+    static int32_t hashCode(String str, int32_t int_length);
+    static bool equals(String str, int32_t int_length);
+    static int32_t length(String str, int32_t int_length);
+    static char charAt(String str, int32_t int_length);
 
 
     static Class __class();
@@ -124,12 +120,12 @@ namespace inputs{
     String name;
     Class parent;
 
-    __Class(String,Class);
+    static ____Class(String name, Class parent);
 
-    static String toString(Class,Object);
-    static String getName(Class,Object);
-    static Class getSuperclass(Class,Object);
-    static bool isInstance(Class,Object);
+    static String toString(Class c, Object o);
+    static String getName(Class c, Object o);
+    static Class getSuperclass(Class c, Object o);
+    static bool isInstance(Class c, Object o);
 
 
     static Class __class();
@@ -172,12 +168,11 @@ namespace inputs{
   struct __A {
 
     __A_VT* __vptr;
-    int32_t i;
+    static int32_t x;
 
-    __A();
-    __A(int32_t);
+    static __A();
 
-    int32_t get();
+    static int32_t x(A );
 
 
     static Class __class();
@@ -197,7 +192,6 @@ namespace inputs{
     bool (*equals)(A, Object);
     Class (*getClass)(A);
     String (*toString)(A);
-    int32_t (*get)(A);
 
 
     __A_VT()
@@ -206,51 +200,6 @@ namespace inputs{
       equals((bool(*)(A, Object)) &__Object::equals),
       getClass((Class(*)(A)) &__Object::getClass),
       toString((String(*)(A)) &__Object::toString),
-      get((int32_t(*)(A)) &__A::get),
-    {
-    }
-  };
-
-
-
-  struct __B {
-
-    int32_t i;
-    __B_VT* __vptr;
-
-    __B();
-    __B(int32_t);
-
-    int32_t get();
-
-
-    static Class __class();
-
-
-    static __B_VT __vtable;
-
-  };
-
-
-
-  struct __B_VT {
-    Class __is_a;
-
-
-    int32_t (*hashCode)(B);
-    bool (*equals)(B, Object);
-    Class (*getClass)(B);
-    String (*toString)(B);
-    int32_t (*get)(B);
-
-
-    __B_VT()
-    : __is_a(__B::__class()),
-      hashCode((int32_t(*)(B)) &__Object::hashCode),
-      equals((bool(*)(B, Object)) &__Object::equals),
-      getClass((Class(*)(B)) &__Object::getClass),
-      toString((String(*)(B)) &__Object::toString),
-      get((int32_t(*)(B)) &__B::get),
     {
     }
   };
