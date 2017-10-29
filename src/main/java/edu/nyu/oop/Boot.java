@@ -60,7 +60,8 @@ public class Boot extends Tool {
             bool("printSymbolTable", "printSymbolTable", false, "Print symbol table for Java Ast.").
             bool("printConfig", "printConfig", false, "Output application configuration to screen.").
             bool("printPhase1", "printPhase1", false, "Print the output of phase 1").
-            bool("printPhase2", "printPhase2", false, "Print the output of phase 2 step 1");
+            bool("printPhase2", "printPhase2", false, "Print the output of phase 2").
+            bool("printPhase3", "printPhase3", false, "Print the output of phase 3");
   }
 
   @Override
@@ -134,7 +135,6 @@ public class Boot extends Tool {
     }
 
     if (runtime.test("printPhase2")) {
-
       // phase 1
       List<GNode> javaAsts = Phase1.parse(n);
 
@@ -144,6 +144,25 @@ public class Boot extends Tool {
         Node cppAst = Phase2.runPhase2(javaAst);
         runtime.console().format(cppAst).pln().flush();
       }
+    }
+
+    if (runtime.test("printPhase3")) {
+      // phase 1
+      List<GNode> javaAsts = Phase1.parse(n);
+
+      // phase 2
+      ArrayList<GNode> cppAsts = new ArrayList<GNode>();
+      for (GNode javaAst : javaAsts) {
+        Node cppAst = Phase2.runPhase2(javaAst);
+        cppAsts.add(cppAst);
+        runtime.console().format(cppAst).pln().flush();
+      }
+
+      // phase 3
+      for (Gnode cppAst : cppAsts) {
+        Phase3.print(cppAst);
+      }
+
     }
 
   }
