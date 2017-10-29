@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.Reader;
 import java.util.List;
+import java.util.ArrayList;
 
 import edu.nyu.oop.util.JavaFiveImportParser;
 import edu.nyu.oop.util.NodeUtil;
@@ -133,8 +134,16 @@ public class Boot extends Tool {
     }
 
     if (runtime.test("printPhase2")) {
-      Node ast = Phase2.runPhase2(n);
-      runtime.console().format(ast).pln().flush();
+
+      // phase 1
+      List<GNode> javaAsts = Phase1.parse(n);
+
+      // phase 2
+      ArrayList<GNode> cppAsts = new ArrayList<GNode>();
+      for (GNode javaAst : javaAsts) {
+        Node cppAst = Phase2.runPhase2(javaAst);
+        runtime.console().format(cppAst).pln().flush();
+      }
     }
 
   }

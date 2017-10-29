@@ -4,13 +4,13 @@ import java.util.ArrayList;
 
 public class Constructor {
 	
-	public String access_modifier;
-	public String constructor_name;
+	public String accessModifier;
+	public String name;
 	public ArrayList<Parameter> parameters;
 
-	public Constructor(String access_modifier, String constructor_name, ArrayList<Parameter> parameters) {
-		this.access_modifier = access_modifier;
-		this.constructor_name = constructor_name;
+	public Constructor(String accessModifier, String name, ArrayList<Parameter> parameters) {
+		this.accessModifier = accessModifier;
+		this.name = name;
 		this.parameters = parameters;
 	}
 }

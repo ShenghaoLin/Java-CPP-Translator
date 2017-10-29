@@ -4,17 +4,17 @@ import java.util.ArrayList;
 
 public class Method {
 	
-	public String access_modifier;
-	public boolean is_static;
-	public String return_type;
-	public String method_name;
+	public String accessModifier;
+	public boolean isStatic;
+	public String returnType;
+	public String name;
 	public ArrayList<Parameter> parameters;
 
-	public Method(String access_modifier, boolean is_static, String return_type, String method_name, ArrayList<Parameter> parameters) {
-		this.access_modifier = access_modifier;
-		this.is_static = is_static;
-		this.return_type = return_type;
-		this.method_name = method_name;
+	public Method(String accessModifier, boolean isStatic, String returnType, String name, ArrayList<Parameter> parameters) {
+		this.accessModifier = accessModifier;
+		this.isStatic = isStatic;
+		this.returnType = returnType;
+		this.name = name;
 		this.parameters = parameters;
 	}
 }

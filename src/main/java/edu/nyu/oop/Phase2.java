@@ -11,8 +11,6 @@ import java.util.HashSet;
 
 public class Phase2 {
 
-    static String packageName = "";
-
     public static Node runPhase2(Node n) {
 
         boolean dump = false;
@@ -23,88 +21,270 @@ public class Phase2 {
 
         //Build list of class representations (java.lang, inheritance)
         ObjectRepList unfilled = visitor.getObjectRepresentations();
-        ObjectRepList filled = getFilledObjectRepList(unfilled, dump);
+        ObjectRepList filled = getFilledObjectRepList(unfilled);
 
         //Build C++ AST from class representations
-        return buildCppAst(filled);
+        return buildCppAst(visitor.getPackageName(), filled);
     }
 
-    public static ObjectRepList getFilledObjectRepList(ObjectRepList unfilled, boolean dump) {
+    public static class Phase2Visitor extends Visitor {
 
-        // manually add Object, String, Class to reprepsentation list
+        private Logger logger = org.slf4j.LoggerFactory.getLogger(this.getClass());
+
+        private String packageName = "";
+        private ObjectRepList objectRepresentations = new ObjectRepList();
+
+        public void visitPackageDeclaration(GNode n){
+            packageName = n.getNode(1).getString(0);
+            visit(n);
+        }
+
+        public void visitClassDeclaration(GNode n) {
+            objectRepresentations.add(new ObjectRep(n.getString(1)));
+            visit(n);
+        }
+
+        public void visitExtension(GNode n) {
+            objectRepresentations.getCurrent().parent = new ObjectRep(n.getNode(0).getNode(0).getString(0));
+            visit(n);
+        }
+
+        public void visitConstructorDeclaration(GNode n) {
+            // modifiers
+            String accessModifier = "";
+            boolean isStatic = false;
+
+            Iterator modifierIter = n.getNode(0).iterator();
+            while (modifierIter.hasNext()) {
+                Node modifierNode = (Node) modifierIter.next();
+                if (modifierNode.getString(0).equals("static")) isStatic = true;
+                else accessModifier = modifierNode.getString(0);
+            }
+
+            // name
+            String constructorName = n.getString(2);
+
+            // parameters
+            ArrayList<Parameter> parameters = new ArrayList<Parameter>();
+
+            parameters.add(new Parameter(objectRepresentations.getCurrent().name, "__this"));
+
+            Iterator parameterIter = n.getNode(4).iterator();
+            while (parameterIter.hasNext()) {
+                Node parameterNode = (Node) parameterIter.next();
+                String parameterType = convertType(parameterNode.getNode(1).getNode(0).getString(0));
+                String parameterName = parameterNode.getString(3);
+                parameters.add(new Parameter(parameterType, parameterName));
+            }
+
+            // add
+            Constructor constructor = new Constructor(accessModifier, constructorName, parameters);
+            objectRepresentations.getCurrent().classRep.constructors.add(constructor);
+
+            visit(n);
+        }
+
+        public void visitMethodDeclaration(GNode n) {
+            // modifiers
+            String accessModifier = "";
+            boolean isStatic = false;
+
+            Iterator modifierIter = n.getNode(0).iterator();
+            while (modifierIter.hasNext()) {
+                Node modifierNode = (Node) modifierIter.next();
+                if (modifierNode.getString(0).equals("static")) isStatic = true;
+                else accessModifier = modifierNode.getString(0);
+            }
+
+            // return type
+            String returnType;
+            Node returnNode = n.getNode(2);
+            if (returnNode.getName().equals("VoidType")) returnType = "void";
+            else returnType = convertType(returnNode.getNode(0).getString(0));
+
+            // name
+            String methodName = n.getString(3);
+
+            // parameters
+            ArrayList<Parameter> parameters = new ArrayList<Parameter>();
+
+            Iterator parameterIter = n.getNode(4).iterator();
+            while (parameterIter.hasNext()) {
+                Node parameterNode = (Node) parameterIter.next();
+                String parameterType = convertType(parameterNode.getNode(1).getNode(0).getString(0));
+                String parameterName = parameterNode.getString(3);
+                parameters.add(new Parameter(parameterType, parameterName));
+            }
+
+            // add
+            Method method = new Method(accessModifier, isStatic, returnType, methodName, parameters);
+            objectRepresentations.getCurrent().classRep.methods.add(method);
+
+            visit(n);
+        }
+
+        public void visitFieldDeclaration(GNode n) {
+            // modifiers
+            String accessModifier = "";
+            boolean isStatic = false;
+
+            Iterator modifierIter = n.getNode(0).iterator();
+            while (modifierIter.hasNext()) {
+                Node modifierNode = (Node) modifierIter.next();
+                if (modifierNode.getString(0).equals("static")) isStatic = true;
+                else accessModifier = modifierNode.getString(0);
+            }
+
+            // type
+            String fieldType = convertType(n.getNode(1).getNode(0).getString(0));
+
+            // name
+            String fieldName = n.getNode(2).getNode(0).getString(0);
+
+            // initial
+            String initial = "";
+            Node initial_node = n.getNode(2).getNode(0).getNode(2);
+
+            // add
+            Field field = new Field(accessModifier, isStatic, fieldType, fieldName, initial);
+            objectRepresentations.getCurrent().classRep.fields.add(field);
+
+            visit(n);
+        }
+
+        public void visit(Node n) {
+            for (Object o : n) if (o instanceof Node) dispatch((Node) o);
+        }
+
+        public void traverse(Node n) {
+            super.dispatch(n);
+        }
+
+        public String convertType(String type) {
+            if (type.equals("long")) return "int64_t";
+            else if (type.equals("int")) return "int32_t";
+            else if (type.equals("short")) return "int16_t";
+            else if (type.equals("byte")) return "int8_t";
+            else if (type.equals("boolean")) return "bool";
+            else return type;
+        }
+
+        public String getPackageName() {
+            return packageName;
+        }
+
+        public ObjectRepList getObjectRepresentations() {
+            return objectRepresentations;
+        }
+    }
+
+    public static class ObjectRepList extends ArrayList<ObjectRep> {
+
+        public ObjectRep getCurrent() {
+            return this.get(this.size() - 1);
+        }
+
+        public ObjectRep getFromName(String name) {
+            for (ObjectRep rep : this) if (rep.name.equals(name)) return rep;
+            return null;
+        }
+
+        public int getIndexFromName(String name) {
+            return indexOf(getFromName(name));
+        }
+    }
+
+    public static ObjectRepList getFilledObjectRepList(ObjectRepList unfilled) {
+
+        // manually add object, string, class
         ObjectRepList filled = initializeRepList();
-        // manutal addition is finished!
 
-        // fill filled list using contents of unfilled, method also considers hierarchy
+        // fill with reps, in inheritance order
         filled = fill(filled, unfilled);
-        // heiarchical order is determined!
 
-        // process the v-table for each object except Object, String, Class and Main containing object
+        // process reps
         for (ObjectRep rep : filled) {
-
             if (!rep.name.equals("Object") && !rep.name.equals("String") && !rep.name.equals("Class")) {
+                // check if main is in the rep
+                boolean main = true;
+                for (Method method : rep.classRep.methods) if (method.name.equals("main")) main = false;
 
-                boolean flag = true;
-
-                // using flags and iteration to determine if main is in representation
-                for (Method method : rep.classRep.methods) if (method.method_name.equals("main")) flag = false;
-
-                // if main is not there, then process output and replace new with the old
-                if (flag) {
-                    ObjectRep new_rep = processVTable(rep, rep.parent);
-                    int replace_idx = filled.getIndexFromName(rep.name);
-                    filled.set(replace_idx, new_rep);
-                } 
+                // if main is not there, then process output and replace old with the new
+                if (!main) {
+                    ObjectRep newRep = processVTable(rep, rep.parent);
+                    int index = filled.getIndexFromName(rep.name);
+                    filled.set(index, newRep);
+                }
             }
 
             // don't forget to update the parents after replacing so that logic works, "bubbling down"
-            for (ObjectRep rep_sub : filled) {
-                if (rep_sub.parent != null) {
-                    int parent_index = filled.getIndexFromName(rep_sub.parent.name);
-                    rep_sub.parent = filled.get(parent_index);
+            for (ObjectRep repSub : filled) {
+                if (repSub.parent != null) {
+                    int parentIndex = filled.getIndexFromName(repSub.parent.name);
+                    repSub.parent = filled.get(parentIndex);
                 }
             }
         }
 
         // after processing v-table process inherited fields (this is the last step, everything else should be consistent)
         int counter = 0;
-        for (ObjectRep rep2 : filled) {
+        for (ObjectRep rep : filled) {
             if (counter < 2) counter++;
             else {
                 // as long as the parent isn't object there are fields that may be inherited (this depends on if static and so on)
-                if (!rep2.parent.name.equals("Object")) {
-                    ObjectRep new_rep = processFields(rep2, rep2.parent);
-                    int replace_idx = filled.getIndexFromName(rep2.name);
-                    filled.set(replace_idx, new_rep);
+                if (!rep.parent.name.equals("Object")) {
+                    ObjectRep newRep = processFields(rep, rep.parent);
+                    int index = filled.getIndexFromName(rep.name);
+                    filled.set(index, newRep);
                 }
             }
-
             // again, don't forget to update the parents after replacing so that logic works, "bubbling down"
-            for (ObjectRep rep_sub : filled) {
-                if (rep_sub.parent != null) {
-                    int parent_index = filled.getIndexFromName(rep_sub.parent.name);
-                    rep_sub.parent = filled.get(parent_index);
+            for (ObjectRep repSub : filled) {
+                if (repSub.parent != null) {
+                    int parentIndex = filled.getIndexFromName(repSub.parent.name);
+                    repSub.parent = filled.get(parentIndex);
                 }
             }
-
         }
 
-        int idx = 0;
-        for (ObjectRep rep3 : filled) {
-            ArrayList<Method> methods = rep3.classRep.methods;
-            for (Method method : methods) {
-                if (method.method_name.equals("main")) idx = filled.getIndexFromName(rep3.name);
+        // remove rep with main method
+        int mainIndex = -1;
+        for (ObjectRep rep : filled) {
+            for (Method method : rep.classRep.methods) {
+                if (method.name.equals("main"))
+                    mainIndex = filled.indexOf(rep);
             }
         }
-
-        filled.remove(idx);
-
-        // if you want to view the contents before everything is processed into nodes activate dump
-        if (dump) printBeforeNodes(filled);
+        if(mainIndex != -1) filled.remove(mainIndex);
 
         return filled;
     }
 
+    public static ObjectRepList fill(ObjectRepList filled, ObjectRepList unfilled) {
+
+        //Add classes from unfilled, keep doing this until filled has same size as unfilled
+        while (filled.size() < unfilled.size() + 3) {
+
+            for (ObjectRep rep : unfilled) {
+
+                // if no parent set parent to object's rep, which will be at filled.get(0)
+                if (rep.parent == null) {
+                    rep.parent = filled.get(0);
+                }
+
+                // don't add until parent class is already in filled, this makes sure classes are in inheritance order, i.e. if a class iherits a class it should be further down the list
+                if (filled.getFromName(rep.parent.name) != null) {
+                    int parent_idx = filled.getIndexFromName(rep.parent.name);
+                    rep.parent = filled.get(parent_idx);
+                    filled.add(rep);
+                }
+            }
+        }
+
+        return filled;
+    }
+
+    /*
     public static void printBeforeNodes(ObjectRepList filled) {
         int i = 0;
         for (ObjectRep test : filled) {
@@ -186,46 +366,43 @@ public class Phase2 {
             i++;
         }
     }
+    */
 
     public static ObjectRep processFields(ObjectRep current, ObjectRep parent) {
-
         // process fields according to the following rules:
         // private instance fields are inherited (there is a workaround way of accessing them)
         // static instance fields are not inherited (static leads to initialization issues)
         // preserve order too
-        ObjectRep new_current = determineField(current, parent);
-
-        return new_current;
+        return determineFields(current, parent);
     }
 
-    public static ObjectRep determineField(ObjectRep current, ObjectRep parent) {
-
+    public static ObjectRep determineFields(ObjectRep current, ObjectRep parent) {
         // iterate over parent fields from class, if possible to inherit, add to child, then dump child methods, this way we preserve order
-        ArrayList<Field> parent_fields = parent.classRep.fields;
-        ArrayList<Field> current_fields = current.classRep.fields;
+        ArrayList<Field> parentFields = parent.classRep.fields;
+        ArrayList<Field> currentFields = current.classRep.fields;
 
         // new array list to dump fields into as they are processed
-        ArrayList<Field> updated_fields = new ArrayList<Field>();
-        HashSet<String> updated_field_set = new HashSet<String>();
+        ArrayList<Field> updatedFields = new ArrayList<Field>();
+        HashSet<String> updatedFieldNames = new HashSet<String>();
 
         // process parent fields and inherit valid fields
-        for (Field parent_field : parent_fields) {
+        for (Field parentField : parentFields) {
             // if field is static it can't be inherited, furthermore don't inherit the vptr and the vtable
-            if (parent_field.is_static == false && !parent_field.field_name.equals("__vptr") && !parent_field.field_name.equals("__vtable")) {
-                updated_fields.add(parent_field);
-                updated_field_set.add(parent_field.field_name);
+            if (parentField.isStatic == false && !parentField.fieldName.equals("__vptr") && !parentField.fieldName.equals("__vtable")) {
+                updatedFields.add(parentField);
+                updatedFieldNames.add(parentField.fieldName);
             }
         }
 
         // process current fields and dump fields to updated fields, if same name is used we assume no shadowed fields therefore no reason to re-declare
-        for (Field current_field : current_fields) {
-            if (!updated_field_set.contains(current_field.field_name)) {
-                updated_fields.add(current_field);
-                updated_field_set.add(current_field.field_name);
+        for (Field currentField : currentFields) {
+            if (!updatedFieldNames.contains(currentField.fieldName)) {
+                updatedFields.add(currentField);
+                updatedFieldNames.add(currentField.fieldName);
             }
         }
 
-        current.classRep.fields = updated_fields;
+        current.classRep.fields = updatedFields;
 
         return current;
     }
@@ -238,110 +415,83 @@ public class Phase2 {
         // similarly update methods using relationship between an object and its parent
         // constructors are basically simple, multiple constructors currently not allowed
 
-        ObjectRep new_current = determineVTable(current, parent);
-
-        return new_current;
-
+        return determineVTable(current, parent);
     }
 
     public static ObjectRep determineVTable(ObjectRep current, ObjectRep parent) {
 
-        ArrayList<Field> parent_fields = parent.vtable.fields;
-        ArrayList<Method> current_methods = current.classRep.methods;
+        ArrayList<Field> parentFields = parent.vtable.fields;
+        ArrayList<Method> currentMethods = current.classRep.methods;
 
         VMethod __is_a = current.vtable.methods.get(0);
 
-        ArrayList<Field> updated_fields = new ArrayList<Field>();
-        ArrayList<VMethod> updated_vmethods = new ArrayList<VMethod>();
+        ArrayList<Field> updatedFields = new ArrayList<Field>();
+        ArrayList<VMethod> updatedVmethods = new ArrayList<VMethod>();
 
         // determine method declarations dependent on parent declarations (overwritten or not)
-        for (Field parent_field : parent_fields) {
+        for (Field parentField : parentFields) {
             // boolean to check if something was updated
-            boolean not_updated = true;
+            boolean notUpdated = true;
             // loop over current methods to determine what has been overwritten and what hasn't, this will ensure preservation of order too
-            for (Method current_method : current_methods) {
+            for (Method currentMethod : currentMethods) {
                 // if method is overwritten by child, need extra processing, ignore class definition
-                if (parent_field.field_name.replaceFirst("\\*","").equals(current_method.method_name) && parent_field.is_static == false && !parent_field.access_modifier.equals("private")) {
+                if (parentField.fieldName.replaceFirst("\\*","").equals(currentMethod.name) && parentField.isStatic == false && !parentField.accessModifier.equals("private")) {
                     // process parameters correctly into field declaration
                     String parameters = "";
                     parameters += current.name;
-                    ArrayList<Parameter> params = current_method.parameters;
+                    ArrayList<Parameter> params = currentMethod.parameters;
                     for (Parameter param : params) parameters += "," + param.type;
-                    Field temp = new Field(current_method.access_modifier, false, current_method.return_type, "*"+current_method.method_name, parameters);
-                    temp.inherited_from = current.name;
-                    updated_fields.add(temp);
-                    not_updated = false;
+                    Field temp = new Field(currentMethod.accessModifier, false, currentMethod.returnType, "*"+currentMethod.name, parameters);
+                    temp.inheritedFrom = current.name;
+                    updatedFields.add(temp);
+                    notUpdated = false;
                     // process parameters correctly into a vMethod declaration
-                    updated_vmethods.add(new VMethod(current_method.access_modifier, false, current_method.method_name, "(("+current_method.return_type+"(*)("+parameters+")) &__"+current.name+"::"+current_method.method_name+")"));
+                    updatedVmethods.add(new VMethod(currentMethod.accessModifier, false, currentMethod.name, "(("+currentMethod.returnType+"(*)("+parameters+")) &__"+current.name+"::"+currentMethod.name+")"));
                 }
             }
             // if method wasn't overwritten and is not class (which is initialized in ObjectRep creation), modify its args and simply add to updated_fields list, also add inheritnce to updated vMethods list (these will refer to Object)
-            if (not_updated && parent_field.is_static == false && !parent_field.access_modifier.equals("private")) {
-                String inherited_from = "";
-                if (parent_field.inherited_from.equals("")) inherited_from = "Object";
-                else inherited_from = parent_field.inherited_from;
-                Field temp = new Field(parent_field.access_modifier, parent_field.is_static, parent_field.field_type, parent_field.field_name, parent_field.initial.replaceFirst(parent.name, current.name));
-                temp.inherited_from = inherited_from;
-                updated_fields.add(temp);
-                if (parent_field.field_name.equals("__is_a")) updated_vmethods.add(__is_a);
-                else updated_vmethods.add(new VMethod(parent_field.access_modifier, parent_field.is_static, parent_field.field_name.replaceFirst("\\*",""), "(("+parent_field.field_type+"(*)("+parent_field.initial.replaceFirst(parent.name, current.name)+")) &__"+inherited_from+"::"+parent_field.field_name.replaceFirst("\\*","")+")"));
+            if (notUpdated && parentField.isStatic == false && !parentField.accessModifier.equals("private")) {
+                String inheritedFrom = "";
+                if (parentField.inheritedFrom.equals("")) inheritedFrom = "Object";
+                else inheritedFrom = parentField.inheritedFrom;
+                Field temp = new Field(parentField.accessModifier, parentField.isStatic, parentField.fieldType, parentField.fieldName, parentField.initial.replaceFirst(parent.name, current.name));
+                temp.inheritedFrom = inheritedFrom;
+                updatedFields.add(temp);
+                if (parentField.fieldName.equals("__is_a")) updatedVmethods.add(__is_a);
+                else updatedVmethods.add(new VMethod(parentField.accessModifier, parentField.isStatic, parentField.fieldName.replaceFirst("\\*",""), "(("+parentField.fieldType+"(*)("+parentField.initial.replaceFirst(parent.name, current.name)+")) &__"+inheritedFrom+"::"+parentField.fieldName.replaceFirst("\\*","")+")"));
             }
         }
 
-        ArrayList<Field> updated_fields_prime = new ArrayList<Field>();
-        ArrayList<VMethod> updated_vmethods_prime = new ArrayList<VMethod>();
+        ArrayList<Field> updatedFieldsPrime = new ArrayList<Field>();
+        ArrayList<VMethod> updatedVmethodsPrime = new ArrayList<VMethod>();
 
         // use hashset of names for uniqueness property
-        HashSet<String> updated_field_set = new HashSet<String>();
-        for (Field updated_field : updated_fields) updated_field_set.add(updated_field.field_name.replaceFirst("\\*",""));
+        HashSet<String> updatedFieldSet = new HashSet<String>();
+        for (Field updatedField : updatedFields) updatedFieldSet.add(updatedField.fieldName.replaceFirst("\\*",""));
 
         // dump rest of methods in current_methods into updated_fields and set precedent for order + preserve order
-        for (Method current_method : current_methods) {
+        for (Method currentMethod : currentMethods) {
             // if not already declared, declare it now, also ignore private methods since they do not get vtable entries, also ignore static methods since they do not get vtable entries too
-            if (!updated_field_set.contains(current_method.method_name) && !current_method.access_modifier.equals("private") && current_method.is_static == false) {
+            if (!updatedFieldSet.contains(currentMethod.name) && !currentMethod.accessModifier.equals("private") && currentMethod.isStatic == false) {
                 // process parameters correctly into field declaration
                 String parameters = "";
                 parameters += current.name;
-                ArrayList<Parameter> params = current_method.parameters;
+                ArrayList<Parameter> params = currentMethod.parameters;
                 for (Parameter param : params) parameters +=  "," + param.type;
-                Field temp = new Field(current_method.access_modifier, false, current_method.return_type, "*"+current_method.method_name, parameters);
-                temp.inherited_from = current.name;
-                updated_fields_prime.add(temp);
-                updated_vmethods_prime.add(new VMethod(current_method.access_modifier, false, current_method.method_name, "(("+current_method.return_type+"(*)("+parameters+")) &__"+current.name+"::"+current_method.method_name+")"));
+                Field temp = new Field(currentMethod.accessModifier, false, currentMethod.returnType, "*"+currentMethod.name, parameters);
+                temp.inheritedFrom = current.name;
+                updatedFieldsPrime.add(temp);
+                updatedVmethodsPrime.add(new VMethod(currentMethod.accessModifier, false, currentMethod.name, "(("+currentMethod.returnType+"(*)("+parameters+")) &__"+current.name+"::"+currentMethod.name+")"));
             }
         }
 
-        for (Field field : updated_fields_prime) updated_fields.add(field);
-        for (VMethod vmethod : updated_vmethods_prime) updated_vmethods.add(vmethod);
+        for (Field field : updatedFieldsPrime) updatedFields.add(field);
+        for (VMethod vmethod : updatedVmethodsPrime) updatedVmethods.add(vmethod);
 
-        current.vtable.fields = updated_fields;
-        current.vtable.methods = updated_vmethods;
+        current.vtable.fields = updatedFields;
+        current.vtable.methods = updatedVmethods;
 
         return current;
-    }
-
-    public static ObjectRepList fill(ObjectRepList filled, ObjectRepList unfilled) {
-
-        //Add classes from unfilled, keep doing this until filled has same size as unfilled
-        while (filled.size() < unfilled.size() + 3) {
-
-            for (ObjectRep rep : unfilled) {
-
-                // if no parent set parent to ObjectRep, which will be at filled.get(0)
-                if (rep.parent == null) {
-                    rep.parent = filled.get(0);
-                }
-
-                //Don't add until parent class is already in filled, makes sure classes are in inheritance order, i.e. if a class iherits a class it should be further down the list
-                if (filled.getFromName(rep.parent.name) != null) {
-                    int parent_idx = filled.getIndexFromName(rep.parent.name);
-                    rep.parent = filled.get(parent_idx);
-                    filled.add(rep);
-                }
-            }
-        }
-
-        return filled;
     }
 
     public static ObjectRepList initializeRepList() {
@@ -494,21 +644,23 @@ public class Phase2 {
         return filled;
     }
 
-    public static Node buildCppAst(ObjectRepList ObjectRepList) {
-
-        // create root
+    public static Node buildCppAst(String packageName, ObjectRepList ObjectRepList) {
+        // root
         Node root = GNode.create("CompilationUnit");
 
-        // declare package and add to root
+        // package
         Node packageDeclaration = GNode.create("PackageDeclaration", packageName);
         root.add(packageDeclaration);
 
-        Node forwardDeclaration = GNode.create("ForwardDeclaration");
-        root.add(forwardDeclaration);
+        // forward declarations
+        Node forwardDeclarations = GNode.create("ForwardDeclarations");
+        root.add(forwardDeclarations);
 
-        // process each object representation and create its class node
+        // process each object representation
         for (ObjectRep rep : ObjectRepList) {
-            forwardDeclaration.add(rep.name);
+            // add to forward declarations
+            forwardDeclarations.add(rep.name);
+            // add class node
             root.add(buildClassNode(rep));
         }
 
@@ -516,263 +668,84 @@ public class Phase2 {
     }
 
     public static Node buildClassNode(ObjectRep rep) {
-
-        // create node for name of class
+        // name
         Node name = GNode.create("ClassName", rep.name);
 
-        // create node for field declarations, dump contents of field declarations
+        // fields
         Node fields = GNode.create("FieldDeclarations");
         for(Field field : rep.classRep.fields) fields.add(buildFieldNode(field));
 
+        // constructors
         Node constructors = GNode.create("ConstructorDeclarations");
-        for(Constructor constructor : rep.classRep.constructors) {
-            constructors.add(buildConstructorNode(constructor));
-        }
+        for(Constructor constructor : rep.classRep.constructors) constructors.add(buildConstructorNode(constructor));
+
+        // methods
         Node methods = GNode.create("MethodDeclarations");
-        for(Method method : rep.classRep.methods) {
-            methods.add(buildMethodNode(method));
-        }
-        Node vtable = buildVTableNode(rep.vtable.fields, rep.vtable.methods, rep.name);
+        for(Method method : rep.classRep.methods) methods.add(buildMethodNode(method));
+
+        // vtable
+        Node vtable = buildVTableNode(rep.name, rep.vtable.fields, rep.vtable.methods);
+
+        // return class declaration
         return GNode.create("ClassDeclaration", name, fields, constructors, methods, vtable);
     }
 
     public static Node buildFieldNode(Field field) {
-        Node isStatic = GNode.create("IsStatic", String.valueOf(field.is_static));
-        Node type = GNode.create("FieldType", field.field_type);
-        Node name = GNode.create("FieldName", field.field_name);
+        Node isStatic = GNode.create("IsStatic", String.valueOf(field.isStatic));
+        Node fieldType = GNode.create("FieldType", field.fieldType);
+        Node fieldName = GNode.create("FieldName", field.fieldName);
         Node initial = GNode.create("Initial", field.initial);
-        return GNode.create("Field", isStatic, type, name, initial);
+        return GNode.create("Field", isStatic, fieldType, fieldName, initial);
     }
 
     public static Node buildConstructorNode(Constructor constructor) {
-        Node name = GNode.create("ConstructorName", constructor.constructor_name);
-        Node parameters = GNode.create("Parameters");
-        for(Parameter p : constructor.parameters) {
-            Node parameterType = GNode.create("ParameterType", p.type);
-            Node parameterName = GNode.create("ParameterName", p.name);
-            Node parameter = GNode.create("Parameter", parameterType, parameterName);
-            parameters.add(parameter);
+        Node constructorName = GNode.create("ConstructorName", constructor.name);
+        Node constructorParameters = GNode.create("ConstructorParameters");
+        for(Parameter parameter : constructor.parameters) {
+            Node parameterType = GNode.create("ParameterType", parameter.type);
+            Node parameterName = GNode.create("ParameterName", parameter.name);
+            Node parameterNode = GNode.create("Parameter", parameterType, parameterName);
+            constructorParameters.add(parameterNode);
         }
-        return GNode.create("ConstructorDeclaration", name, parameters);
+        return GNode.create("ConstructorDeclaration", constructorName, constructorParameters);
     }
 
     public static Node buildMethodNode(Method method) {
-        Node isStatic = GNode.create("IsStatic", String.valueOf(method.is_static));
-        Node returnType = GNode.create("ReturnType", method.return_type);
-        Node name = GNode.create("MethodName", method.method_name);
-        Node parameters = GNode.create("Parameters");
-        for(Parameter p : method.parameters) {
-            Node parameterType = GNode.create("ParameterType", p.type);
-            Node parameterName = GNode.create("ParameterName", p.name);
-            Node parameter = GNode.create("Parameter", parameterType, parameterName);
-            parameters.add(parameter);
+        Node isStatic = GNode.create("IsStatic", String.valueOf(method.isStatic));
+        Node returnType = GNode.create("ReturnType", method.returnType);
+        Node methodName = GNode.create("MethodName", method.name);
+        Node methodParameters = GNode.create("MethodParameters");
+        for(Parameter parameter : method.parameters) {
+            Node parameterType = GNode.create("ParameterType", parameter.type);
+            Node parameterName = GNode.create("ParameterName", parameter.name);
+            Node parameterNode = GNode.create("Parameter", parameterType, parameterName);
+            methodParameters.add(parameterNode);
         }
-        return GNode.create("MethodDeclaration", isStatic, returnType, name, parameters);
+        return GNode.create("MethodDeclaration", isStatic, returnType, methodName, methodParameters);
     }
 
-    public static Node buildVTableNode(ArrayList<Field> vfields, ArrayList<VMethod> vmethods, String name) {
+    public static Node buildVTableNode(String className, ArrayList<Field> vfields, ArrayList<VMethod> vmethods) {
+        // root
         Node root = GNode.create("VTableLayout");
-        root.add(name);
+
+        // name
+        root.add(className);
+
+        // vfields
         for (Field vfield : vfields) {
-            Node fieldType = GNode.create("FieldType", vfield.field_type);
-            Node fieldName = GNode.create("FieldName", vfield.field_name);
+            Node fieldType = GNode.create("FieldType", vfield.fieldType);
+            Node fieldName = GNode.create("FieldName", vfield.fieldName);
             Node initial = GNode.create("Initial", vfield.initial);
-            Node vNode = GNode.create("VField", fieldType, fieldName, initial);
-            root.add(vNode);
-
+            root.add(GNode.create("VField", fieldType, fieldName, initial));
         }
+
+        // vmethods
         for(VMethod vmethod : vmethods) {
-            Node methodName = GNode.create("MethodName", vmethod.method_name);
+            Node methodName = GNode.create("MethodName", vmethod.name);
             Node initial = GNode.create("Initial", vmethod.initial);
-            Node vMethod = GNode.create("VMethod", methodName, initial);
-            root.add(vMethod);
+            root.add(GNode.create("VMethod", methodName, initial));
         }
+
         return root;
-    }
-
-    public static class Phase2Visitor extends Visitor {
-
-        private Logger logger = org.slf4j.LoggerFactory.getLogger(this.getClass());
-        private ObjectRepList objectReps = new ObjectRepList();
-
-        public void visitCompilationNode(GNode n) { visit(n); }
-
-        public void visitPackageDeclaration(GNode n){
-             Phase2.packageName = n.getNode(1).getString(0);
-             visit(n);
-         }
-
-        public void visitClassDeclaration(GNode n) {
-            objectReps.add(new ObjectRep(n.getString(1)));
-            visit(n);
-        }
-
-        public void visitExtension(GNode n) {
-            objectReps.getCurrent().parent = new ObjectRep(n.getNode(0).getNode(0).getString(0));
-            visit(n);
-        }
-
-        public void visitConstructorDeclaration(GNode n) {
-
-            // modifier and static checking
-            String access_modifier = "";
-            boolean is_static = false;
-
-            // iterator so we can iterate over the nodes modifier contents
-            Iterator modifier_iter = n.getNode(0).iterator();
-
-            while (modifier_iter.hasNext()) {
-                Node node_sub = (Node) modifier_iter.next();
-                if (node_sub.getString(0).equals("static")) is_static = true;
-                else access_modifier = node_sub.getString(0);
-            }
-
-            // get name of constructor
-            String constructor_name = n.getString(2);
-
-            // get parameters of constructor
-            ArrayList<Parameter> parameters = new ArrayList<Parameter>();
-            // default constructor
-            parameters.add(new Parameter(objectReps.getCurrent().name, "__this"));
-
-            // iterator so we can iterate over the nodes parameter contents
-            Iterator parameters_iter = n.getNode(4).iterator();
-
-            while (parameters_iter.hasNext()) {
-                Node node_sub = (Node) parameters_iter.next();
-                String type = node_sub.getNode(1).getNode(0).getString(0);
-                type = converter(type);
-                String name = node_sub.getString(3);
-                parameters.add(new Parameter(type, name));
-            }
-
-            // add this constructor
-            Constructor constructor = new Constructor(access_modifier, constructor_name, parameters);
-            objectReps.getCurrent().classRep.constructors.add(constructor);
-
-            // keep traversing
-            visit(n);
-        }
-
-        public void visitMethodDeclaration(GNode n) {
-
-            // modifier and static checking
-            String access_modifier = "";
-            boolean is_static = false;
-
-            // iterator so we can iterate over modifiers
-            Iterator modifier_iter = n.getNode(0).iterator();
-
-            while (modifier_iter.hasNext()) {
-                Node node_sub = (Node) modifier_iter.next();
-                if (node_sub.getString(0).equals("static")) is_static = true;
-                else access_modifier = node_sub.getString(0);
-            }
-
-            // determine return type by visiting return node
-            String return_type;
-            Node return_node = n.getNode(2);
-
-            if (return_node.getName().equals("VoidType")) return_type = "void";
-            else return_type = return_node.getNode(0).getString(0);
-
-            return_type = converter(return_type);
-
-            // get name of method
-            String method_name = n.getString(3);
-
-            // get parameters of method
-            ArrayList<Parameter> parameters = new ArrayList<Parameter>();
-
-            // iterator so we can iterate over the nodes of the parameter contents
-            Iterator parameters_iter = n.getNode(4).iterator();
-
-            while (parameters_iter.hasNext()) {
-                Node node_sub = (Node) parameters_iter.next();
-                String type = node_sub.getNode(1).getNode(0).getString(0);
-                type = converter(type);
-                String name = node_sub.getString(3);
-                parameters.add(new Parameter(type, name));
-            }
-
-            // add this method
-            Method method = new Method(access_modifier, is_static, return_type, method_name, parameters);
-            objectReps.getCurrent().classRep.methods.add(method);
-            
-            visit(n);
-        }
-
-        public void visitFieldDeclaration(GNode n) {
-
-            // modifier and static checking
-            String access_modifier = "";
-            boolean is_static = false;
-
-            // iterator so we can iterate over modifiers
-            Iterator modifier_iter = n.getNode(0).iterator();
-
-            while (modifier_iter.hasNext()) {
-                Node node_sub = (Node) modifier_iter.next();
-                if (node_sub.getString(0).equals("static")) is_static = true;
-                else access_modifier = node_sub.getString(0);
-            }
-
-            // type of the field
-            String field_type = n.getNode(1).getNode(0).getString(0);
-            field_type = converter(field_type);
-
-            // name of the field
-            String field_name = n.getNode(2).getNode(0).getString(0);
-
-            // check if field is initialized to anything
-            String initial = "";
-
-            Node initial_node = n.getNode(2).getNode(0).getNode(2);
-            //if (initial_node != null) initial = initial_node.getString(0);
-
-            // add this field
-            Field field = new Field(access_modifier, is_static, field_type, field_name, initial);
-            objectReps.getCurrent().classRep.fields.add(field);
-
-            visit(n);
-        }
-
-        public String converter(String type) {
-
-            // converted c type
-            String new_type = "";
-
-            // determine type
-            if (type.equals("long")) new_type = "int64_t";
-            else if (type.equals("int")) new_type = "int32_t";
-            else if (type.equals("short")) new_type = "int16_t";
-            else if (type.equals("byte")) new_type = "int8_t";
-            else if (type.equals("boolean")) new_type = "bool";
-            else new_type = type;
-
-            return new_type;
-        }
-
-        public void traverse(Node n) { super.dispatch(n); }
-
-        public void visit(Node n) { for (Object o : n) if (o instanceof Node) dispatch((Node) o); }
-
-        public ObjectRepList getObjectRepresentations() { return objectReps; }
-    }
-
-    public static class ObjectRepList extends ArrayList<ObjectRep> {
-
-        public ObjectRep getCurrent() { return this.get(this.size()-1); }
-
-        public ObjectRep getFromName(String name) {
-            for (ObjectRep rep : this) if(rep.name.equals(name)) return rep;
-            return null;
-        }
-
-        public int getIndexFromName(String name) {
-            int counter = 0;
-            for (ObjectRep rep : this) if (rep.name.equals(name)) return counter; else counter++;
-            return -1;
-        }
     }
 }

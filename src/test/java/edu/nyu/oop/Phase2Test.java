@@ -92,17 +92,17 @@ public class Phase2Test {
             System.out.println("\n\n\nNew ObjectRepList");
             System.out.println("Constructors: ");
             for(Constructor c: o.classRep.constructors){
-                System.out.println(c.constructor_name +" "+ c.access_modifier);
+                System.out.println(c.name +" "+ c.accessModifier);
             }
 
             System.out.println("\nFields: ");
             for(Field f: o.classRep.fields){
-                System.out.println(f.field_type +" "+ f.field_name);
+                System.out.println(f.fieldType +" "+ f.fieldName);
             }
 
             System.out.println("\nMethods: ");
             for(Method m: o.classRep.methods){
-                System.out.println(m.return_type +" "+ m.method_name);
+                System.out.println(m.returnType +" "+ m.name);
             }
         }
 
