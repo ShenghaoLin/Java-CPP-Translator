@@ -107,6 +107,7 @@ public class Phase2 {
 
             // parameters
             ArrayList<Parameter> parameters = new ArrayList<Parameter>();
+            parameters.add(new Parameter(objectRepresentations.getCurrent().name, ""));
 
             Iterator parameterIter = n.getNode(4).iterator();
             while (parameterIter.hasNext()) {
@@ -190,7 +191,9 @@ public class Phase2 {
         }
 
         public int getIndexFromName(String name) {
-            return indexOf(getFromName(name));
+            int index = 0;
+            for (ObjectRep rep : this) if (rep.name.equals(name)) return index; else index++;
+            return -1;
         }
     }
 
@@ -206,13 +209,12 @@ public class Phase2 {
         for (ObjectRep rep : filled) {
             if (!rep.name.equals("Object") && !rep.name.equals("String") && !rep.name.equals("Class")) {
                 // check if main is in the rep
-                boolean main = true;
-                for (Method method : rep.classRep.methods) if (method.name.equals("main")) main = false;
-
+                boolean main = false;
+                for (Method method : rep.classRep.methods) if (method.name.equals("main")) main = true;
                 // if main is not there, then process output and replace old with the new
                 if (!main) {
                     ObjectRep newRep = processVTable(rep, rep.parent);
-                    int index = filled.getIndexFromName(rep.name);
+                    int index = filled.getIndexFromName(newRep.name);
                     filled.set(index, newRep);
                 }
             }
@@ -256,6 +258,11 @@ public class Phase2 {
             }
         }
         if(mainIndex != -1) filled.remove(mainIndex);
+
+        // finally remove object, string, and class (no longer needed)
+        filled.remove(0);
+        filled.remove(0);
+        filled.remove(0);
 
         return filled;
     }
@@ -373,7 +380,9 @@ public class Phase2 {
         // private instance fields are inherited (there is a workaround way of accessing them)
         // static instance fields are not inherited (static leads to initialization issues)
         // preserve order too
-        return determineFields(current, parent);
+        ObjectRep currentPrime = determineFields(current, parent);
+
+        return currentPrime;
     }
 
     public static ObjectRep determineFields(ObjectRep current, ObjectRep parent) {
@@ -414,19 +423,19 @@ public class Phase2 {
         // fields are simply expanded out in visitor with corresponding method definitions
         // similarly update methods using relationship between an object and its parent
         // constructors are basically simple, multiple constructors currently not allowed
+        ObjectRep currentPrime = determineVTable(current, parent);
 
-        return determineVTable(current, parent);
+        return currentPrime;
     }
 
     public static ObjectRep determineVTable(ObjectRep current, ObjectRep parent) {
-
         ArrayList<Field> parentFields = parent.vtable.fields;
         ArrayList<Method> currentMethods = current.classRep.methods;
 
         VMethod __is_a = current.vtable.methods.get(0);
 
         ArrayList<Field> updatedFields = new ArrayList<Field>();
-        ArrayList<VMethod> updatedVmethods = new ArrayList<VMethod>();
+        ArrayList<VMethod> updatedVMethods = new ArrayList<VMethod>();
 
         // determine method declarations dependent on parent declarations (overwritten or not)
         for (Field parentField : parentFields) {
@@ -446,7 +455,7 @@ public class Phase2 {
                     updatedFields.add(temp);
                     notUpdated = false;
                     // process parameters correctly into a vMethod declaration
-                    updatedVmethods.add(new VMethod(currentMethod.accessModifier, false, currentMethod.name, "(("+currentMethod.returnType+"(*)("+parameters+")) &__"+current.name+"::"+currentMethod.name+")"));
+                    updatedVMethods.add(new VMethod(currentMethod.accessModifier, false, currentMethod.name, "(&__"+current.name+"::"+currentMethod.name+")"));
                 }
             }
             // if method wasn't overwritten and is not class (which is initialized in ObjectRep creation), modify its args and simply add to updated_fields list, also add inheritnce to updated vMethods list (these will refer to Object)
@@ -457,13 +466,13 @@ public class Phase2 {
                 Field temp = new Field(parentField.accessModifier, parentField.isStatic, parentField.fieldType, parentField.fieldName, parentField.initial.replaceFirst(parent.name, current.name));
                 temp.inheritedFrom = inheritedFrom;
                 updatedFields.add(temp);
-                if (parentField.fieldName.equals("__is_a")) updatedVmethods.add(__is_a);
-                else updatedVmethods.add(new VMethod(parentField.accessModifier, parentField.isStatic, parentField.fieldName.replaceFirst("\\*",""), "(("+parentField.fieldType+"(*)("+parentField.initial.replaceFirst(parent.name, current.name)+")) &__"+inheritedFrom+"::"+parentField.fieldName.replaceFirst("\\*","")+")"));
+                if (parentField.fieldName.equals("__is_a")) updatedVMethods.add(__is_a);
+                else updatedVMethods.add(new VMethod(parentField.accessModifier, parentField.isStatic, parentField.fieldName.replaceFirst("\\*",""), "(("+parentField.fieldType+"(*)("+parentField.initial.replaceFirst(parent.name, current.name)+")) &__"+inheritedFrom+"::"+parentField.fieldName.replaceFirst("\\*","")+")"));
             }
         }
 
         ArrayList<Field> updatedFieldsPrime = new ArrayList<Field>();
-        ArrayList<VMethod> updatedVmethodsPrime = new ArrayList<VMethod>();
+        ArrayList<VMethod> updatedVMethodsPrime = new ArrayList<VMethod>();
 
         // use hashset of names for uniqueness property
         HashSet<String> updatedFieldSet = new HashSet<String>();
@@ -481,15 +490,16 @@ public class Phase2 {
                 Field temp = new Field(currentMethod.accessModifier, false, currentMethod.returnType, "*"+currentMethod.name, parameters);
                 temp.inheritedFrom = current.name;
                 updatedFieldsPrime.add(temp);
-                updatedVmethodsPrime.add(new VMethod(currentMethod.accessModifier, false, currentMethod.name, "(("+currentMethod.returnType+"(*)("+parameters+")) &__"+current.name+"::"+currentMethod.name+")"));
+                // ("+currentMethod.returnType+"(*)("+parameters+")) this was removed from init, keeping it here just in case
+                updatedVMethodsPrime.add(new VMethod(currentMethod.accessModifier, false, currentMethod.name, "(&__"+current.name+"::"+currentMethod.name+")"));
             }
         }
 
         for (Field field : updatedFieldsPrime) updatedFields.add(field);
-        for (VMethod vmethod : updatedVmethodsPrime) updatedVmethods.add(vmethod);
+        for (VMethod vmethod : updatedVMethodsPrime) updatedVMethods.add(vmethod);
 
         current.vtable.fields = updatedFields;
-        current.vtable.methods = updatedVmethods;
+        current.vtable.methods = updatedVMethods;
 
         return current;
     }
@@ -684,7 +694,7 @@ public class Phase2 {
         for(Method method : rep.classRep.methods) methods.add(buildMethodNode(method));
 
         // vtable
-        Node vtable = buildVTableNode(rep.name, rep.vtable.fields, rep.vtable.methods);
+        Node vtable = buildVTableNode(rep.vtable.fields, rep.vtable.methods);
 
         // return class declaration
         return GNode.create("ClassDeclaration", name, fields, constructors, methods, vtable);
@@ -707,6 +717,7 @@ public class Phase2 {
             Node parameterNode = GNode.create("Parameter", parameterType, parameterName);
             constructorParameters.add(parameterNode);
         }
+
         return GNode.create("ConstructorDeclaration", constructorName, constructorParameters);
     }
 
@@ -721,30 +732,32 @@ public class Phase2 {
             Node parameterNode = GNode.create("Parameter", parameterType, parameterName);
             methodParameters.add(parameterNode);
         }
+
         return GNode.create("MethodDeclaration", isStatic, returnType, methodName, methodParameters);
     }
 
-    public static Node buildVTableNode(String className, ArrayList<Field> vfields, ArrayList<VMethod> vmethods) {
+    public static Node buildVTableNode(ArrayList<Field> vfields, ArrayList<VMethod> vmethods) {
         // root
         Node root = GNode.create("VTableLayout");
-
-        // name
-        root.add(className);
-
-        // vfields
+        // fields
+        Node fields = GNode.create("VFields");
+        // process vfields
         for (Field vfield : vfields) {
             Node fieldType = GNode.create("FieldType", vfield.fieldType);
             Node fieldName = GNode.create("FieldName", vfield.fieldName);
             Node initial = GNode.create("Initial", vfield.initial);
-            root.add(GNode.create("VField", fieldType, fieldName, initial));
+            fields.add(GNode.create("VField", fieldType, fieldName, initial));
         }
-
-        // vmethods
+        root.add(fields);
+        // methods
+        Node methods = GNode.create("VMethods");
+        // process vmethods
         for(VMethod vmethod : vmethods) {
             Node methodName = GNode.create("MethodName", vmethod.name);
             Node initial = GNode.create("Initial", vmethod.initial);
-            root.add(GNode.create("VMethod", methodName, initial));
+            methods.add(GNode.create("VMethod", methodName, initial));
         }
+        root.add(methods);
 
         return root;
     }
