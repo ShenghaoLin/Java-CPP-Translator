@@ -151,17 +151,24 @@ public class Boot extends Tool {
       List<GNode> javaAsts = Phase1.parse(n);
 
       // phase 2
-      ArrayList<GNode> cppAsts = new ArrayList<GNode>();
-      for (GNode javaAst : javaAsts) {
+      Node cppAst = Phase2.runPhase2(javaAsts.get(0));
+      /*
+      ArrayList<Node> cppAsts = new ArrayList<Node>();
+      for (Node javaAst : javaAsts) {
         Node cppAst = Phase2.runPhase2(javaAst);
         cppAsts.add(cppAst);
         runtime.console().format(cppAst).pln().flush();
       }
+      */
 
+      Phase3 phase3 = new Phase3();
+      phase3.print((GNode) cppAst);
+      /*
       // phase 3
-      for (Gnode cppAst : cppAsts) {
-        Phase3.print(cppAst);
+      for (Node cppAst : cppAsts) {
+        phase3.print((GNode) cppAst);
       }
+      */
 
     }
 
