@@ -43,6 +43,7 @@ public class Phase3 extends Visitor {
     public void print(GNode ast) {
         headOfFile();
         dispatch(ast);
+        endOfFile();
         printer.flush();
     }
 
@@ -54,9 +55,16 @@ public class Phase3 extends Visitor {
         printer.pln().pln();
     }
 
+    private void endOfFile() {
+        printer.pln("}");
+        printer.pln("}");
+    }
+
     //String packageName = null;
     public void visitPackageDeclaration(GNode node){
         printer.pln("namespace " + node.getString(0) + "{");
+        printer.pln("namespace javalang {");
+        printer.pln();
         visit(node);
     }
 
@@ -85,7 +93,7 @@ public class Phase3 extends Visitor {
         printer.pln();
         visit(node);
         printer.decr().indent().pln("};");
-        printer.pln().pln().pln();
+        printer.pln();
 
     }
 
@@ -126,28 +134,27 @@ public class Phase3 extends Visitor {
                 printer.pln(");");
             }
         }
-        printer.pln().pln();
+        printer.pln();
         printer.indent().pln("static Class __class();");
-        printer.pln().pln();
+        printer.pln();
         visit(node);
     }
 
     public void visitVFieldDec(GNode node){
         printer.indent().pln("static __" + className + "_VT __vtable;");
-        printer.pln();
         visit(node);
     }
 
     public void visitVTableLayout(GNode node){
         printer.indent().pln("struct __" + node.getString(0) + "_VT {");
+        printer.pln();
         printer.incr().indent().pln("Class __is_a;");
-        printer.pln().pln();
+        printer.pln();
         visit(node);
         printer.decr().indent().pln("{");
         printer.indent().pln("}");
         printer.decr().indent().pln("};");
-        printer.pln().pln().pln();
-
+        printer.pln();
     }
 
     public void visitVFields(GNode node){
@@ -155,7 +162,7 @@ public class Phase3 extends Visitor {
             printer.indent().pln(node.getNode(i).getNode(0).getString(0) + " (" + node.getNode(i).getNode(1).getString(0) +
                     ")(" + node.getNode(i).getNode(2).getString(0) + ");");
         }
-        printer.pln().pln();
+        printer.pln();
     }
 
 
