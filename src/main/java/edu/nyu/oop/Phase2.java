@@ -261,6 +261,11 @@ public class Phase2 {
         }
         if(mainIndex != -1) filled.remove(mainIndex);
 
+        // remove Object, String, and Class
+        filled.remove(0);
+        filled.remove(0);
+        filled.remove(0);
+
         return filled;
     }
 
