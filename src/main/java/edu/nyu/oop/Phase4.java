@@ -107,6 +107,10 @@ public class Phase4 {
             visit(n);
         }
 
+        public void visitInstanceOfExpression(GNode n) {
+
+        }
+
         /* Visitor for ClassDeclaration
          * Modified method name to "__class::method"
          * Adding __this argument to each method
@@ -365,8 +369,10 @@ public class Phase4 {
          */
         public void visitSelectionExpression(GNode n) {
             for (int i = 1; i < n.size(); i++) {
-                if (!n.get(i).toString().startsWith("-> ")) {
-                    n.set(i, "-> " + n.get(i).toString());
+                if (n.get(i) instanceof String) {
+                    if (!n.get(i).toString().startsWith("-> ")) {
+                        n.set(i, "-> " + n.get(i).toString());
+                    }
                 }
             }
             visit(n);
@@ -425,16 +431,20 @@ public class Phase4 {
                 if (child != null) {
 
                     //start the method from vtable
-                    n.set(2, "-> __vptr -> " + n.get(2).toString());
-
+                    if (!n.get(2).toString().startsWith("-> ")){
+                        n.set(2, "-> __vptr -> " + n.get(2).toString());
+                    }
                     //add the object to arguments
                     GNode arguments = GNode.create("Arguments");
+
                     arguments.add(child);
                     GNode oldArg = (GNode) NodeUtil.dfs(n, "Arguments");
                     n.set(3, arguments);
                     if (oldArg != null) {
                         for (Object oo : oldArg) {
-                            arguments.add(oo);
+                            if (!oo.equals(arguments.get(0))){
+                                arguments.add(oo);
+                            }
                         }
                     }
                 }

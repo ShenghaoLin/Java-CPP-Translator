@@ -114,6 +114,16 @@ public class Phase5 extends Visitor {
         }
     }
 
+    public void visitInstanceOfExpression(GNode n) {
+        dispatch((Node) n.get(0));
+        printer.p("-> __vptr -> instanceof(").flush();
+        dispatch((Node) n.get(0));
+        printer.p(", (Object) new __").flush();
+        dispatch((Node) n.get(1));
+        printer.p("())").flush();
+
+    }
+
     /* Visitor for CompilationUnit 
      * Generate information of the package and print namespace
      */
@@ -237,7 +247,6 @@ public class Phase5 extends Visitor {
                     if (gnode.hasName("CallExpression")) {
                         if (gnode.get(2).toString().endsWith("toString")) {
                             printer.p("-> data ").flush();
-                            System.out.print("Found");
                         }
                     }
                 }

@@ -51,8 +51,8 @@ Class ca1 = a1 -> __vptr -> getClass (a1 );
 cout << ca1 -> __vptr -> toString (ca1 )-> data << endl ;
 Class ca2 = a2 -> __vptr -> getClass (a2 );
 cout << ca2 -> __vptr -> toString (ca2 )-> data << endl ;
-if (a2 B ){
-cout << a2 -> __vptr -> -> __vptr -> -> __vptr -> -> __vptr -> getClass (a2 , a2 , a2 , a2 )-> __vptr -> -> __vptr -> getSuperclass (a2 -> __vptr -> -> __vptr -> -> __vptr -> -> __vptr -> getClass (a2 , a2 , a2 , a2 ), a2 , a2 )-> __vptr -> toString (a2 -> __vptr -> -> __vptr -> -> __vptr -> -> __vptr -> getClass (a2 , a2 , a2 , a2 )-> __vptr -> -> __vptr -> getSuperclass (a2 -> __vptr -> -> __vptr -> -> __vptr -> -> __vptr -> getClass (a2 , a2 , a2 , a2 ), a2 , a2 ))-> data << endl ;
+if (a2 -> __vptr -> instanceof(a2 , (Object) new __B ())){
+cout << a2 -> __vptr -> getClass (a2 )-> __vptr -> getSuperclass (a2 -> __vptr -> getClass (a2 ), a2 )-> __vptr -> toString (a2 -> __vptr -> getClass (a2 )-> __vptr -> getSuperclass (a2 -> __vptr -> getClass (a2 ), a2 ))-> data << endl ;
 }
 
 }
