@@ -11,6 +11,11 @@ import java.util.HashSet;
 
 public class Phase2 {
 
+    /**
+     * Master method to run other methods
+     * @param n root node of given AST parsed by Phase 1
+     * @return root node of AST with built layout and structure for each child and itself
+     */
     public static Node runPhase2(Node n) {
 
         // this was for printing contents of data structures before node processing, now that portion of the code has been commented out
@@ -28,6 +33,9 @@ public class Phase2 {
         return buildCppAst(visitor.getPackageName(), filled);
     }
 
+    /**
+     * Visitor class
+     */
     public static class Phase2Visitor extends Visitor {
 
         private Logger logger = org.slf4j.LoggerFactory.getLogger(this.getClass());
@@ -35,21 +43,37 @@ public class Phase2 {
         private String packageName = "";
         private ObjectRepList objectRepresentations = new ObjectRepList();
 
+        /**
+         * Visits Package Declaration and assigns packagename
+         * @param node node being visited
+         */
         public void visitPackageDeclaration(GNode node){
             packageName = node.getNode(1).getString(0);
             visit(node);
         }
 
+        /**
+         * For each class declaration in file add it to objectRepresentations
+         * @param node node being visited
+         */
         public void visitClassDeclaration(GNode node) {
             objectRepresentations.add(new ObjectRep(node.getString(1)));
             visit(node);
         }
 
+        /**
+         * Adds inheritance of each node to structure
+         * @param node node being visited
+         */
         public void visitExtension(GNode node) {
             objectRepresentations.getCurrent().parent = new ObjectRep(node.getNode(0).getNode(0).getString(0));
             visit(node);
         }
 
+        /**
+         * Gets class constructor and adds it to node's AST
+         * @param node node being visited
+         */
         public void visitConstructorDeclaration(GNode node) {
             // modifiers
             String accessModifier = "";
@@ -86,6 +110,10 @@ public class Phase2 {
             visit(node);
         }
 
+        /**
+         * Visits method declaration and adds it to current node's AST
+         * @param node node being visited
+         */
         public void visitMethodDeclaration(GNode node) {
             // modifiers
             String accessModifier = "";
@@ -126,6 +154,10 @@ public class Phase2 {
             visit(node);
         }
 
+        /**
+         * Visits field declaration and adds it to current node's AST
+         * @param node node being visited
+         */
         public void visitFieldDeclaration(GNode node) {
             // modifiers
             String accessModifier = "";
@@ -155,14 +187,27 @@ public class Phase2 {
             visit(node);
         }
 
+        /**
+         * Iteratively visit all children of given node
+         * @param node root of current node Ast
+         */
         public void visit(Node node) {
             for (Object o : node) if (o instanceof Node) dispatch((Node) o);
         }
 
+        /**
+         * Dispatch
+         * @param node node being visited
+         */
         public void traverse(Node node) {
             super.dispatch(node);
         }
 
+        /**
+         * Converts from Java type to C++ type
+         * @param type java type
+         * @return cpp type
+         */
         public String convertType(String type) {
             if (type.equals("long")) return "int64_t";
             else if (type.equals("int")) return "int32_t";
@@ -172,33 +217,66 @@ public class Phase2 {
             else return type;
         }
 
+        /**
+         * Get package name
+         * @return packageName
+         */
         public String getPackageName() {
             return packageName;
         }
 
+        /**
+         * Gets ObjectRepList objectRepresentations
+         * @return objectRepresentations
+         */
         public ObjectRepList getObjectRepresentations() {
             return objectRepresentations;
         }
     }
 
+    /**
+     * ArrayList of Structure ObjectRep
+     */
     public static class ObjectRepList extends ArrayList<ObjectRep> {
 
+        /**
+         * Method to get ObjectRep in last position of Array
+         * @return ObjectRepList[-1]
+         */
         public ObjectRep getCurrent() {
             return this.get(this.size() - 1);
         }
 
+        /**
+         * Iterativery searches for node by given name
+         * @param name name to be searched
+         * @return ObjectRep if in List, null if not in List
+         */
         public ObjectRep getFromName(String name) {
             for (ObjectRep rep : this) if (rep.name.equals(name)) return rep;
             return null;
         }
 
+        /**
+         * Gets index of ObjectRep by its name
+         * @param name name to be searched
+         * @return index of ObjectRep if in List, -1 if not
+         */
         public int getIndexFromName(String name) {
             int index = 0;
-            for (ObjectRep rep : this) if (rep.name.equals(name)) return index; else index++;
+            for (ObjectRep rep : this)
+                if (rep.name.equals(name))
+                    return index;
+                else index++;
             return -1;
         }
     }
 
+    /**
+     * Fills up structure with assigned methods VTables, parents
+     * @param unfilled ObjectRepList from visitor
+     * @return
+     */
     public static ObjectRepList getFilledObjectRepList(ObjectRepList unfilled) {
 
         // manually add object, string, class
@@ -269,6 +347,12 @@ public class Phase2 {
         return filled;
     }
 
+    /**
+     * Helper method for getFilledObjectRepList that fills up the ObjectRep structure
+     * @param filled
+     * @param unfilled
+     * @return filled structure
+     */
     public static ObjectRepList fill(ObjectRepList filled, ObjectRepList unfilled) {
 
         //Add classes from unfilled, keep doing this until filled has same size as unfilled
@@ -281,7 +365,7 @@ public class Phase2 {
                     rep.parent = filled.get(0);
                 }
 
-                // don't add until parent class is already in filled, this makes sure classes are in inheritance order, i.e. if a class iherits a class it should be further down the list
+                // don't add until parent class is already in filled, this makes sure classes are in inheritance order, i.e. if a class inherits a class it should be further down the list
                 if (filled.getFromName(rep.parent.name) != null) {
                     int parent_idx = filled.getIndexFromName(rep.parent.name);
                     rep.parent = filled.get(parent_idx);
@@ -377,6 +461,12 @@ public class Phase2 {
     }
     */
 
+    /**
+     * Helper method for getFilledObjectRepList
+     * @param current
+     * @param parent
+     * @return ObjectRep of Field
+     */
     public static ObjectRep processFields(ObjectRep current, ObjectRep parent) {
         // process fields according to the following rules:
         // private instance fields are inherited (there is a workaround way of accessing them)
@@ -387,6 +477,12 @@ public class Phase2 {
         return currentPrime;
     }
 
+    /**
+     * Determines the field variables
+     * @param current
+     * @param parent
+     * @return current ObjectRep with update fields
+     */
     public static ObjectRep determineFields(ObjectRep current, ObjectRep parent) {
         // iterate over parent fields from class, if possible to inherit, add to child, then dump child methods, this way we preserve order
         ArrayList<Field> parentFields = parent.classRep.fields;
@@ -418,6 +514,12 @@ public class Phase2 {
         return current;
     }
 
+    /**
+     * Helper method for getFilledObjectRepList
+     * @param current
+     * @param parent
+     * @return ObjectRep for VTable
+     */
     public static ObjectRep processVTable(ObjectRep current, ObjectRep parent) {
 
         // first process the methods of the class declaration
@@ -430,6 +532,12 @@ public class Phase2 {
         return currentPrime;
     }
 
+    /**
+     * Determines VTable for given ObjectRep
+     * @param current
+     * @param parent
+     * @return ObjectRep with updated VTable and its fields
+     */
     public static ObjectRep determineVTable(ObjectRep current, ObjectRep parent) {
         ArrayList<Field> parentFields = parent.vtable.fields;
         ArrayList<Method> currentMethods = current.classRep.methods;
@@ -506,6 +614,10 @@ public class Phase2 {
         return current;
     }
 
+    /**
+     * Initializes ObjectReps for Object, String and Class layout and structures
+     * @return ObjectRepList with Object, String and Class
+     */
     public static ObjectRepList initializeRepList() {
 
         ObjectRepList filled = new ObjectRepList();
@@ -656,6 +768,12 @@ public class Phase2 {
         return filled;
     }
 
+    /**
+     * Method to create root node and attach ObjectReps to it giving the final AST
+     * @param packageName
+     * @param ObjectRepList
+     * @return cppAst
+     */
     public static Node buildCppAst(String packageName, ObjectRepList ObjectRepList) {
         // root
         Node root = GNode.create("CompilationUnit");
@@ -679,6 +797,11 @@ public class Phase2 {
         return root;
     }
 
+    /**
+     * Helper method for buildCppAst
+     * @param rep
+     * @return Class node with layout and Vtable
+     */
     public static Node buildClassNode(ObjectRep rep) {
         // name, commented out not in sai's code but here just in case
         // Node name = GNode.create("ClassName", rep.name);
@@ -706,6 +829,11 @@ public class Phase2 {
         return GNode.create("ClassDeclaration", rep.name, dataLayout, vTable);
     }
 
+    /**
+     * Helper method for buildClassNode
+     * @param field
+     * @return node with Fields Ast
+     */
     public static Node buildFieldNode(Field field) {
         Node isStatic = GNode.create("IsStatic", String.valueOf(field.isStatic));
         Node fieldType = GNode.create("FieldType", field.fieldType);
@@ -714,6 +842,11 @@ public class Phase2 {
         return GNode.create("Field", isStatic, fieldType, fieldName, initial);
     }
 
+    /**
+     * Helper methods for buidClassNode
+     * @param constructor
+     * @return node with constructor Ast
+     */
     public static Node buildConstructorNode(Constructor constructor) {
         Node constructorName = GNode.create("ConstructorName", constructor.name);
         Node constructorParameters = GNode.create("ConstructorParameters");
@@ -727,6 +860,11 @@ public class Phase2 {
         return GNode.create("ConstructorDeclaration", constructorName, constructorParameters);
     }
 
+    /**
+     * Helper method for buildClassAst
+     * @param method
+     * @return method node Ast
+     */
     public static Node buildMethodNode(Method method) {
         Node isStatic = GNode.create("IsStatic", String.valueOf(method.isStatic));
         Node returnType = GNode.create("ReturnType", method.returnType);
@@ -742,6 +880,13 @@ public class Phase2 {
         return GNode.create("MethodDeclaration", isStatic, returnType, methodName, methodParameters);
     }
 
+    /**
+     * Helper method for buildClassAst
+     * @param name
+     * @param vfields
+     * @param vmethods
+     * @return node vtable Ast
+     */
     public static Node buildVTableNode(String name, ArrayList<Field> vfields, ArrayList<VMethod> vmethods) {
         // root
         Node root = GNode.create("VTableLayout");
