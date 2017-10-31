@@ -1,3 +1,17 @@
+/**
+ * Phase 2, first traverses list of asts obtained from Phase 1 while processing
+ * relevant data layout information into relevant data structures, after this
+ * step vtable structure is resolved using inheritance heuristic (e.g. if B ~ A
+ * and A ~ Object, all inheritance data can be resolved using Object ~ A ~ B),
+ * vtable populates vfields and vmethods, finally data is dumped into a new AST
+ * structure to be used for Phase 3 printer that visits said AST
+ *
+ * @author Goktug Saatcioglu
+ * @author Sam Holloway
+ *
+ * @version 1.0
+ */
+
 package edu.nyu.oop;
 
 import org.slf4j.Logger;
@@ -12,8 +26,10 @@ import java.util.HashSet;
 public class Phase2 {
 
     /**
-     * Master method to run other methods
-     * @param n root node of given AST parsed by Phase 1
+     * main method, calls visitor, populates ObjectRepList, build CPP AST
+     *
+     * @param     n root node of given AST parsed by Phase 1
+     *
      * @return root node of AST with built layout and structure for each child and itself
      */
     public static Node runPhase2(Node n) {
@@ -45,6 +61,7 @@ public class Phase2 {
 
         /**
          * Visits Package Declaration and assigns packagename
+         *
          * @param node node being visited
          */
         public void visitPackageDeclaration(GNode node){
@@ -54,6 +71,7 @@ public class Phase2 {
 
         /**
          * For each class declaration in file add it to objectRepresentations
+         *
          * @param node node being visited
          */
         public void visitClassDeclaration(GNode node) {
@@ -63,6 +81,7 @@ public class Phase2 {
 
         /**
          * Adds inheritance of each node to structure
+         *
          * @param node node being visited
          */
         public void visitExtension(GNode node) {
@@ -71,7 +90,8 @@ public class Phase2 {
         }
 
         /**
-         * Gets class constructor and adds it to node's AST
+         * Gets class constructor and adds it to node's data layout of current ObjectRepresentation
+         *
          * @param node node being visited
          */
         public void visitConstructorDeclaration(GNode node) {
@@ -111,7 +131,8 @@ public class Phase2 {
         }
 
         /**
-         * Visits method declaration and adds it to current node's AST
+         * Visits method declaration and adds it to current node's data layout of current ObjectRepresentation
+         *
          * @param node node being visited
          */
         public void visitMethodDeclaration(GNode node) {
@@ -155,7 +176,8 @@ public class Phase2 {
         }
 
         /**
-         * Visits field declaration and adds it to current node's AST
+         * Visits field declaration and adds it to current node's data layout of ObjectRepresentation
+         *
          * @param node node being visited
          */
         public void visitFieldDeclaration(GNode node) {
@@ -189,6 +211,7 @@ public class Phase2 {
 
         /**
          * Iteratively visit all children of given node
+         *
          * @param node root of current node Ast
          */
         public void visit(Node node) {
@@ -196,7 +219,8 @@ public class Phase2 {
         }
 
         /**
-         * Dispatch
+         * Dispatch method, stat the visitor
+         *
          * @param node node being visited
          */
         public void traverse(Node node) {
@@ -204,9 +228,11 @@ public class Phase2 {
         }
 
         /**
-         * Converts from Java type to C++ type
-         * @param type java type
-         * @return cpp type
+         * Converts from Java data types to C++ data types
+         *
+         * @param  type java type
+         *
+         * @return  cpp type
          */
         public String convertType(String type) {
             if (type.equals("long")) return "int64_t";
@@ -218,16 +244,18 @@ public class Phase2 {
         }
 
         /**
-         * Get package name
-         * @return packageName
+         * Get package name, this is associated with the visitor object as a field
+         *
+         * @return packageName name of the package that is being processed
          */
         public String getPackageName() {
             return packageName;
         }
 
         /**
-         * Gets ObjectRepList objectRepresentations
-         * @return objectRepresentations
+         * Gets ObjectRepList objectRepresentations and returns it
+         *
+         * @return objectRepresentations list of ObjectReps with each ObjectRep representing data layout of an object
          */
         public ObjectRepList getObjectRepresentations() {
             return objectRepresentations;
@@ -241,16 +269,20 @@ public class Phase2 {
 
         /**
          * Method to get ObjectRep in last position of Array
-         * @return ObjectRepList[-1]
+         *
+         * @return ObjectRep ObjectRep at ObjectRepList[-1]
          */
         public ObjectRep getCurrent() {
             return this.get(this.size() - 1);
         }
 
         /**
-         * Iterativery searches for node by given name
-         * @param name name to be searched
-         * @return ObjectRep if in List, null if not in List
+         * Iterativery searches for an ObjectRep from a given name
+         *
+         * @param       name name to be searched
+         *
+         * @return ObjectRep return if in list
+         * @return      null null if an ObjectRep from a given name isn't found
          */
         public ObjectRep getFromName(String name) {
             for (ObjectRep rep : this) if (rep.name.equals(name)) return rep;
@@ -258,9 +290,11 @@ public class Phase2 {
         }
 
         /**
-         * Gets index of ObjectRep by its name
-         * @param name name to be searched
-         * @return index of ObjectRep if in List, -1 if not
+         * Gets index of ObjectRep by its name by searching for it
+         *
+         * @param   name name to be searched
+         *
+         * @return index index of ObjectRep if in List, -1 if not
          */
         public int getIndexFromName(String name) {
             int index = 0;
@@ -273,9 +307,19 @@ public class Phase2 {
     }
 
     /**
-     * Fills up structure with assigned methods VTables, parents
-     * @param unfilled ObjectRepList from visitor
-     * @return
+     * initializes a ObjectRepList with hardcoded Object, String and Class data
+     * fills ObjectRepList using unfilled list with fill method that also sets 
+     * parents of Objects
+     * resolves VTable structure for each object using inheritance relationship
+     * proces inherited fields for data layout for each object using inheritance
+     * relationship
+     * removes object with main method as this does not need to be processed
+     * removes Object, String and Class at the last step as these are not needed
+     * anymore
+     *
+     * @param unfilled unprocessed ObjectRepList from visitor
+     *
+     * @return  filled ObjectRepList of resolved ctable and data layouts for each object
      */
     public static ObjectRepList getFilledObjectRepList(ObjectRepList unfilled) {
 
@@ -349,9 +393,14 @@ public class Phase2 {
 
     /**
      * Helper method for getFilledObjectRepList that fills up the ObjectRep structure
-     * @param filled
-     * @param unfilled
-     * @return filled structure
+     * based on its inheritance heirarchy, ensuring that if B inherits A, then B occurs
+     * further down on the ObjectRepList, it also adds pointers to relevant parents
+     * i.e. B now points to A and A points to Object
+     *
+     * @param   filled ObjectRepList with just Object, String and Class
+     * @param unfilled ObjectRepList of visitor processed Objects
+     *
+     * @return  filled ObjectRepList with proper inheritance hierarchy
      */
     public static ObjectRepList fill(ObjectRepList filled, ObjectRepList unfilled) {
 
@@ -462,10 +511,14 @@ public class Phase2 {
     */
 
     /**
-     * Helper method for getFilledObjectRepList
-     * @param current
-     * @param parent
-     * @return ObjectRep of Field
+     * Helper method for getFilledObjectRepList that calls processFields
+     * method that process inheritance hierarchy of fields that need to
+     * be declared in data layout for an object
+     *
+     * @param       current curent object that needs to inherit fields
+     * @param        parent parent bbject that has fields to give
+     *
+     * @return currentPrime version of current with field inheritance resolved
      */
     public static ObjectRep processFields(ObjectRep current, ObjectRep parent) {
         // process fields according to the following rules:
@@ -478,10 +531,12 @@ public class Phase2 {
     }
 
     /**
-     * Determines the field variables
-     * @param current
-     * @param parent
-     * @return current ObjectRep with update fields
+     * Determines the field variables for current object by using the parent
+     * object as the point of reference to inherit from
+     *
+     * @param  current ObjectRep with fields that need to be determined
+     * @param   parent ObjectRep with fields that will give to current
+     * @return current ObjectRep with updated fields
      */
     public static ObjectRep determineFields(ObjectRep current, ObjectRep parent) {
         // iterate over parent fields from class, if possible to inherit, add to child, then dump child methods, this way we preserve order
@@ -515,10 +570,15 @@ public class Phase2 {
     }
 
     /**
-     * Helper method for getFilledObjectRepList
-     * @param current
-     * @param parent
-     * @return ObjectRep for VTable
+     * Helper method for getFilledObjectRepList that calls determineVTable
+     * method that process inheritance hierarchy and preserves order for
+     * the declaration of methods, furthermore it implements method
+     * overriding and creates correct pointer declarations
+     *
+     * @param       current current object that needs a vtable
+     * @param        parent parent object that has vtable info for current
+     *
+     * @return currentPrime version of current with vtable resolved
      */
     public static ObjectRep processVTable(ObjectRep current, ObjectRep parent) {
 
@@ -534,9 +594,11 @@ public class Phase2 {
 
     /**
      * Determines VTable for given ObjectRep
-     * @param current
-     * @param parent
-     * @return ObjectRep with updated VTable and its fields
+     *
+     * @param  current ObjectRep with VTable that needs to be determined
+     * @param   parent ObjectRep that will be used to determine current VTable
+     *
+     * @return current ObjectRep with updated VTable
      */
     public static ObjectRep determineVTable(ObjectRep current, ObjectRep parent) {
         ArrayList<Field> parentFields = parent.vtable.fields;
@@ -616,7 +678,10 @@ public class Phase2 {
 
     /**
      * Initializes ObjectReps for Object, String and Class layout and structures
-     * @return ObjectRepList with Object, String and Class
+     * manually with hard coding, Object is necessary and String and Class are
+     * hardcoded just in case they may be needed in the future
+     *
+     * @return filled ObjectRepList with Object, String and Class hard coded
      */
     public static ObjectRepList initializeRepList() {
 
@@ -769,12 +834,15 @@ public class Phase2 {
     }
 
     /**
-     * Method to create root node and attach ObjectReps to it giving the final AST
-     * @param packageName
-     * @param ObjectRepList
-     * @return cppAst
+     * Method to create root node and parse information in ObjectReps to it 
+     * giving the final AST that the printer in Phase 3 uses to print
+     *
+     * @param   packageName package name of package being processed
+     * @param objectRepList list of ObjectReps that need to be turned into AST
+     *
+     * @return       cppAst final AST structure for Phase 3
      */
-    public static Node buildCppAst(String packageName, ObjectRepList ObjectRepList) {
+    public static Node buildCppAst(String packageName, ObjectRepList objectRepList) {
         // root
         Node root = GNode.create("CompilationUnit");
 
@@ -787,7 +855,7 @@ public class Phase2 {
         root.add(forwardDeclarations);
 
         // process each object representation
-        for (ObjectRep rep : ObjectRepList) {
+        for (ObjectRep rep : objectRepList) {
             // add to forward declarations
             forwardDeclarations.add(rep.name);
             // add class node
@@ -798,9 +866,14 @@ public class Phase2 {
     }
 
     /**
-     * Helper method for buildCppAst
-     * @param rep
-     * @return Class node with layout and Vtable
+     * Helper method for buildCppAst that builds a node representing a class
+     * it does this by processing the data layout of the current rep by
+     * processing fields, constructors and methods, then it proceeds to process
+     * the vtable
+     *
+     * @param   rep ObjectRep that needs to be become a class node
+     *
+     * @return Node node with class information name, data layout and vtable
      */
     public static Node buildClassNode(ObjectRep rep) {
         // name, commented out not in sai's code but here just in case
@@ -830,9 +903,12 @@ public class Phase2 {
     }
 
     /**
-     * Helper method for buildClassNode
-     * @param field
-     * @return node with Fields Ast
+     * Helper method for buildClassNode, process fields of an ObjectRep and
+     * parse the information into a field node
+     *
+     * @param field Field object that holds field information
+     *
+     * @return Node returns a node with field information
      */
     public static Node buildFieldNode(Field field) {
         Node isStatic = GNode.create("IsStatic", String.valueOf(field.isStatic));
@@ -843,9 +919,12 @@ public class Phase2 {
     }
 
     /**
-     * Helper methods for buidClassNode
-     * @param constructor
-     * @return node with constructor Ast
+     * Helper methods for buidClassNode, process constructos of an ObjectRep
+     * and parse the information into a constructor node
+     *
+     * @param constructor Constructor object that holds constructor information
+     *
+     * @return       Node returns a node with constructor information
      */
     public static Node buildConstructorNode(Constructor constructor) {
         Node constructorName = GNode.create("ConstructorName", constructor.name);
@@ -861,9 +940,12 @@ public class Phase2 {
     }
 
     /**
-     * Helper method for buildClassAst
-     * @param method
-     * @return method node Ast
+     * Helper method for buildClassNode, process methods of an ObjectRep
+     * and parse the information into a method node
+     *
+     * @param  method Method object that holds method information
+     *
+     * @return   Node returns a node with method information
      */
     public static Node buildMethodNode(Method method) {
         Node isStatic = GNode.create("IsStatic", String.valueOf(method.isStatic));
@@ -881,11 +963,15 @@ public class Phase2 {
     }
 
     /**
-     * Helper method for buildClassAst
-     * @param name
-     * @param vfields
-     * @param vmethods
-     * @return node vtable Ast
+     * Helper method for buildClassAst, process vtble information of an 
+     * ObjectRep and parse the information into a root node that holds
+     * vfields and vmethods as child nodes of root
+     *
+     * @param     name name of current ObjectRep being parsed
+     * @param  vfields ArrayList of vfields that need to be processed
+     * @param vmethods ArrayList of vmethods that need to be processed
+     *
+     * @return    root Node that holds vtable information
      */
     public static Node buildVTableNode(String name, ArrayList<Field> vfields, ArrayList<VMethod> vmethods) {
         // root

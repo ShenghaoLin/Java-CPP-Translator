@@ -1,3 +1,16 @@
+/**
+ * VMethod object that holds information a vmethod declaration would have
+ * these are: accessModifier, isStatic, returnType, name, and intial
+ * a vmethod is slightly different than a method and thus gets it own
+ * representation
+ * no methods are implemented, only a constructor that initialzes the object
+ *
+ * @author Sam Holloway
+ * @author Goktug Saatcioglu
+ *
+ * @version 1.0
+ */
+
 package edu.nyu.oop;
 
 import java.util.ArrayList;
