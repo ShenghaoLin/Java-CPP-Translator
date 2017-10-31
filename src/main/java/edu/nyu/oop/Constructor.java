@@ -1,3 +1,14 @@
+/**
+ * Constructor object that holds information a construcor declaration would have
+ * these are: accessModifier, name, and parameters
+ * no methods are implemented, only a constructor that initialzes the object
+ *
+ * @author Goktug Saatcioglu
+ * @author Shenghao Lin
+ *
+ * @version 1.0
+ */
+
 package edu.nyu.oop;
 
 import java.util.ArrayList;

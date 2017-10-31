@@ -1,3 +1,18 @@
+/**
+ * Phase 3, traverses C++ AST obtained from Phase 2 and prints information
+ * contained in nodes into output.h file, furhtermore achieves indentation
+ * and pretty formatting, methods haven't been annotated with JavaDoc as
+ * they are pretty self explanatory
+ * Phase3 constructor initializes Phase3 and the printer used for printing
+ * visitABC methods visit relevant nodes (e.g. ABC node will be visited)
+ * headOfFile() and endOfFile() does some simple pre and post processing
+ * print method flushes output of printer to file
+ *
+ * @author Sai Akhil
+ *
+ * @version 1.0
+ */
+
 package edu.nyu.oop;
 
 import org.slf4j.Logger;

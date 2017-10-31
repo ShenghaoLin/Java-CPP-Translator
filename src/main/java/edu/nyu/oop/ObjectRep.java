@@ -1,3 +1,20 @@
+/**
+ * ObjectRep class that represents the data layout and vtable of an object
+ * every ObjectRep has its name, pointer to its parent, data layout declared
+ * as classRep and vtable layout declared as vtable
+ * the class ClassRep is used to represent the data layout of an object
+ * it contains array lists of fields, constructors and methods
+ * the class VTable is used to represent the vtable layut of an object
+ * it contains array lists of fields and vmethods
+ * upon initialization of this class, vptr, vtable, is_a and class constructor
+ * are added to releveant representations automatically to ease some work on
+ * Phase 2
+ *
+ * @author Goktug Saatcioglu
+ * @author Shenghao Lin
+ *
+ * @version 1.0
+ */
 package edu.nyu.oop;
 
 import java.util.ArrayList;

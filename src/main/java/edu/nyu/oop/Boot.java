@@ -61,7 +61,9 @@ public class Boot extends Tool {
             bool("printConfig", "printConfig", false, "Output application configuration to screen.").
             bool("printPhase1", "printPhase1", false, "Print the output of phase 1").
             bool("printPhase2", "printPhase2", false, "Print the output of phase 2").
-            bool("printPhase3", "printPhase3", false, "Print the output of phase 3");
+            bool("printPhase3", "printPhase3", false, "Print the output of phase 3").
+            bool("printPhase4", "printPhase4", false, "Print the output of phase 4").
+            bool("printPhase5", "printPhase5", false, "Print the output of phase 5");
   }
 
   @Override
@@ -151,26 +153,42 @@ public class Boot extends Tool {
       List<GNode> javaAsts = Phase1.parse(n);
 
       // phase 2
-      Node cppAst = Phase2.runPhase2(javaAsts.get(0));
-      /*
+      // below is for single javaAst, we can parse multiple ones too just need to change logic for Phase 3 printer
+      // Node cppAst = Phase2.runPhase2(javaAsts.get(0)); 
+      
       ArrayList<Node> cppAsts = new ArrayList<Node>();
       for (Node javaAst : javaAsts) {
         Node cppAst = Phase2.runPhase2(javaAst);
         cppAsts.add(cppAst);
         runtime.console().format(cppAst).pln().flush();
       }
-      */
 
       Phase3 phase3 = new Phase3();
-      phase3.print((GNode) cppAst);
-      /*
+      // below is again for single ast
+      // phase3.print((GNode) cppAst);
       // phase 3
       for (Node cppAst : cppAsts) {
         phase3.print((GNode) cppAst);
       }
-      */
-
     }
+
+    if (runtime.test("printPhase4")) {
+            List<GNode> list = Phase1.parse(n);
+            List<GNode> l = Phase4.process(list);
+            for (GNode node : l) {
+                runtime.console().format(node).pln().flush();
+            }
+        }
+
+    if (runtime.test("printPhase5")) {
+        List<GNode> list = Phase1.parse(n);
+        List<GNode> l = Phase4.process(list);
+        Phase5 printer = new Phase5();
+        for (GNode node : l) {
+            printer.print(node);
+        }
+    }
+
 
   }
 

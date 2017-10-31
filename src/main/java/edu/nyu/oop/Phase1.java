@@ -1,3 +1,15 @@
+/**
+ * Phase 1 visitor that traverses all dependencies recrusively and adds nodes of all
+ * dependencies, furthermore checks for duplciate files to avoid duplicate nodes
+ * using hash list of absolute paths of files containing Java code
+ *  
+ * @author Shenghao Lin
+ * @author Sai Akhil
+ * @author Goktug Saatcioglu
+ *
+ * @verion 1.0
+ */
+
 package edu.nyu.oop;
 
 import edu.nyu.oop.util.JavaFiveImportParser;
