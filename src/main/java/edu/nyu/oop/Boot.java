@@ -151,27 +151,24 @@ public class Boot extends Tool {
       List<GNode> javaAsts = Phase1.parse(n);
 
       // phase 2
-      Node cppAst = Phase2.runPhase2(javaAsts.get(0));
-      /*
+      // below is for single javaAst, we can parse multiple ones too just need to change logic for Phase 3 printer
+      // Node cppAst = Phase2.runPhase2(javaAsts.get(0)); 
+      
       ArrayList<Node> cppAsts = new ArrayList<Node>();
       for (Node javaAst : javaAsts) {
         Node cppAst = Phase2.runPhase2(javaAst);
         cppAsts.add(cppAst);
         runtime.console().format(cppAst).pln().flush();
       }
-      */
 
       Phase3 phase3 = new Phase3();
-      phase3.print((GNode) cppAst);
-      /*
+      // below is again for single ast
+      // phase3.print((GNode) cppAst);
       // phase 3
       for (Node cppAst : cppAsts) {
         phase3.print((GNode) cppAst);
       }
-      */
-
     }
-
   }
 
   /**
