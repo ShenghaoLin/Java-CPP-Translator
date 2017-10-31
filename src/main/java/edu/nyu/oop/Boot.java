@@ -61,7 +61,9 @@ public class Boot extends Tool {
             bool("printConfig", "printConfig", false, "Output application configuration to screen.").
             bool("printPhase1", "printPhase1", false, "Print the output of phase 1").
             bool("printPhase2", "printPhase2", false, "Print the output of phase 2").
-            bool("printPhase3", "printPhase3", false, "Print the output of phase 3");
+            bool("printPhase3", "printPhase3", false, "Print the output of phase 3").
+            bool("printPhase4", "printPhase4", false, "Print the output of phase 4").
+            bool("printPhase5", "printPhase5", false, "Print the output of phase 5");
   }
 
   @Override
@@ -169,6 +171,25 @@ public class Boot extends Tool {
         phase3.print((GNode) cppAst);
       }
     }
+
+    if (runtime.test("printPhase4")) {
+            List<GNode> list = Phase1.parse(n);
+            List<GNode> l = Phase4.process(list);
+            for (GNode node : l) {
+                runtime.console().format(node).pln().flush();
+            }
+        }
+
+    if (runtime.test("printPhase5")) {
+        List<GNode> list = Phase1.parse(n);
+        List<GNode> l = Phase4.process(list);
+        Phase5 printer = new Phase5();
+        for (GNode node : l) {
+            printer.print(node);
+        }
+    }
+
+
   }
 
   /**
