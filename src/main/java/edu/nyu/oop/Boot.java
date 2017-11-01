@@ -183,8 +183,9 @@ public class Boot extends Tool {
     if (runtime.test("printPhase5")) {
         List<GNode> list = Phase1.parse(n);
         List<GNode> l = Phase4.process(list);
-        Phase5 printer = new Phase5();
+        Phase5 printer = new Phase5("output.cpp");
         for (GNode node : l) {
+            printer.headOfFile();
             printer.print(node);
         }
     }
