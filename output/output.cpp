@@ -5,14 +5,14 @@ using namespace java::lang;
 
 namespace inputs
 {
-namespace input
+namespace javalang
 {
 __A::__A() : __vptr(&__vtable) {}
 
 A __A::__init(A __this) {
 return __this;
 }
-int __A::method (A __this ){
+int32_t __A::method (A __this ){
 return 12345 ;
 }
 
@@ -21,7 +21,7 @@ return new __String("A" );
 }
 
 Class __A::__class() {
-static Class k = new __Class(__rt::literal("inputs.input.A"), __Object::__class());
+static Class k = new __Class(__rt::literal("inputs.javalang.A"), __Object::__class());
 return k;
 }
 
@@ -37,7 +37,7 @@ return new __String("B" );
 }
 
 Class __B::__class() {
-static Class k = new __Class(__rt::literal("inputs.input.B"), __A::__class());
+static Class k = new __Class(__rt::literal("inputs.javalang.B"), __A::__class());
 return k;
 }
 

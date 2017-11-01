@@ -5,9 +5,9 @@
 using namespace java::lang;
 
 using namespace std;
-using namespace inputs::input;
+using namespace inputs::javalang;
 
-int main (void ){
+int32_t main (void ){
 B b= (B) __B::__init (new __B ());
 A a1= (A) __A::__init (new __A ());
 A a2= (A) b ;

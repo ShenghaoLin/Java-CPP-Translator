@@ -8,7 +8,7 @@ using namespace java::lang;
 #include <string>
 
 namespace inputs { 
-namespace input { 
+namespace javalang { 
 
   struct __A;
   struct __A_VT;

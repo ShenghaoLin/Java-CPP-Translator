@@ -109,10 +109,6 @@ public class Phase4 {
             visit(n);
         }
 
-        public void visitInstanceOfExpression(GNode n) {
-
-        }
-
         /* Visitor for ClassDeclaration
          * Modified method name to "__class::method"
          * Adding __this argument to each method
