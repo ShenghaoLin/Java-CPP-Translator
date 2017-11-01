@@ -74,7 +74,6 @@ public class Phase2 {
             visit(node);
         }
         
-
         /**
          * For each class declaration in file add it to objectRepresentations
          *
@@ -531,6 +530,15 @@ public class Phase2 {
     }
     */
 
+    /**
+     * Helper method for getFilledObjectRepList that calls determineMethods
+     * method that processes vtable method declarations to determine order
+     * of declaration for data layout class declarations
+     *
+     * @param       current curent object that needs to inherit fields
+     *
+     * @return currentPrime version of current with method declaration solved
+     */
     public static ObjectRep processMethods(ObjectRep current) {
         // process methods according to declarations in vtable
         // this ensures all declarations are in order, thus
@@ -540,27 +548,39 @@ public class Phase2 {
         return currentPrime;
     }
 
+    /**
+     * Determines the method declarations for current object by using its
+     * vtable vmethod declarations
+     *
+     * @param  current ObjectRep with fields that need to be determined
+     *
+     * @return current ObjectRep with updated fields
+     */
     public static ObjectRep determineMethods(ObjectRep current) {
         // iterate over methods and vmethods to get correct ordering
         ArrayList<Method> methods = current.classRep.methods;
         ArrayList<VMethod> vMethods = current.vtable.methods;
 
+        // new array list to dump fields into as they are processed
         ArrayList<Method> updatedMethods = new ArrayList<Method>();
+        // remove index 0 and add to updatedMethods
         updatedMethods.add(methods.remove(0));
 
+        // iterate over vMethods, if match add to updated methods
         for (VMethod vMethod : vMethods) {
             for (Method method : methods) {
                 if (vMethod.name.equals(method.name)) updatedMethods.add(method);
             }
         }
 
+        // update methods
         current.classRep.methods = updatedMethods;
         
         return current;
     }
 
     /**
-     * Helper method for getFilledObjectRepList that calls processFields
+     * Helper method for getFilledObjectRepList that calls determineFields
      * method that process inheritance hierarchy of fields that need to
      * be declared in data layout for an object
      *
@@ -585,6 +605,7 @@ public class Phase2 {
      *
      * @param  current ObjectRep with fields that need to be determined
      * @param   parent ObjectRep with fields that will give to current
+     *
      * @return current ObjectRep with updated fields
      */
     public static ObjectRep determineFields(ObjectRep current, ObjectRep parent) {
