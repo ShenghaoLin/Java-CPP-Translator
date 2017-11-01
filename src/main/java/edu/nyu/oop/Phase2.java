@@ -19,6 +19,8 @@ import xtc.tree.GNode;
 import xtc.tree.Node;
 import xtc.tree.Visitor;
 
+import edu.nyu.oop.util.NodeUtil;
+
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.HashSet;
@@ -64,10 +66,14 @@ public class Phase2 {
          *
          * @param node node being visited
          */
-        public void visitPackageDeclaration(GNode node){
-            packageName = node.getNode(1).getString(0);
+        public void visitPackageDeclaration(GNode node) {
+            for (int i = 0; i < node.size(); i++) {
+                packageName += "namespace " + node.getNode(1).getString(i) + " { \n";
+            }
+            //packageName = node.getNode(1).getString(0);
             visit(node);
         }
+        
 
         /**
          * For each class declaration in file add it to objectRepresentations
@@ -388,6 +394,21 @@ public class Phase2 {
         filled.remove(0);
         filled.remove(0);
 
+        // after processing everything, re-arrange methods so they match their v-table representations
+        for (ObjectRep rep : filled) {
+            // fix methods forall non Object, String, Class objects
+            ObjectRep newRep = processMethods(rep);
+            int index = filled.getIndexFromName(rep.name);
+            filled.set(index, newRep);
+            // again, don't forget to update the parents after replacing so that logic works, "bubbling down"
+            for (ObjectRep repSub : filled) {
+                if (repSub.parent != null) {
+                    int parentIndex = filled.getIndexFromName(repSub.parent.name);
+                    if (parentIndex != -1) repSub.parent = filled.get(parentIndex);
+                }
+            }
+        }
+
         return filled;
     }
 
@@ -510,6 +531,34 @@ public class Phase2 {
     }
     */
 
+    public static ObjectRep processMethods(ObjectRep current) {
+        // process methods according to declarations in vtable
+        // this ensures all declarations are in order, thus
+        // preserving correctness of output.h
+        ObjectRep currentPrime = determineMethods(current);
+
+        return currentPrime;
+    }
+
+    public static ObjectRep determineMethods(ObjectRep current) {
+        // iterate over methods and vmethods to get correct ordering
+        ArrayList<Method> methods = current.classRep.methods;
+        ArrayList<VMethod> vMethods = current.vtable.methods;
+
+        ArrayList<Method> updatedMethods = new ArrayList<Method>();
+        updatedMethods.add(methods.remove(0));
+
+        for (VMethod vMethod : vMethods) {
+            for (Method method : methods) {
+                if (vMethod.name.equals(method.name)) updatedMethods.add(method);
+            }
+        }
+
+        current.classRep.methods = updatedMethods;
+        
+        return current;
+    }
+
     /**
      * Helper method for getFilledObjectRepList that calls processFields
      * method that process inheritance hierarchy of fields that need to
@@ -619,9 +668,15 @@ public class Phase2 {
                 if (parentField.fieldName.replaceFirst("\\*","").equals(currentMethod.name) && parentField.isStatic == false && !parentField.accessModifier.equals("private")) {
                     // process parameters correctly into field declaration
                     String parameters = "";
-                    parameters += current.name;
                     ArrayList<Parameter> params = currentMethod.parameters;
-                    for (Parameter param : params) parameters += "," + param.type;
+                    int idx = 0;
+                    for (Parameter param : params) {
+                        if (idx == 0) {
+                            parameters += param.type;
+                            idx++;
+                        }
+                        else parameters += "," + param.type;
+                    }
                     Field temp = new Field(currentMethod.accessModifier, false, currentMethod.returnType, "*"+currentMethod.name, parameters);
                     temp.inheritedFrom = current.name;
                     updatedFields.add(temp);
@@ -656,9 +711,15 @@ public class Phase2 {
             if (!updatedFieldSet.contains(currentMethod.name) && !currentMethod.accessModifier.equals("private") && currentMethod.isStatic == false) {
                 // process parameters correctly into field declaration
                 String parameters = "";
-                parameters += current.name;
                 ArrayList<Parameter> params = currentMethod.parameters;
-                for (Parameter param : params) parameters +=  "," + param.type;
+                int idx = 0;
+                for (Parameter param : params) {
+                    if (idx == 0) {
+                        parameters += param.type;
+                        idx++;
+                    }
+                    else parameters +=  "," + param.type;
+                }
                 Field temp = new Field(currentMethod.accessModifier, false, currentMethod.returnType, "*"+currentMethod.name, parameters);
                 temp.inheritedFrom = current.name;
                 updatedFieldsPrime.add(temp);
@@ -881,15 +942,15 @@ public class Phase2 {
 
         // fields
         Node fields = GNode.create("FieldDeclarations");
-        for(Field field : rep.classRep.fields) fields.add(buildFieldNode(field));
+        for (Field field : rep.classRep.fields) fields.add(buildFieldNode(field));
 
         // constructors
         Node constructors = GNode.create("ConstructorDeclarations");
-        for(Constructor constructor : rep.classRep.constructors) constructors.add(buildConstructorNode(constructor));
+        for (Constructor constructor : rep.classRep.constructors) constructors.add(buildConstructorNode(constructor));
 
         // methods
         Node methods = GNode.create("MethodDeclarations");
-        for(Method method : rep.classRep.methods) methods.add(buildMethodNode(method));
+        for (Method method : rep.classRep.methods) methods.add(buildMethodNode(method));
 
         // vtable and declaration
         Node vFieldDeclaration = GNode.create("VFieldDec");
@@ -929,7 +990,7 @@ public class Phase2 {
     public static Node buildConstructorNode(Constructor constructor) {
         Node constructorName = GNode.create("ConstructorName", constructor.name);
         Node constructorParameters = GNode.create("ConstructorParameters");
-        for(Parameter parameter : constructor.parameters) {
+        for (Parameter parameter : constructor.parameters) {
             Node parameterType = GNode.create("ParameterType", parameter.type);
             Node parameterName = GNode.create("ParameterName", parameter.name);
             Node parameterNode = GNode.create("Parameter", parameterType, parameterName);
@@ -952,7 +1013,7 @@ public class Phase2 {
         Node returnType = GNode.create("ReturnType", method.returnType);
         Node methodName = GNode.create("MethodName", method.name);
         Node methodParameters = GNode.create("MethodParameters");
-        for(Parameter parameter : method.parameters) {
+        for (Parameter parameter : method.parameters) {
             Node parameterType = GNode.create("ParameterType", parameter.type);
             Node parameterName = GNode.create("ParameterName", parameter.name);
             Node parameterNode = GNode.create("Parameter", parameterType, parameterName);
@@ -991,7 +1052,7 @@ public class Phase2 {
         // methods
         Node methods = GNode.create("VMethods");
         // process vmethods
-        for(VMethod vmethod : vmethods) {
+        for (VMethod vmethod : vmethods) {
             Node methodName = GNode.create("MethodName", vmethod.name);
             Node initial = GNode.create("Initial", vmethod.initial);
             methods.add(GNode.create("VMethod", methodName, initial));

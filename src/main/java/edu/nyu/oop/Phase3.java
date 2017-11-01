@@ -79,9 +79,13 @@ public class Phase3 extends Visitor {
         header = "#pragma once\n\n#include <stdint.h>\n#include <string>";
         printer.pln("#pragma once");
         printer.pln();
+        printer.pln("#include \"java_lang.h\"");
+        printer.pln();
+        printer.pln("using namespace java::lang;");
+        printer.pln();
         printer.pln("#include <stdint.h>");
         printer.pln("#include <string>");
-        printer.pln().pln();
+        printer.pln();
     }
 
     private void endOfFile() {
@@ -93,9 +97,10 @@ public class Phase3 extends Visitor {
     //String packageName = null;
     public void visitPackageDeclaration(GNode node){
         packageDeclaration = "namespace " + node.getString(0) + "{\nnamespace javalang {";
-        printer.pln("namespace " + node.getString(0) + "{");
-        printer.pln("namespace javalang {");
-        printer.pln();
+        printer.pln(node.getString(0));
+        //printer.pln("namespace " + node.getString(0) + "{");
+        //printer.pln("namespace javalang {");
+        //printer.pln();
         visit(node);
     }
 
@@ -151,7 +156,8 @@ public class Phase3 extends Visitor {
 
     public void visitConstructorDeclarations(GNode node){
         for(int i = 0; i < node.size(); i++) {
-            printer.indent().p("static __" + node.getNode(i).getNode(0).getString(0) + "(");
+            if (i == 0) printer.indent().p("__" + node.getNode(i).getNode(0).getString(0) + "(");
+            else printer.indent().p("static " + className + " __" + node.getNode(i).getNode(0).getString(0) + "(");
             printParameters((GNode)node.getNode(i).getNode(1));
             printer.pln(");");
             constructors.add("static __" + node.getNode(i).getNode(0).getString(0) + "("+getParameters((GNode)node.getNode(i).getNode(1))+");");
@@ -163,8 +169,9 @@ public class Phase3 extends Visitor {
     String modifier;
     public void visitMethodDeclarations(GNode node){
         for(int i = 0; i < node.size(); i++) {
-            if(node.getNode(i).getNode(0).getString(0).equals("true")) modifier = "static ";
-            else modifier = "";
+            //if(node.getNode(i).getNode(0).getString(0).equals("true")) 
+            modifier = "static ";
+            //else modifier = "";
             if (i != 0) {
                 printer.indent().p(modifier + node.getNode(i).getNode(1).getString(0) + " " + node.getNode(i).getNode(2).getString(0) + "(");
                 printParameters((GNode)node.getNode(i).getNode(3));
@@ -210,7 +217,8 @@ public class Phase3 extends Visitor {
         printer.incr();
         for(int i = 0; i < node.size(); i++) {
             if (!node.getNode(i).getNode(0).getString(0).equals("__is_a") && !node.getNode(i).getNode(1).getString(0).equals("(__" + className + "::__class())")) {
-                printer.indent().pln(node.getNode(i).getNode(0).getString(0) + node.getNode(i).getNode(1).getString(0) + ",");
+                if (i == node.size() - 1) printer.indent().pln(node.getNode(i).getNode(0).getString(0) + node.getNode(i).getNode(1).getString(0));
+                else printer.indent().pln(node.getNode(i).getNode(0).getString(0) + node.getNode(i).getNode(1).getString(0) + ",");
             }
         }
         visit(node);
