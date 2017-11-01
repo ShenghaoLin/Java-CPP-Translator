@@ -27,6 +27,8 @@ import java.io.BufferedWriter;
 import java.io.FileOutputStream;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
+import java.lang.reflect.Array;
+import java.util.ArrayList;
 
 /** Print out the information in the Inheritance AST in a concrete C++ syntax */
 
@@ -39,6 +41,17 @@ public class Phase3 extends Visitor {
     private String outputLocation = XtcProps.get("output.location");
 
     String className;
+
+    // To test methods
+    String header;
+    String endof;
+    String packageDeclaration;
+    ArrayList<String> classes = new ArrayList<String>();
+    String datalayout;
+    ArrayList<String> fieldDeclarations = new ArrayList<String>();
+    ArrayList<String> constructors = new ArrayList<String>();
+    String forwardDeclarations = "";
+    ArrayList<String> methods = new ArrayList<String>();
 
     public Phase3() {
 
@@ -63,6 +76,7 @@ public class Phase3 extends Visitor {
     }
 
     private void headOfFile() {
+        header = "#pragma once\n\n#include <stdint.h>\n#include <string>";
         printer.pln("#pragma once");
         printer.pln();
         printer.pln("#include <stdint.h>");
@@ -71,12 +85,14 @@ public class Phase3 extends Visitor {
     }
 
     private void endOfFile() {
+        endof = "}\n}";
         printer.pln("}");
         printer.pln("}");
     }
 
     //String packageName = null;
     public void visitPackageDeclaration(GNode node){
+        packageDeclaration = "namespace " + node.getString(0) + "{\nnamespace javalang {";
         printer.pln("namespace " + node.getString(0) + "{");
         printer.pln("namespace javalang {");
         printer.pln();
@@ -89,10 +105,12 @@ public class Phase3 extends Visitor {
             printer.indent().pln("struct __" + node.getString(i) + ";");
             printer.indent().pln("struct __" + node.getString(i) + "_VT;");
             printer.pln();
+            forwardDeclarations+="struct __" + node.getString(i) + ";\nstruct __"+ node.getString(i) + "_VT;\n";
         }
         printer.pln();
         for (int i = 0; i < node.size(); i++) {
             printer.indent().pln("typedef __" + node.getString(i) + "* " + node.getString(i)+";");
+            forwardDeclarations+="typedef __" + node.getString(i) + "* " + node.getString(i)+";\n";
         }
         printer.pln().pln();
         visit(node);
@@ -100,10 +118,12 @@ public class Phase3 extends Visitor {
 
     public void visitClassDeclaration(GNode node){
         className = node.getString(0);
+        classes.add(className);
         visit(node);
     }
 
     public void visitDataLayout(GNode node){
+        datalayout = "struct __" + className+ " {";
         printer.indent().pln("struct __" + className+ " {");
         printer.pln();
         visit(node);
@@ -122,6 +142,7 @@ public class Phase3 extends Visitor {
             else modifier2 = "";
             if (node.getNode(i).getNode(1).getString(0).equals(VTName) && node.getNode(i).getNode(2).getString(0).equals("__vtable")) continue;
             printer.indent().pln(modifier2 + node.getNode(i).getNode(1).getString(0) + " " + node.getNode(i).getNode(2).getString(0) + ";");
+            fieldDeclarations.add(modifier2 + node.getNode(i).getNode(1).getString(0) + " " + node.getNode(i).getNode(2).getString(0) + ";");
         }
         printer.pln();
         visit(node);
@@ -133,6 +154,7 @@ public class Phase3 extends Visitor {
             printer.indent().p("static __" + node.getNode(i).getNode(0).getString(0) + "(");
             printParameters((GNode)node.getNode(i).getNode(1));
             printer.pln(");");
+            constructors.add("static __" + node.getNode(i).getNode(0).getString(0) + "("+getParameters((GNode)node.getNode(i).getNode(1))+");");
         }
         printer.pln();
         visit(node);
@@ -147,6 +169,7 @@ public class Phase3 extends Visitor {
                 printer.indent().p(modifier + node.getNode(i).getNode(1).getString(0) + " " + node.getNode(i).getNode(2).getString(0) + "(");
                 printParameters((GNode)node.getNode(i).getNode(3));
                 printer.pln(");");
+                methods.add(modifier + node.getNode(i).getNode(1).getString(0) + " " + node.getNode(i).getNode(2).getString(0) + "("+getParameters((GNode)node.getNode(i).getNode(3))+")");
             }
         }
         printer.pln();
@@ -198,6 +221,15 @@ public class Phase3 extends Visitor {
             printer.p(node.getNode(i).getNode(0).getString(0) + " " + node.getNode(i).getNode(1).getString(0));
             if (i != (node.size()-1)) printer.p(", ");
         }
+    }
+
+    public String getParameters(GNode node){
+        String ret = "";
+        for(int i = 0; i < node.size(); i++){
+            ret += node.getNode(i).getNode(0).getString(0) + " " + node.getNode(i).getNode(1).getString(0);
+            if (i != (node.size()-1)) ret+=", ";
+        }
+        return ret;
     }
 
     public void visit(Node node) {
