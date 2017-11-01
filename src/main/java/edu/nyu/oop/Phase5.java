@@ -24,18 +24,18 @@ public class Phase5 extends Visitor {
 
     private Logger logger = org.slf4j.LoggerFactory.getLogger(this.getClass());
 
-    private  Printer printer;
+    private Printer printer;
 
     private String outputLocation = XtcProps.get("output.location");
 
     String packageInfo = "";
 
     /* Class constructor. Intializing the writer to the file. */
-    public Phase5() {
+    public Phase5(String name) {
 
         Writer w = null;
         try {
-            FileOutputStream fos = new FileOutputStream(outputLocation + "/output.cpp");
+            FileOutputStream fos = new FileOutputStream(outputLocation + name);
             OutputStreamWriter ows = new OutputStreamWriter(fos, "utf-8");
             w = new BufferedWriter(ows);
             this.printer = new Printer(w);
@@ -46,19 +46,33 @@ public class Phase5 extends Visitor {
         printer.register(this);
     }
 
+    public Printer printer() {
+        return this.printer;
+    }
+
+    public void setPrinter(Printer p) {
+        this.printer = p;
+    }
+
+    public String location() {
+        return this.outputLocation;
+    }
+
+
     /* The actual print method */
     public void print(GNode ast) {
-        headOfFile();
         dispatch(ast);
         printer.flush();
     }
 
     /* The claim placed in the beginning of cpp files */
-    private void headOfFile() {
-        printer.pln("#include <stdint.h>");
-        printer.pln("#include <string>");
+    public void headOfFile() {
+
+
         printer.pln("#include \"output.h\"");
-        printer.pln().pln();
+        printer.pln("#include <iostream>");
+        printer.pln();
+        printer.pln("using namespace java::lang;").pln();
     }
 
     /* Visitor for ClassDeclaration 
@@ -66,6 +80,22 @@ public class Phase5 extends Visitor {
      * and vtable initialization.
      */
     public void visitClassDeclaration(GNode n) {
+
+        GNode mainfunction = (GNode) NodeUtil.dfs(n, "MethodDeclaration");
+        if (mainfunction != null) {
+            if (mainfunction.get(3).toString().equals("main")) {
+                Phase5 mainPrint = new Phase5("main.cpp");
+                Printer mainPrinter = mainPrint.printer();
+                mainPrinter.register(mainPrint);
+                mainPrinter.pln("#include \"java_lang.h\"").flush();
+                mainPrint.headOfFile();
+                mainPrinter.pln("using namespace std;");
+                mainPrinter.pln("using namespace " + 
+                    packageInfo.substring(0, packageInfo.length() - 1).replace(".", "::") + ";").pln().flush();
+                mainPrint.print(mainfunction);
+                return;
+            }
+        }
 
         //Obtaining information of class name of parent class name
         String className = n.get(1).toString();
@@ -79,9 +109,20 @@ public class Phase5 extends Visitor {
             parentName = "Object";
         }
 
+
+
         //default constructor
         printer.pln("__" + n.get(1).toString() + "::__" + n.get(1).toString() + "() : __vptr(&__vtable) {}" );
         printer.pln().flush();
+
+        Object o = NodeUtil.dfs(n, "ConstructorDelaration");
+        if (o == null) {
+            printer.pln(n.get(1).toString() + " __" 
+                + n.get(1).toString() + "::__init("
+                + n.get(1).toString() + " __this) {");
+            printer.pln("return __this;");
+            printer.pln("}");
+        }
 
         //visit class body
         GNode classBody = (GNode) NodeUtil.dfs(n, "ClassBody");
@@ -89,7 +130,7 @@ public class Phase5 extends Visitor {
 
         //class method
         printer.pln("Class __" + n.get(1).toString() + "::__class() {");
-        printer.pln("static Class k = new __class(__rt::literal(\""
+        printer.pln("static Class k = new __Class(__rt::literal(\""
                     + packageInfo + className + "\"), __"
                     + parentName + "::__class());");
         printer.pln("return k;");
@@ -116,8 +157,14 @@ public class Phase5 extends Visitor {
 
     public void visitInstanceOfExpression(GNode n) {
         dispatch((Node) n.get(0));
-        printer.p("-> __vptr -> instanceof(").flush();
+        printer.p("-> __vptr -> getClass(").flush();
         dispatch((Node) n.get(0));
+        printer.p(')');
+        printer.p("-> __vptr -> isInstance( ").flush();
+        dispatch((Node) n.get(0));
+        printer.p("-> __vptr -> getClass(").flush();
+        dispatch((Node) n.get(0));
+        printer.p(")").flush();
         printer.p(", (Object) new __").flush();
         dispatch((Node) n.get(1));
         printer.p("())").flush();
@@ -289,15 +336,18 @@ public class Phase5 extends Visitor {
      * adding "=" to the statement
      */
     public void visitDeclarator(GNode n) {
-        printer.p(n.get(0).toString() + " ").flush();
+        printer.p(n.get(0).toString() + " = ").flush();
         for (int i = 1; i < n.size(); i++) {
             try {
                 GNode child = (GNode) n.getGeneric(i);
                 if (child != null) {
-                    printer.p("= ").flush();
                     dispatch(child);
                 }
             } catch (Exception e) {}
+
+            if (n.get(i) instanceof String) {
+                printer.p((String) n.get(i)).flush();
+            }
         }
 
     }
@@ -318,6 +368,12 @@ public class Phase5 extends Visitor {
         visit(n);
     }
 
+    public void visitStringLiteral(GNode n) {
+        printer.p("new __String(").flush();
+        visit(n);
+        printer.p(")").flush();
+    }
+
     /* General visitor
      * Besides dispatch, also print all String instances it meets
      */
@@ -331,7 +387,7 @@ public class Phase5 extends Visitor {
             if (o instanceof String) {
                 String s = (String) o;
                 if (s.equals("[")) {
-                    printer.p("[] ").flush();
+                    //array will be solved in the future
                 } else {
                     printer.p(s + " ").flush();
                 }

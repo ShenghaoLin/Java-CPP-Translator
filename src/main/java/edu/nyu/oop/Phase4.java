@@ -103,7 +103,9 @@ public class Phase4 {
          */
         public void visitNewClassExpression(GNode n) {
             GNode id = (GNode) NodeUtil.dfs(n, "QualifiedIdentifier");
-            id.set(0, "__" + id.get(0));
+            if (!id.get(0).toString().startsWith("__")) {
+               id.set(0, "__" + id.get(0));
+            }
             visit(n);
         }
 
@@ -176,6 +178,9 @@ public class Phase4 {
                         for (int j = 0; j < oldParam.size(); j++) {
                             param.add(oldParam.get(j));
                         }
+
+                        GNode blockcontent = (GNode) NodeUtil.dfs(child, "Block");
+                        blockcontent.add(GNode.create("ReturnStatement", "__this"));
 
                         List<Node> expressions = NodeUtil.dfsAll(child, "CallExpression");
 
@@ -254,10 +259,16 @@ public class Phase4 {
          */
         public void visitMethodDeclaration(GNode n) {
 
+            boolean isMain = false;
             //main function has no field method
-            if (n.hasName("main")) {
+            if (n.get(3).toString().equals("main")) {
+                n.set(2, "int");
+                //cannot handling array now
+                n.set(4, GNode.create("Arguments", GNode.create("VoidType")));
+                GNode blockinside = (GNode) NodeUtil.dfs(n, "Block");
+                blockinside.add(GNode.create("ReturnStatement", "0"));
                 visit(n);
-                return;
+                isMain = true;
             }
 
             //"System" is recognizable
@@ -289,6 +300,9 @@ public class Phase4 {
                 if (id.get(0).toString().startsWith("__this -> ")) {
                     String variableName = id.get(0).toString().substring(10);
                     if (paramsList.contains(variableName)) {
+                        id.set(0, variableName);
+                    }
+                    else if (isMain) {
                         id.set(0, variableName);
                     }
                 }
@@ -324,11 +338,16 @@ public class Phase4 {
                 try {
                     GNode child = n.getGeneric(i);
                     if (child.hasName("FieldDeclaration")) {
+
+                        GNode typeOfField = (GNode) NodeUtil.dfs(child, "QualifiedIdentifier");
+                        String typeName = typeOfField.get(0).toString();
+
                         GNode declarators = (GNode) NodeUtil.dfs(child, "Declarators");
                         for (int j = 0; j < declarators.size(); j++) {
                             try {
                                 GNode d = declarators.getGeneric(j);
                                 if (d.hasName("Declarator")) {
+                                    d.set(1, "(" + typeName + ") ");
                                     paramsList.add(d.get(0).toString());
                                 }
                             } catch (Exception e) {}
@@ -345,6 +364,7 @@ public class Phase4 {
                             if (paramsList.contains(variableName)) {
                                 id.set(0, variableName);
                             }
+
                         }
                         //Inner scope defined variables are safe 
                         else if (id.get(0).toString().startsWith("in this method ")) {}
@@ -433,17 +453,18 @@ public class Phase4 {
                     //start the method from vtable
                     if (!n.get(2).toString().startsWith("-> ")){
                         n.set(2, "-> __vptr -> " + n.get(2).toString());
-                    }
-                    //add the object to arguments
-                    GNode arguments = GNode.create("Arguments");
+                    
+                        //add the object to arguments
+                        GNode arguments = GNode.create("Arguments");
 
-                    arguments.add(child);
-                    GNode oldArg = (GNode) NodeUtil.dfs(n, "Arguments");
-                    n.set(3, arguments);
-                    if (oldArg != null) {
-                        for (Object oo : oldArg) {
-                            if (!oo.equals(arguments.get(0))){
-                                arguments.add(oo);
+                        arguments.add(child);
+                        GNode oldArg = (GNode) NodeUtil.dfs(n, "Arguments");
+                        n.set(3, arguments);
+                        if (oldArg != null) {
+                            for (Object oo : oldArg) {
+                                if (!oo.equals(arguments.get(0))){
+                                    arguments.add(oo);
+                                }
                             }
                         }
                     }
