@@ -254,6 +254,17 @@ public class Phase5 extends Visitor {
         visitArguments(n);
     }
 
+    public void visitClassBody(GNode n) {
+        for (Object o : n) {
+            if (o instanceof GNode) {
+                GNode node = (GNode) o;
+                if (!node.hasName("FieldDeclaration")){
+                    dispatch(node);
+                }
+            }
+        }
+    }
+
     /* Skip extension since we already have its info */
     public void visitExtension(GNode n) {}
 
@@ -336,16 +347,28 @@ public class Phase5 extends Visitor {
      * adding "=" to the statement
      */
     public void visitDeclarator(GNode n) {
-        printer.p(n.get(0).toString() + " = ").flush();
+        printer.p(n.get(0).toString()).flush();
+
+        boolean eq = false;
         for (int i = 1; i < n.size(); i++) {
             try {
                 GNode child = (GNode) n.getGeneric(i);
+
                 if (child != null) {
+                    if (!eq) {
+                        printer.p("= ").flush();
+                        eq = true;
+                    }
                     dispatch(child);
                 }
             } catch (Exception e) {}
 
             if (n.get(i) instanceof String) {
+
+                if (!eq) {
+                    printer.p("= ").flush();
+                    eq = true;
+                }
                 printer.p((String) n.get(i)).flush();
             }
         }
@@ -388,7 +411,12 @@ public class Phase5 extends Visitor {
                 String s = (String) o;
                 if (s.equals("[")) {
                     //array will be solved in the future
-                } else {
+                } 
+                else if (s.equals("int")) {
+                    printer.p("int32_t ").flush();
+                }
+                else
+                {
                     printer.p(s + " ").flush();
                 }
             }

@@ -63,7 +63,8 @@ public class Boot extends Tool {
             bool("printPhase2", "printPhase2", false, "Print the output of phase 2").
             bool("printPhase3", "printPhase3", false, "Print the output of phase 3").
             bool("printPhase4", "printPhase4", false, "Print the output of phase 4").
-            bool("printPhase5", "printPhase5", false, "Print the output of phase 5");
+            bool("printPhase5", "printPhase5", false, "Print the output of phase 5").
+            bool("translate", "translate", false, "Translate an input file");
   }
 
   @Override
@@ -173,12 +174,12 @@ public class Boot extends Tool {
     }
 
     if (runtime.test("printPhase4")) {
-            List<GNode> list = Phase1.parse(n);
-            List<GNode> l = Phase4.process(list);
-            for (GNode node : l) {
-                runtime.console().format(node).pln().flush();
-            }
-        }
+      List<GNode> list = Phase1.parse(n);
+      List<GNode> l = Phase4.process(list);
+      for (GNode node : l) {
+          runtime.console().format(node).pln().flush();
+      }
+    }
 
     if (runtime.test("printPhase5")) {
         List<GNode> list = Phase1.parse(n);
@@ -190,7 +191,36 @@ public class Boot extends Tool {
         }
     }
 
+    if (runtime.test("translate")) {
+            // phase 1
+      List<GNode> javaAsts = Phase1.parse(n);
 
+      // phase 2
+      // below is for single javaAst, we can parse multiple ones too just need to change logic for Phase 3 printer
+      // Node cppAst = Phase2.runPhase2(javaAsts.get(0)); 
+      
+      ArrayList<Node> cppAsts = new ArrayList<Node>();
+      for (Node javaAst : javaAsts) {
+        Node cppAst = Phase2.runPhase2(javaAst);
+        cppAsts.add(cppAst);
+        runtime.console().format(cppAst).pln().flush();
+      }
+
+      Phase3 phase3 = new Phase3();
+      // below is again for single ast
+      // phase3.print((GNode) cppAst);
+      // phase 3
+      for (Node cppAst : cppAsts) {
+        phase3.print((GNode) cppAst);
+      }
+
+      List<GNode> phase4 = Phase4.process(javaAsts);
+      Phase5 printer = new Phase5("output.cpp");
+      for (GNode node : phase4) {
+        printer.headOfFile();
+        printer.print(node);
+      }
+    }
   }
 
   /**

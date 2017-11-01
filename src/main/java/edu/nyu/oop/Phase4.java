@@ -109,10 +109,6 @@ public class Phase4 {
             visit(n);
         }
 
-        public void visitInstanceOfExpression(GNode n) {
-
-        }
-
         /* Visitor for ClassDeclaration
          * Modified method name to "__class::method"
          * Adding __this argument to each method
@@ -266,9 +262,14 @@ public class Phase4 {
                 //cannot handling array now
                 n.set(4, GNode.create("Arguments", GNode.create("VoidType")));
                 GNode blockinside = (GNode) NodeUtil.dfs(n, "Block");
-                blockinside.add(GNode.create("ReturnStatement", "0"));
                 visit(n);
                 isMain = true;
+                GNode newBlock = GNode.create("Block");
+                for (Object o : blockinside) {
+                    newBlock.add(o);
+                }
+                newBlock.add(GNode.create("ReturnStatement", "0"));
+                
             }
 
             //"System" is recognizable

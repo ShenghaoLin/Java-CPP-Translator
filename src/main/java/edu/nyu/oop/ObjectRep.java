@@ -49,6 +49,9 @@ public class ObjectRep {
 		classRep.fields.add(new Field("public", true, "__" + this.name + "_VT", "__vtable", ""));
 		// default constructor
 		classRep.constructors.add(new Constructor("public", this.name, new ArrayList<Parameter>()));
+		ArrayList<Parameter> temp = new ArrayList<Parameter>();
+		temp.add(new Parameter(this.name, "__this"));
+		classRep.constructors.add(new Constructor("public", "init", temp));
 		// class name
 		classRep.methods.add(new Method("public", true, "Class", "__class", new ArrayList<Parameter>()));
 
