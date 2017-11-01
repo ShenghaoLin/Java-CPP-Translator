@@ -1,7 +1,28 @@
-This repository contains demonstrations code on how to use some of the
-features of XTC. The repository will be updated over the course of the
-semester.
+# Translator Java to C++
 
-See [this page](http://cs.nyu.edu/rgrimm/xtc/) for information about
-XTC. If you use this repository as a template, you will not have to
-build XTC yourself.
+This is a work in progress.
+
+The given task to translate Java programs to C++ was divided in 5 phases. 
+You may run each separately or simply run the entire translator. The commands follow bellow.
+
+Before running, initiate a SBT shell, compile and run Boot.java
+
+### To run phase x on SBT, type:
+
+`runxtc -printPhasex <source file>`
+
+The output for phases 1, 2 and 4 are prompted in the shell. 
+The output for phases 3 and 4 are in the output directory.
+
+### To run the tests for phase x, type:
+
+`test-only *Phasex*` 
+
+### To run translator, type:
+
+`runxtc -translate [path/to/input]`
+
+### To generate the documentation for phase x, open a terminal shell and type:
+
+`javadoc Phasex`
+
