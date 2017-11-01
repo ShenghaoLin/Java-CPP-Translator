@@ -30,6 +30,8 @@ public class Phase5 extends Visitor {
 
     String packageInfo = "";
 
+    String headoffile;
+
     /* Class constructor. Intializing the writer to the file. */
     public Phase5(String name) {
 
@@ -67,8 +69,7 @@ public class Phase5 extends Visitor {
 
     /* The claim placed in the beginning of cpp files */
     public void headOfFile() {
-
-
+        headoffile = "#include \"output.h\"\n#include <iostream>\n\nusing namespace java::lang;";
         printer.pln("#include \"output.h\"");
         printer.pln("#include <iostream>");
         printer.pln();
@@ -93,6 +94,7 @@ public class Phase5 extends Visitor {
                 mainPrinter.pln("using namespace " + 
                     packageInfo.substring(0, packageInfo.length() - 1).replace(".", "::") + ";").pln().flush();
                 mainPrint.print(mainfunction);
+
                 return;
             }
         }
@@ -144,6 +146,7 @@ public class Phase5 extends Visitor {
     }
 
     public void visitConditionalStatement(GNode n) {
+
         printer.p("if (").flush();
         GNode condition = (GNode) n.get(0);
         dispatch(condition);
@@ -151,7 +154,9 @@ public class Phase5 extends Visitor {
 
         for (int i = 1; i < n.size(); i++) {
             if (n.get(0) instanceof Node) dispatch((Node) n.get(i));
-            if (n.get(0) instanceof String) printer.p((String) n.get(i) + " ").flush();
+            if (n.get(0) instanceof String) {
+                printer.p((String) n.get(i) + " ").flush();
+            }
         }
     }
 
