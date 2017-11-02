@@ -30,6 +30,8 @@ public class Phase5 extends Visitor {
 
     String packageInfo = "";
 
+    boolean inCout = false;
+
     String headoffile;
 
     /* Class constructor. Intializing the writer to the file. */
@@ -294,8 +296,12 @@ public class Phase5 extends Visitor {
      */
     public void visitCallExpression(GNode n) {
 
+
         //cout handling
         if (n.get(2).toString().equals("cout")) {
+
+        	inCout = true;
+
             printer.p("cout ").flush();
             GNode arguments = (GNode) n.getGeneric(3);
 
@@ -322,6 +328,8 @@ public class Phase5 extends Visitor {
         else {
             visit(n);
         }
+
+        inCout = false;
     }
 
     /* Visitor for ExpressionStatement
@@ -397,9 +405,14 @@ public class Phase5 extends Visitor {
     }
 
     public void visitStringLiteral(GNode n) {
-        printer.p("new __String(").flush();
-        visit(n);
-        printer.p(")").flush();
+    	if (!inCout) {
+        	printer.p("new __String(").flush();
+        	visit(n);
+        	printer.p(")").flush();
+    	}	
+    	else {
+   			visit(n);
+    	}
     }
 
     /* General visitor
