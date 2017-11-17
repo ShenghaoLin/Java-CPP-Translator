@@ -64,6 +64,7 @@ public class Boot extends Tool {
             bool("printPhase3", "printPhase3", false, "Print the output of phase 3").
             bool("printPhase4", "printPhase4", false, "Print the output of phase 4").
             bool("printPhase5", "printPhase5", false, "Print the output of phase 5").
+            bool("printMangling", "printMangling", false, "Print a method mangling test").
             bool("translate", "translate", false, "Translate an input file");
   }
 
@@ -189,6 +190,12 @@ public class Boot extends Tool {
             printer.headOfFile();
             printer.print(node);
         }
+    }
+
+    if (runtime.test("printMangling")) {
+      Phase1.mangle(runtime, new SymbolTableBuilder(runtime).getTable(n), n);
+      new JavaPrinter(runtime.console()).dispatch(n);
+      runtime.console().flush();
     }
 
     if (runtime.test("translate")) {
