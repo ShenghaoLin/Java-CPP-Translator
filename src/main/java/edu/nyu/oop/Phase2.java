@@ -130,7 +130,11 @@ public class Phase2 {
             // add
             // constructorName should be called init, updating here
             Constructor constructor = new Constructor(accessModifier, "init", parameters);
-            objectRepresentations.getCurrent().classRep.constructors.add(constructor);
+            boolean toAdd = true;
+            for (Constructor other : objectRepresentations.getCurrent().classRep.constructors) {
+                if (other.equals(constructor)) toAdd = false;
+            }
+            if (toAdd) objectRepresentations.getCurrent().classRep.constructors.add(constructor);
 
             visit(node);
         }
@@ -163,7 +167,7 @@ public class Phase2 {
 
             // parameters
             ArrayList<Parameter> parameters = new ArrayList<Parameter>();
-            parameters.add(new Parameter(objectRepresentations.getCurrent().name, ""));
+            if (!isStatic) parameters.add(new Parameter(objectRepresentations.getCurrent().name, "__this"));
 
             Iterator parameterIter = node.getNode(4).iterator();
             while (parameterIter.hasNext()) {
@@ -563,15 +567,30 @@ public class Phase2 {
 
         // new array list to dump fields into as they are processed
         ArrayList<Method> updatedMethods = new ArrayList<Method>();
-        // remove index 0 and add to updatedMethods
-        updatedMethods.add(methods.remove(0));
+        HashSet<String> updatedMethodNames = new HashSet<String>();
+        // remove index 0 and add to updatedMethods at the very end
+        Method last = methods.get(0);
+        methods.remove(0);
 
         // iterate over vMethods, if match add to updated methods
         for (VMethod vMethod : vMethods) {
             for (Method method : methods) {
-                if (vMethod.name.equals(method.name)) updatedMethods.add(method);
+                if (vMethod.name.equals(method.name)) {
+                    updatedMethods.add(method);
+                    updatedMethodNames.add(method.name);
+                }
             }
         }
+
+        // add static methods last, they don't have vtable declarations so order of declarations isn't important
+        for (Method method : methods) {
+            if (!updatedMethodNames.contains(method.name)) {
+                updatedMethods.add(method);
+                updatedMethodNames.add(method.name);
+            }
+        }
+
+        updatedMethods.add(last);
 
         // update methods
         current.classRep.methods = updatedMethods;
@@ -616,6 +635,10 @@ public class Phase2 {
         // new array list to dump fields into as they are processed
         ArrayList<Field> updatedFields = new ArrayList<Field>();
         HashSet<String> updatedFieldNames = new HashSet<String>();
+        updatedFields.add(currentFields.get(0));
+        currentFields.remove(0);
+        Field last = currentFields.get(0);
+        currentFields.remove(0);
 
         // process parent fields and inherit valid fields
         for (Field parentField : parentFields) {
@@ -633,6 +656,8 @@ public class Phase2 {
                 updatedFieldNames.add(currentField.fieldName);
             }
         }
+
+        updatedFields.add(last);
 
         current.classRep.fields = updatedFields;
 

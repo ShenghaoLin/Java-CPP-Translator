@@ -20,4 +20,9 @@ public class Parameter {
 		this.type = type;
 		this.name = name;
 	}
+
+	public boolean equals(Parameter other) {
+		if (this.type.equals(other.type) && this.name.equals(other.name)) return true;
+		return false;
+	}
 }

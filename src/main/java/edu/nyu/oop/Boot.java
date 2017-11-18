@@ -199,8 +199,13 @@ public class Boot extends Tool {
     }
 
     if (runtime.test("translate")) {
-            // phase 1
+      // phase 1
+      // process all dependencies, name mangling for method overloading
+      
       List<GNode> javaAsts = Phase1.parse(n);
+      for (GNode unmangledAst : javaAsts) {
+        Phase1.mangle(runtime, new SymbolTableBuilder(runtime).getTable(unmangledAst), unmangledAst);
+      }
 
       // phase 2
       // below is for single javaAst, we can parse multiple ones too just need to change logic for Phase 3 printer
