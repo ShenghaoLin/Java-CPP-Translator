@@ -964,7 +964,7 @@ public class Phase2 {
         // process each object representation
         for (ObjectRep rep : objectRepList) {
             // add to forward declarations
-            forwardDeclarations.add(rep.name);
+            forwardDeclarations.add("__" + rep.name);
             // add class node
             root.add(buildClassNode(rep));
         }
@@ -999,14 +999,14 @@ public class Phase2 {
         for (Method method : rep.classRep.methods) methods.add(buildMethodNode(method));
 
         // vtable and declaration
-        Node vFieldDeclaration = GNode.create("VFieldDec");
+        Node vFieldDeclaration = GNode.create("VFieldDeclaration");
         Node vTable = buildVTableNode(rep.name, rep.vtable.fields, rep.vtable.methods);
 
         // data layout node
         Node dataLayout = GNode.create("DataLayout",fields, constructors, methods, vFieldDeclaration);
 
         // return class declaration
-        return GNode.create("ClassDeclaration", rep.name, dataLayout, vTable);
+        return GNode.create("ClassDeclaration", "__" + rep.name, dataLayout, vTable);
     }
 
     /**
@@ -1080,27 +1080,27 @@ public class Phase2 {
      *
      * @return    root Node that holds vtable information
      */
-    public static Node buildVTableNode(String name, ArrayList<Field> vfields, ArrayList<VMethod> vmethods) {
+    public static Node buildVTableNode(String name, ArrayList<Field> vFields, ArrayList<VMethod> vMethods) {
         // root
         Node root = GNode.create("VTableLayout");
         // add name to root
-        root.add(name);
+        root.add("__" + name);
         // fields
         Node fields = GNode.create("VFields");
         // process vfields
-        for (Field vfield : vfields) {
-            Node fieldType = GNode.create("FieldType", vfield.fieldType);
-            Node fieldName = GNode.create("FieldName", vfield.fieldName);
-            Node initial = GNode.create("Initial", vfield.initial);
+        for (Field vField : vFields) {
+            Node fieldType = GNode.create("FieldType", vField.fieldType);
+            Node fieldName = GNode.create("FieldName", vField.fieldName);
+            Node initial = GNode.create("Initial", vField.initial);
             fields.add(GNode.create("VField", fieldType, fieldName, initial));
         }
         root.add(fields);
         // methods
         Node methods = GNode.create("VMethods");
         // process vmethods
-        for (VMethod vmethod : vmethods) {
-            Node methodName = GNode.create("MethodName", vmethod.name);
-            Node initial = GNode.create("Initial", vmethod.initial);
+        for (VMethod vMethod : vMethods) {
+            Node methodName = GNode.create("MethodName", vMethod.name);
+            Node initial = GNode.create("Initial", vMethod.initial);
             methods.add(GNode.create("VMethod", methodName, initial));
         }
         root.add(methods);
