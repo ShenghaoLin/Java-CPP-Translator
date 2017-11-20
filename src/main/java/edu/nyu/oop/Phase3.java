@@ -115,8 +115,8 @@ public class Phase3 extends Visitor {
         }
         //printer.pln();
         for (int i = 0; i < node.size(); i++) {
-            printer.indent().pln("typedef " + node.getString(i) + "* " + node.getString(i)+";");
-            forwardDeclarations+="typedef " + node.getString(i) + "* " + node.getString(i)+";\n";
+            printer.indent().pln("typedef __rt::Ptr<" + node.getString(i) + "> " + node.getString(i).replaceFirst("__", "") +";");
+            forwardDeclarations+="typedef __rt::Ptr<" + node.getString(i) + "> " + node.getString(i).replaceFirst("__", "") + ";\n";
         }
         printer.pln();
         visit(node);
