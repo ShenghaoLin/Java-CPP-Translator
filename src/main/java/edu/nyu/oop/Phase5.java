@@ -116,7 +116,7 @@ public class Phase5 extends Visitor {
 
 
         //default constructor
-        printer.pln("__" + n.get(1).toString() + "::__" + n.get(1).toString() + "() : __vptr(&__vtable) {}" );
+        printer.pln((String)n.getProperty("defaultConstructor"));
         printer.pln().flush();
 
         Object o = NodeUtil.dfs(n, "ConstructorDelaration");

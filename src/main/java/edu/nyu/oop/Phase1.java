@@ -217,16 +217,16 @@ public class Phase1 {
                 boolean notStatic = (method.getAttribute("storage") == null || !method.getAttribute("storage").getValue().equals("static"));
                 if (!table.current().isDefinedLocally(methodName) && notStatic) n.set(2, "this." + methodName);
             }
-            else {
+            else if (receiver != null) {
                 //GET MANGLED NAME
                 VariableT objectLookup;
-                if(table.lookup((receiver.get(0).toString())) != null) {
+                if((receiver.get(0) != null) && (table.lookup((receiver.get(0).toString())) != null)) {
                     objectLookup = (VariableT) table.lookup(receiver.get(0).toString());
                     Type objectType = objectLookup.getType();
                     List<Type> actuals = JavaEntities.typeList((List) dispatch(n.getNode(3)));
                     MethodT method =
                             JavaEntities.typeDotMethod(table, classpath(), objectType, true, methodName, actuals);
-                    n.set(2, methodScopeToMangledName.get(method.getScope()));
+                    n.setProperty("mangledName", methodScopeToMangledName.get(method.getScope()));
                 }
             }
         }

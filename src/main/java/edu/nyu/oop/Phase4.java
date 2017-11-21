@@ -119,6 +119,7 @@ public class Phase4 {
 
             //collect class info
             String name = n.get(1).toString();
+            n.setProperty("defaultConstructor", "__" + n.get(1).toString() + "::__" + n.get(1).toString() + "() : __vptr(&__vtable) {}");
             Object extension = NodeUtil.dfs(n, "Extension");
             GNode body = (GNode) NodeUtil.dfs(n, "ClassBody");
 
@@ -452,8 +453,9 @@ public class Phase4 {
                 if (child != null) {
 
                     //start the method from vtable
+                    String methodName = (String)n.getProperty("mangledName");
                     if (!n.get(2).toString().startsWith("-> ")){
-                        n.set(2, "-> __vptr -> " + n.get(2).toString());
+                        n.set(2, "-> __vptr -> " + methodName);
                     
                         //add the object to arguments
                         GNode arguments = GNode.create("Arguments");

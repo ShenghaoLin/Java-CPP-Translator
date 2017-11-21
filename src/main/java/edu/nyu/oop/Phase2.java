@@ -159,7 +159,8 @@ public class Phase2 {
             // return type
             String returnType;
             Node returnNode = node.getNode(2);
-            if (returnNode.getName().equals("VoidType")) returnType = "void";
+            if(returnNode == null) returnType = "Placeholder";
+            else if (returnNode.getName().equals("VoidType")) returnType = "void";
             else returnType = convertType(returnNode.getNode(0).getString(0));
 
             // name
