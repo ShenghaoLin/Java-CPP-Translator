@@ -72,7 +72,7 @@ public class PrimitiveArray {
 				bigType = "F";
 				break;
 			case "long":
-				bigType = "L";
+				bigType = "J";
 				break;
 			case "int":
 				bigType = "I";
@@ -87,7 +87,7 @@ public class PrimitiveArray {
 				bigType = "B";
 				break;
 			case "boolean":
-				bigType = "B"
+				bigType = "Z"
 				break;
 			default:
 				bigType = "";
