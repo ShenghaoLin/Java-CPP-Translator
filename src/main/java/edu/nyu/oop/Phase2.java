@@ -130,7 +130,11 @@ public class Phase2 {
             // add
             // constructorName should be called init, updating here
             Constructor constructor = new Constructor(accessModifier, "init", parameters);
-            objectRepresentations.getCurrent().classRep.constructors.add(constructor);
+            boolean toAdd = true;
+            for (Constructor other : objectRepresentations.getCurrent().classRep.constructors) {
+                if (other.equals(constructor)) toAdd = false;
+            }
+            if (toAdd) objectRepresentations.getCurrent().classRep.constructors.add(constructor);
 
             visit(node);
         }
@@ -163,7 +167,7 @@ public class Phase2 {
 
             // parameters
             ArrayList<Parameter> parameters = new ArrayList<Parameter>();
-            parameters.add(new Parameter(objectRepresentations.getCurrent().name, ""));
+            if (!isStatic) parameters.add(new Parameter(objectRepresentations.getCurrent().name, "__this"));
 
             Iterator parameterIter = node.getNode(4).iterator();
             while (parameterIter.hasNext()) {
@@ -563,15 +567,30 @@ public class Phase2 {
 
         // new array list to dump fields into as they are processed
         ArrayList<Method> updatedMethods = new ArrayList<Method>();
-        // remove index 0 and add to updatedMethods
-        updatedMethods.add(methods.remove(0));
+        HashSet<String> updatedMethodNames = new HashSet<String>();
+        // remove index 0 and add to updatedMethods at the very end
+        Method last = methods.get(0);
+        methods.remove(0);
 
         // iterate over vMethods, if match add to updated methods
         for (VMethod vMethod : vMethods) {
             for (Method method : methods) {
-                if (vMethod.name.equals(method.name)) updatedMethods.add(method);
+                if (vMethod.name.equals(method.name)) {
+                    updatedMethods.add(method);
+                    updatedMethodNames.add(method.name);
+                }
             }
         }
+
+        // add static methods last, they don't have vtable declarations so order of declarations isn't important
+        for (Method method : methods) {
+            if (!updatedMethodNames.contains(method.name)) {
+                updatedMethods.add(method);
+                updatedMethodNames.add(method.name);
+            }
+        }
+
+        updatedMethods.add(last);
 
         // update methods
         current.classRep.methods = updatedMethods;
@@ -616,6 +635,10 @@ public class Phase2 {
         // new array list to dump fields into as they are processed
         ArrayList<Field> updatedFields = new ArrayList<Field>();
         HashSet<String> updatedFieldNames = new HashSet<String>();
+        updatedFields.add(currentFields.get(0));
+        currentFields.remove(0);
+        Field last = currentFields.get(0);
+        currentFields.remove(0);
 
         // process parent fields and inherit valid fields
         for (Field parentField : parentFields) {
@@ -633,6 +656,8 @@ public class Phase2 {
                 updatedFieldNames.add(currentField.fieldName);
             }
         }
+
+        updatedFields.add(last);
 
         current.classRep.fields = updatedFields;
 
@@ -939,7 +964,7 @@ public class Phase2 {
         // process each object representation
         for (ObjectRep rep : objectRepList) {
             // add to forward declarations
-            forwardDeclarations.add(rep.name);
+            forwardDeclarations.add("__" + rep.name);
             // add class node
             root.add(buildClassNode(rep));
         }
@@ -974,14 +999,14 @@ public class Phase2 {
         for (Method method : rep.classRep.methods) methods.add(buildMethodNode(method));
 
         // vtable and declaration
-        Node vFieldDeclaration = GNode.create("VFieldDec");
+        Node vFieldDeclaration = GNode.create("VFieldDeclaration");
         Node vTable = buildVTableNode(rep.name, rep.vtable.fields, rep.vtable.methods);
 
         // data layout node
         Node dataLayout = GNode.create("DataLayout",fields, constructors, methods, vFieldDeclaration);
 
         // return class declaration
-        return GNode.create("ClassDeclaration", rep.name, dataLayout, vTable);
+        return GNode.create("ClassDeclaration", "__" + rep.name, dataLayout, vTable);
     }
 
     /**
@@ -1055,27 +1080,27 @@ public class Phase2 {
      *
      * @return    root Node that holds vtable information
      */
-    public static Node buildVTableNode(String name, ArrayList<Field> vfields, ArrayList<VMethod> vmethods) {
+    public static Node buildVTableNode(String name, ArrayList<Field> vFields, ArrayList<VMethod> vMethods) {
         // root
         Node root = GNode.create("VTableLayout");
         // add name to root
-        root.add(name);
+        root.add("__" + name);
         // fields
         Node fields = GNode.create("VFields");
         // process vfields
-        for (Field vfield : vfields) {
-            Node fieldType = GNode.create("FieldType", vfield.fieldType);
-            Node fieldName = GNode.create("FieldName", vfield.fieldName);
-            Node initial = GNode.create("Initial", vfield.initial);
+        for (Field vField : vFields) {
+            Node fieldType = GNode.create("FieldType", vField.fieldType);
+            Node fieldName = GNode.create("FieldName", vField.fieldName);
+            Node initial = GNode.create("Initial", vField.initial);
             fields.add(GNode.create("VField", fieldType, fieldName, initial));
         }
         root.add(fields);
         // methods
         Node methods = GNode.create("VMethods");
         // process vmethods
-        for (VMethod vmethod : vmethods) {
-            Node methodName = GNode.create("MethodName", vmethod.name);
-            Node initial = GNode.create("Initial", vmethod.initial);
+        for (VMethod vMethod : vMethods) {
+            Node methodName = GNode.create("MethodName", vMethod.name);
+            Node initial = GNode.create("Initial", vMethod.initial);
             methods.add(GNode.create("VMethod", methodName, initial));
         }
         root.add(methods);
