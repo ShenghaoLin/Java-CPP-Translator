@@ -65,6 +65,7 @@ public class Phase4 {
         private String currentClass = null;
         private Object extension = null;
         private boolean isMain = false;
+        private String methodName = "";
 
         private SymbolTable table;
 
@@ -202,6 +203,8 @@ public class Phase4 {
             SymbolTableUtil.enterScope(table, n);
             table.mark(n);
 
+            methodName = table.current().getName();
+
             if (n.getProperty("mangledName") != null) {
                 n.set(3, n.getProperty("mangledName"));
             }
@@ -230,8 +233,12 @@ public class Phase4 {
                 isMain = false;
             }
 
+
+
+
             else {
 
+                //constructor
                 if (n.get(3).toString().equals(currentClass)) {
             
                     n.set(0, GNode.create("Modifiers"));
@@ -249,6 +256,7 @@ public class Phase4 {
                     n.set(7, newBlock);
                 }
 
+                //normal methods
                 else {
                     n.set(0, GNode.create("Modifiers"));
                     n.set(2, currentClass);
@@ -271,6 +279,8 @@ public class Phase4 {
                 visit(n);
             }
 
+            methodName = "";
+
             SymbolTableUtil.exitScope(table, n);
 
         }
@@ -284,13 +294,26 @@ public class Phase4 {
 
             SymbolTableUtil.enterScope(table, n);
             table.mark(n);
-
             
             visit(n);
 
-            
-
             SymbolTableUtil.exitScope(table, n);
+        }
+
+        public void visitPrimaryIdentifier(GNode n) {
+            if (n.get(0).toString().equals("__this")) {
+                return;
+            }
+            
+            //add this to field data
+            if (!isMain) {
+
+
+                //TODO: this is not working for nested scopes
+                if (!table.current().getParent().isDefinedLocally(n.get(0).toString())) {
+                    n.set(0, "__this -> " + n.get(0).toString());
+                }
+            }
         }
 
         /* Visitor for Selection Expression
@@ -342,6 +365,8 @@ public class Phase4 {
             //method in current class
             if (!isMain) {
                 if (select == null) {
+
+                    //call __init
                     if (n.get(2).toString().equals("this")) {
 
                         n.set(2, "__" + currentClass + "::__init");
@@ -349,6 +374,7 @@ public class Phase4 {
                        
                     }
 
+                    //call parent's __init
                     else if (n.get(2).toString().equals("this")) {
                         String parentName = "";
                         if (extension == null) {
@@ -366,7 +392,8 @@ public class Phase4 {
                         n.set(2, "__this -> __vptr -> " + n.get(2));
                     }
 
-                    GNode arguments = GNode.create("arguments");
+                    //change arguments
+                    GNode arguments = GNode.create("Arguments");
                     arguments.add(GNode.create("PrimaryIdentifier", "__this"));
                     GNode oldArg = (GNode) n.get(3);;
                     n.set(3, arguments);
@@ -440,11 +467,9 @@ public class Phase4 {
             visit(n);
         }
 
-
         public void traverse(Node n) {
             super.dispatch(n);
         }
-
 
 
         public void visit(Node n) {
@@ -454,7 +479,6 @@ public class Phase4 {
                     Object o1 = dispatch((Node) o);
                     if (o1 != null && o1 instanceof Node) {
                         n.set(i, o1);
-                        logger.debug("ro");
                     }
                 }
             }    

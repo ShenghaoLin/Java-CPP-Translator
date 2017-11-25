@@ -5,6 +5,8 @@ import java.io.IOException;
 import java.io.Reader;
 import java.util.List;
 import java.util.ArrayList;
+import java.util.LinkedList;
+
 
 import edu.nyu.oop.util.JavaFiveImportParser;
 import edu.nyu.oop.util.NodeUtil;
@@ -190,9 +192,13 @@ public class Boot extends Tool {
     if (runtime.test("printPhase5")) {
       List<GNode> list = Phase1.parse(n);
       Phase4 p = new Phase4(runtime);
-      List<GNode> l = p.process(list);
+      for (GNode unmangledAst : list) {
+        SymbolTable table = new SymbolTableBuilder(runtime).getTable(unmangledAst);
+        Phase1.mangle(runtime, table, unmangledAst);
+        p.runNode(unmangledAst, table);
+      }
         Phase5 printer = new Phase5("output.cpp");
-        for (GNode node : l) {
+        for (GNode node : list) {
             printer.headOfFile();
             printer.print(node);
         }
@@ -212,8 +218,13 @@ public class Boot extends Tool {
       // process all dependencies, name mangling for method overloading
       
       List<GNode> javaAsts = Phase1.parse(n);
+
+      LinkedList<SymbolTable> tables = new LinkedList<SymbolTable>();
+
       for (GNode unmangledAst : javaAsts) {
-        Phase1.mangle(runtime, new SymbolTableBuilder(runtime).getTable(unmangledAst), unmangledAst);
+        SymbolTable table = new SymbolTableBuilder(runtime).getTable(unmangledAst);
+        Phase1.mangle(runtime, table, unmangledAst);
+        tables.add(table);
       }
 
       // phase 2
@@ -235,14 +246,19 @@ public class Boot extends Tool {
         phase3.print((GNode) cppAst);
       }
 
-
       Phase4 p = new Phase4(runtime);
-      List<GNode> l = p.process(javaAsts);
-      List<GNode> phase4 = p.process(javaAsts);
+
+      ArrayList<GNode> asts = new ArrayList<GNode>();
+
+      for (Node oo : javaAsts) {
+        SymbolTable table = tables.poll();
+        asts.add((GNode) p.runNode((GNode) oo, table));
+      }
+
       Phase5 printer = new Phase5("output.cpp");
-      for (GNode node : phase4) {
+      for (GNode node : asts) {
         printer.headOfFile();
-        printer.print(node);
+        printer.print( node);
       }
     }
   }
