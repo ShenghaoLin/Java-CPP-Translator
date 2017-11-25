@@ -260,6 +260,9 @@ public class Phase1 {
                     //n.set(2, methodScopeToMangledName.get(method.getScope()));
                 }
 
+                //TODO: nested calling will fail during mangling
+                //TODO: when receiver is ThisExpression or SuperExpression, the mangling should still work
+
                 // else if (receiver.getName().equals("ThisExpression")) {
                 //     objectLookup = (VariableT) table.lookup(className);
                 //     Type objectType = objectLookup.getType();
