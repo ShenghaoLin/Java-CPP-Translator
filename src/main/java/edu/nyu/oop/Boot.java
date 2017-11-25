@@ -176,15 +176,21 @@ public class Boot extends Tool {
 
     if (runtime.test("printPhase4")) {
       List<GNode> list = Phase1.parse(n);
-      List<GNode> l = Phase4.process(list);
-      for (GNode node : l) {
+      Phase4 p = new Phase4(runtime);
+      for (GNode unmangledAst : list) {
+        SymbolTable table = new SymbolTableBuilder(runtime).getTable(unmangledAst);
+        Phase1.mangle(runtime, table, unmangledAst);
+        p.runNode(unmangledAst, table);
+      }
+      for (GNode node : list) {
           runtime.console().format(node).pln().flush();
       }
     }
 
     if (runtime.test("printPhase5")) {
-        List<GNode> list = Phase1.parse(n);
-        List<GNode> l = Phase4.process(list);
+      List<GNode> list = Phase1.parse(n);
+      Phase4 p = new Phase4(runtime);
+      List<GNode> l = p.process(list);
         Phase5 printer = new Phase5("output.cpp");
         for (GNode node : l) {
             printer.headOfFile();
@@ -194,8 +200,11 @@ public class Boot extends Tool {
 
     if (runtime.test("printMangling")) {
       Phase1.mangle(runtime, new SymbolTableBuilder(runtime).getTable(n), n);
-      new JavaPrinter(runtime.console()).dispatch(n);
+      //new JavaPrinter(runtime.console()).dispatch(n);
+
       runtime.console().flush();
+
+      runtime.console().format(n).pln().flush();
     }
 
     if (runtime.test("translate")) {
@@ -226,7 +235,10 @@ public class Boot extends Tool {
         phase3.print((GNode) cppAst);
       }
 
-      List<GNode> phase4 = Phase4.process(javaAsts);
+
+      Phase4 p = new Phase4(runtime);
+      List<GNode> l = p.process(javaAsts);
+      List<GNode> phase4 = p.process(javaAsts);
       Phase5 printer = new Phase5("output.cpp");
       for (GNode node : phase4) {
         printer.headOfFile();

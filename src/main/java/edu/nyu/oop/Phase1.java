@@ -15,6 +15,7 @@ package edu.nyu.oop;
 
 import edu.nyu.oop.util.JavaFiveImportParser;
 import edu.nyu.oop.util.SymbolTableUtil;
+import edu.nyu.oop.util.NodeUtil;
 import edu.nyu.oop.util.TypeUtil;
 import xtc.Constants;
 import xtc.lang.JavaEntities;
@@ -24,6 +25,7 @@ import xtc.tree.Visitor;
 import xtc.type.*;
 import xtc.util.Runtime;
 import xtc.util.SymbolTable;
+
 
 import java.io.File;
 import java.util.*;
@@ -94,6 +96,8 @@ public class Phase1 {
         protected Runtime runtime;
         protected HashMap<String, String> methodScopeToMangledName;
         protected HashMap<String, Integer> mangleCounts;
+        protected String className = "";
+        protected String parentName = "";
 
         public final List<File> classpath() {
             return JavaEntities.classpath(runtime);
@@ -104,6 +108,7 @@ public class Phase1 {
             this.table = table;
             this.methodScopeToMangledName = new HashMap<String, String>();
         }
+
         public void visitCompilationUnit(GNode n) {
             String packageScope = null == n.get(0) ? visitPackageDeclaration(null) : (String) dispatch(n.getNode(0));
             table.enter(packageScope);
@@ -130,27 +135,48 @@ public class Phase1 {
             this.mangleCounts = new HashMap<String, Integer>();
             SymbolTableUtil.enterScope(table, n);
             table.mark(n);
+
+            className = n.get(1).toString();
+            Object extension = NodeUtil.dfs(n, "Extension");
+
+            if (extension == null) {
+                parentName = "Object";
+            }
+            else {
+                parentName = ((GNode) NodeUtil.dfs(n, "QualifiedIdentifier")).get(0).toString();
+            }
+
+
             visit(n);
+            className = "";
+            parentName = "";
             SymbolTableUtil.exitScope(table, n);
         }
 
+        
         public void visitMethodDeclaration(GNode n) {
             SymbolTableUtil.enterScope(table, n);
             table.mark(n);
 
             //Mangle name
             String methodName = n.getString(3);
-            if(!methodName.equals("main")) {
+            
+            if ((!methodName.equals("main"))&&(!methodName.equals(className))) {
+
+                
+
                 if (!mangleCounts.containsKey(methodName)) mangleCounts.put(methodName, 0);
                 String newMethodName = methodName + "_" + mangleCounts.get(methodName);
                 methodScopeToMangledName.put(table.current().getQualifiedName(), newMethodName);
                 mangleCounts.put(methodName, mangleCounts.get(methodName) + 1);
-                n.set(3, newMethodName);
+                n.setProperty("mangledName", newMethodName);
             }
+            
 
             visit(n);
             SymbolTableUtil.exitScope(table, n);
         }
+
 
         public void visitBlockDeclaration(GNode n) {
             SymbolTableUtil.enterScope(table, n);
@@ -174,7 +200,7 @@ public class Phase1 {
             SymbolTableUtil.exitScope(table, n);
         }
 
-        /**
+        /*
          * Visit a QualifiedIdentifier = Identifier+.
          */
         public String visitQualifiedIdentifier(final GNode n) {
@@ -188,6 +214,7 @@ public class Phase1 {
             }
             return b.toString();
         }
+        
 
         // Helper method to construct the Java AST representation of a 'this' expression.
         // The added type annotation is dependent on the class surrounding the current scope
@@ -198,24 +225,27 @@ public class Phase1 {
             return _this;
         }
 
+        
         public void visitCallExpression(GNode n) {
             visit(n);
             Node receiver = n.getNode(0);
             String methodName = n.getString(2);
-            if (receiver == null &&
-                    !"super".equals(methodName) &&
-                    !"this".equals(methodName)) {
+            if ((receiver == null) &&
+                    (!"super".equals(methodName)) &&
+                    (!"this".equals(methodName))) {
                 Type typeToSearch = JavaEntities.currentType(table);
 
                 List<Type> actuals = JavaEntities.typeList((List) dispatch(n.getNode(3)));
                 MethodT method =
                         JavaEntities.typeDotMethod(table, classpath(), typeToSearch, true, methodName, actuals);
-
+    
                 if (method == null) return;
 
                 // EXPLICIT THIS ACCESS (if method name isn't defined locally and method is not static, add "this.")
                 boolean notStatic = (method.getAttribute("storage") == null || !method.getAttribute("storage").getValue().equals("static"));
-                if (!table.current().isDefinedLocally(methodName) && notStatic) n.set(2, "this." + methodName);
+                if (!table.current().isDefinedLocally(methodName) && notStatic) {
+                    n.setProperty("mangledName", methodName);
+                }
             }
             else if (receiver != null) {
                 //GET MANGLED NAME
@@ -227,11 +257,32 @@ public class Phase1 {
                     MethodT method =
                             JavaEntities.typeDotMethod(table, classpath(), objectType, true, methodName, actuals);
                     n.setProperty("mangledName", methodScopeToMangledName.get(method.getScope()));
+                    //n.set(2, methodScopeToMangledName.get(method.getScope()));
                 }
+
+                // else if (receiver.getName().equals("ThisExpression")) {
+                //     objectLookup = (VariableT) table.lookup(className);
+                //     Type objectType = objectLookup.getType();
+                //     List<Type> actuals = JavaEntities.typeList((List) dispatch(n.getNode(3)));
+                //     MethodT method =
+                //             JavaEntities.typeDotMethod(table, classpath(), objectType, true, methodName, actuals);
+                //     n.setProperty("mangledName", methodScopeToMangledName.get(method.getScope()));
+                    
+                // }
+
+                // else if (receiver.getName().equals("SuperExpression")) {
+                //     Type objectType = objectLookup.getType();
+                //     List<Type> actuals = JavaEntities.typeList((List) dispatch(n.getNode(3)));
+                //     MethodT method =
+                //             JavaEntities.typeDotMethod(table, classpath(), objectType, true, methodName, actuals);
+                //     n.setProperty("mangledName", methodScopeToMangledName.get(method.getScope()));
+                    
+                // }
             }
         }
+        
 
-
+        
         public Node visitPrimaryIdentifier(GNode n) {
             String fieldName = n.getString(0);
 
@@ -252,13 +303,14 @@ public class Phase1 {
 
             // EXPLICIT THIS ACCESS (if field name isn't defined locally and field is not static, add "this.")
             boolean notStatic = (field.getAttribute("storage") == null || !field.getAttribute("storage").getValue().equals("static"));
-            if ((!table.current().isDefinedLocally(fieldName)) && notStatic) n.set(0, "this." + fieldName);
+            //if ((!table.current().isDefinedLocally(fieldName)) && notStatic) n.set(0, "this." + fieldName);
 
 
             return n;
         }
-
-
+        
+        
+        
         public List<Type> visitArguments(final GNode n) {
             List<Type> result = new ArrayList<Type>(n.size());
             for (int i = 0; i < n.size(); i++) {
@@ -276,6 +328,7 @@ public class Phase1 {
             }
             return result;
         }
+        
 
         public void visit(GNode n) {
             for (int i = 0; i < n.size(); ++i) {
