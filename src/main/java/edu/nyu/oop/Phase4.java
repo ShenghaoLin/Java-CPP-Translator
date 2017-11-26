@@ -107,50 +107,31 @@ public class Phase4 {
             for (int i = 0; i < n.size(); i ++) {
                 n.set(i, null);
             }
+            visit(n);
         }
 
-        /* Visitor for Declarator
-         * Using __init() function as constructor to initialize a class instance
-         */
-        public void visitDeclarator(GNode n) {
+        public void visitType(GNode n) {
+            Object dim = NodeUtil.dfs(n, "Dimensions");
 
-            for (int i = 0; i < n.size(); i++) {
-                try {
-                    GNode child = (GNode) n.getGeneric(i);
-
-                    //NewClassExpression handling
-                    if (child.hasName("NewClassExpression")) {
-
-                        //Creating a node representing the "self" object
-                        GNode newClass = GNode.create("NewClassExpression",
-                                                      child.get(0), child.get(1), child.get(2),
-                                                      GNode.create("Arguments"), child.get(4));
-
-                        //New Arguments node
-                        GNode arguments = GNode.create("Arguments");
-
-
-                        //Define the new expression as calling __init();
-                        GNode expression = GNode.create("Expression");
-                        GNode className = (GNode) NodeUtil.dfs(child, "QualifiedIdentifier");
-                        GNode oldArg = (GNode) NodeUtil.dfs(child, "Arguments");
-                        arguments.add(newClass);
-                        expression.add("__" + className.get(0).toString() + "::__init");
-                        expression.add(arguments);
-
-                        n.set(i, expression);
-
-                        //Add arguments
-                        for (Object o : oldArg) {
-                            arguments.add(o);
-                        }
-
-                    }
-
-                } catch (Exception e) {}
+            if (dim != null) {
+                String className = n.getNode(0).get(0).toString();
+                n.set(0, GNode.create("QualifiedIdentifier", "ArrayOf" + className));
+                n.set(1, null);
             }
-
             visit(n);
+        }
+
+        public void visitNewArrayExpression(GNode n) {
+            String className = n.getNode(0).get(0).toString();
+            n.set(0, GNode.create("QualifiedIdentifier", "__ArrayOf" + className));
+            visit(n);
+        }
+
+        public void visitBlockDeclaration(GNode n) {
+            SymbolTableUtil.enterScope(table, n);
+            table.mark(n);
+            visit(n);
+            SymbolTableUtil.exitScope(table, n);
         }
 
         /* Visitor for NewClassExpression
@@ -159,7 +140,18 @@ public class Phase4 {
         public void visitNewClassExpression(GNode n) {
             GNode id = (GNode) NodeUtil.dfs(n, "QualifiedIdentifier");
             if (!id.get(0).toString().startsWith("__")) {
-               id.set(0, "__" + id.get(0));
+               Node oldArgs = n.getNode(3);
+
+               
+               GNode args = GNode.create("Arguments");
+                n.set(3, args);
+               args.add(GNode.create("Argument", "new __" + id.get(0).toString() + "()"));
+               
+               for (int j = 0; j < oldArgs.size(); j++) {
+                    args.add(oldArgs.get(j));
+                }
+
+               id.set(0, "__" + id.get(0) + "::__init");
             }
             visit(n);
         }
@@ -314,6 +306,8 @@ public class Phase4 {
                     n.set(0, "__this -> " + n.get(0).toString());
                 }
             }
+
+            visit(n);
         }
 
         /* Visitor for Selection Expression

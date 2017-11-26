@@ -5,13 +5,21 @@
 using namespace java::lang;
 
 using namespace std;
-using namespace inputs::javalang;
+using namespace inputs::test026;
 
-int32_t main (void )
+int32_t main (void ){
+ArrayOfA as = new __ArrayOfB (10 );
+for (int32_t i = 0 ; i < as -> length ; i ++ )
 {
-    B b= __B::__init (new __B (), 'z' );
-    cout << b -> __vptr -> toString_0 (b )<< endl ;
-    b -> __vptr -> overloaded_0 (b, b )-> __vptr -> overloaded_2 (b -> __vptr -> overloaded_0 (b, b ), b );
-    return 0 ;
+as -> data[i ]= __A::__init (new __A() , i );
+}
+
+int32_t k = 0 ;
+while (k < 10 ){
+cout << (A ) as -> data[k ]-> __vptr -> get ((A ) as -> data[k ])<< endl ;
+k = k + 1 ;
+}
+
+return 0 ;
 }
 

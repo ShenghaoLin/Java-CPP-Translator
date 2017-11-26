@@ -369,7 +369,7 @@ public class Phase5 extends Visitor {
 
                 if (child != null) {
                     if (!eq) {
-                        printer.p("= ").flush();
+                        printer.p(" = ").flush();
                         eq = true;
                     }
                     dispatch(child);
@@ -387,14 +387,7 @@ public class Phase5 extends Visitor {
         }
 
     }
-    
-    /* Visitor for NewClassExpression
-     * print "new"
-     */
-    public void visitNewClassExpression(GNode n) {
-        printer.p("new ").flush();
-        visit(n);
-    }
+
 
     /* Visitor for ThisExpression
      * print "__this"
@@ -402,6 +395,17 @@ public class Phase5 extends Visitor {
     public void visitThisExpression(GNode n) {
         printer.p("__this ").flush();
         visit(n);
+    }
+
+    public void visitWhileStatement(GNode n) {
+        printer.p("while ").flush();
+        visit(n);
+    }
+
+    public void visitRelationalExpression(GNode n) {
+        printer.p("(").flush();
+        visit(n);
+        printer.p(")").flush();
     }
 
     public void visitStringLiteral(GNode n) {
@@ -413,6 +417,36 @@ public class Phase5 extends Visitor {
     	else {
    			visit(n);
     	}
+    }
+
+    public void visitForStatement(GNode n) {
+        printer.p("for (").flush();
+        dispatch(n.getNode(0).getNode(1));
+        dispatch(n.getNode(0).getNode(2));
+        printer.p("; ").flush();
+        visit(n.getNode(0).getNode(3));
+        printer.p("; ").flush();
+        dispatch(n.getNode(0).getNode(4));
+        printer.pln(")").flush();
+        dispatch(n.getNode(1));
+    }
+
+    public void visitSubscriptExpression(GNode n) {
+        dispatch(n.getNode(0));
+        printer.p("-> data[").flush();
+        dispatch(n.getNode(1));
+        printer.p("]").flush();
+    }
+
+    public void visitConcreteDimensions(GNode n) {
+        printer.p("(").flush();
+        visit(n);
+        printer.p(")").flush();
+    }
+
+    public void visitNewArrayExpression(GNode n) {
+        printer.p("new ").flush();
+        visit(n);
     }
 
     /* General visitor
@@ -427,10 +461,7 @@ public class Phase5 extends Visitor {
             //print string
             if (o instanceof String) {
                 String s = (String) o;
-                if (s.equals("[")) {
-                    //array will be solved in the future
-                } 
-                else if (s.equals("int")) {
+                if (s.equals("int")) {
                     printer.p("int32_t ").flush();
                 }
                 else
