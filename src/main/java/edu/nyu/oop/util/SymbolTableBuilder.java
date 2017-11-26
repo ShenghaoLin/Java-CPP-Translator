@@ -104,16 +104,16 @@ public class SymbolTableBuilder extends ContextualVisitor {
     }
 
     public final List<Type> processDeclarators(final List<Attribute> modifiers,
-                                               final Type type, final GNode declarators) {
+            final Type type, final GNode declarators) {
         final List<Type> result = new ArrayList<Type>();
         boolean isLocal = JavaEntities.isScopeLocal(table.current().getQualifiedName());
         for (final Object i : declarators) {
             GNode declNode = (GNode) i;
             String name = declNode.getString(0);
             Type dimType = JavaEntities.typeWithDimensions(type,
-                countDimensions(declNode.getGeneric(1)));
+                           countDimensions(declNode.getGeneric(1)));
             Type entity = isLocal ? VariableT.newLocal(dimType, name) :
-                VariableT.newField(dimType, name);
+                          VariableT.newField(dimType, name);
             for (Attribute mod : modifiers)
                 entity.addAttribute(mod);
             if (null == table.current().lookupLocally(name)) {

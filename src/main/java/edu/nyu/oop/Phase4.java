@@ -57,7 +57,7 @@ public class Phase4 {
         return n;
     }
 
-    /* Visitor class used to modify java AST to C++ AST */ 
+    /* Visitor class used to modify java AST to C++ AST */
     public static class Phase4Visitor extends Visitor {
 
         private Logger logger = org.slf4j.LoggerFactory.getLogger(this.getClass());
@@ -66,6 +66,7 @@ public class Phase4 {
         private Object extension = null;
         private boolean isMain = false;
         private String methodName = "";
+        private String packageInfo = "";
 
         private SymbolTable table;
 
@@ -82,6 +83,8 @@ public class Phase4 {
             for (int i = 0; i < packageName.size(); i ++) {
                 packageInfo += packageName.get(i).toString() + ".";
             }
+
+            this.packageInfo = packageInfo;
 
             packageInfo = packageInfo.substring(0, packageInfo.length() - 1);
 
@@ -140,18 +143,18 @@ public class Phase4 {
         public void visitNewClassExpression(GNode n) {
             GNode id = (GNode) NodeUtil.dfs(n, "QualifiedIdentifier");
             if (!id.get(0).toString().startsWith("__")) {
-               Node oldArgs = n.getNode(3);
+                Node oldArgs = n.getNode(3);
 
-               
-               GNode args = GNode.create("Arguments");
+
+                GNode args = GNode.create("Arguments");
                 n.set(3, args);
-               args.add(GNode.create("Argument", "new __" + id.get(0).toString() + "()"));
-               
-               for (int j = 0; j < oldArgs.size(); j++) {
+                args.add(GNode.create("Argument", "new __" + id.get(0).toString() + "()"));
+
+                for (int j = 0; j < oldArgs.size(); j++) {
                     args.add(oldArgs.get(j));
                 }
 
-               id.set(0, "__" + id.get(0) + "::__init");
+                id.set(0, "__" + id.get(0) + "::__init");
             }
             visit(n);
         }
@@ -159,7 +162,7 @@ public class Phase4 {
         /* Visitor for ClassDeclaration
          * Modified method name to "__class::method"
          * Adding __this argument to each method
-         * Transform this() and super() called in constructors to the 
+         * Transform this() and super() called in constructors to the
          * form by calling __init();
          */
         public void visitClassDeclaration(GNode n) {
@@ -169,10 +172,37 @@ public class Phase4 {
 
             //collect class info
             String name = n.get(1).toString();
-            n.setProperty("defaultConstructor", "__" + name + "::__" + name + "() : __vptr(&__vtable) {}");
-            
             currentClass = name;
             extension = NodeUtil.dfs(n, "Extension");
+
+            String parentName = "";
+
+            if (extension != null) {
+                GNode parentType = (GNode) ((GNode) extension).getNode(0);
+                GNode parentTypeNode = (GNode) parentType.getNode(0);
+                parentName = parentTypeNode.get(0).toString();
+            } 
+            else {
+                parentName = "Object";
+            }
+
+            n.setProperty("defaultConstructor", "__" + name + "::__" + name + "() : __vptr(&__vtable) {}");
+
+            String classInfo = "";
+
+            classInfo += "Class __" + n.get(1).toString() + "::__class() {\n";
+            classInfo += "static Class k = new __Class(__rt::literal(\""
+                         + this.packageInfo + currentClass + "\"), __"
+                         + parentName + "::__class());\n";
+            classInfo += "return k;\n";
+            classInfo += "}\n";
+
+            n.setProperty("classInfo", classInfo);
+
+            String vtableInit = "__" + currentClass + "_VT __" + currentClass
+                                + "::__vtable;\n";
+
+            n.setProperty("vtableInit", vtableInit);
 
             visit(n);
 
@@ -183,8 +213,8 @@ public class Phase4 {
         }
 
         /* Visitor for MethodDeclaration
-         * Checking whether variables inside this scope are defined in 
-         * the class field or inside the method 
+         * Checking whether variables inside this scope are defined in
+         * the class field or inside the method
          * (actually the main work is done in visitBlock(), where block will
          * examine whether variable used inside their scopes are defined inside
          * here we check if those which are set to not be defined in the inner scope
@@ -207,10 +237,10 @@ public class Phase4 {
                 isMain = true;
 
                 n.set(2, "int");
-                
+
                 //cannot handling array now
-                n.set(4, GNode.create("Arguments", GNode.create("VoidType")));
-                
+                //n.set(4, GNode.create("Arguments", GNode.create("VoidType")));
+
                 visit(n);
 
                 GNode blockinside = (GNode) NodeUtil.dfs(n, "Block");
@@ -230,9 +260,11 @@ public class Phase4 {
 
             else {
 
+                visit(n);
+
                 //constructor
                 if (n.get(3).toString().equals(currentClass)) {
-            
+
                     n.set(0, GNode.create("Modifiers"));
                     n.set(2, currentClass);
                     n.set(3, "__" + currentClass + "::" + "__init");
@@ -268,7 +300,7 @@ public class Phase4 {
                 }
                 n.set(4, param);
 
-                visit(n);
+
             }
 
             methodName = "";
@@ -286,7 +318,7 @@ public class Phase4 {
 
             SymbolTableUtil.enterScope(table, n);
             table.mark(n);
-            
+
             visit(n);
 
             SymbolTableUtil.exitScope(table, n);
@@ -296,7 +328,7 @@ public class Phase4 {
             if (n.get(0).toString().contains("__this")) {
                 return;
             }
-            
+
             //add this to field data
             if (!isMain) {
 
@@ -365,7 +397,7 @@ public class Phase4 {
 
                         n.set(2, "__" + currentClass + "::__init");
 
-                       
+
                     }
 
                     //call parent's __init
@@ -373,8 +405,7 @@ public class Phase4 {
                         String parentName = "";
                         if (extension == null) {
                             parentName = "Object";
-                        }
-                        else {
+                        } else {
                             parentName = ((GNode) NodeUtil.dfs((Node) extension, "QualifiedIdentifier")).get(0).toString();
                         }
 
@@ -393,7 +424,7 @@ public class Phase4 {
                     n.set(3, arguments);
                     if (oldArg != null) {
                         for (Object oo : oldArg) {
-                            if (!oo.equals(arguments.get(0))){
+                            if (!oo.equals(arguments.get(0))) {
                                 arguments.add(oo);
                             }
                         }
@@ -407,7 +438,7 @@ public class Phase4 {
 
                 //transform "System.out.print" to "cout"
                 if (primaryID.get(0).toString().equals("System")) {
-                    
+
                     //with endl
                     if ((select.get(1).toString().equals("out"))&&(n.get(2).toString().equals("println"))) {
                         n.set(0, null);
@@ -440,12 +471,28 @@ public class Phase4 {
                     String parentName = "";
                     if (extension == null) {
                         parentName = "Object";
-                    }
-                    else {
+                    } else {
                         parentName = ((GNode) NodeUtil.dfs((Node) extension, "QualifiedIdentifier")).get(0).toString();
                     }
 
-                    n.set(0, "((" + parentName + ") __this)");
+                    n.set(0, "(new __" + parentName + "())");
+
+                    n.set(2, "-> __vptr -> " + n.get(2).toString());
+
+                    GNode arguments = GNode.create("Arguments");
+
+                        arguments.add(GNode.create("Argument", "(" + parentName + ") __this"));
+                        GNode oldArg = (GNode) NodeUtil.dfs(n, "Arguments");
+                        n.set(3, arguments);
+
+                        if (oldArg != null) {
+                            for (Object oo : oldArg) {
+                                if (!oo.equals(arguments.get(0))) {
+                                    arguments.add(oo);
+                                }
+                            }
+                        }
+                    return;
                 }
 
                 else if (child.hasName("ThisExpression")) {
@@ -456,9 +503,9 @@ public class Phase4 {
 
                     //start the method from vtable
                     String methodName = (String) n.get(2);
-                    if (!n.get(2).toString().startsWith("-> ")){
+                    if (!n.get(2).toString().startsWith("-> ")) {
                         n.set(2, "-> __vptr -> " + methodName);
-                    
+
                         //add the object to arguments
                         GNode arguments = GNode.create("Arguments");
 
@@ -468,7 +515,7 @@ public class Phase4 {
 
                         if (oldArg != null) {
                             for (Object oo : oldArg) {
-                                if (!oo.equals(arguments.get(0))){
+                                if (!oo.equals(arguments.get(0))) {
                                     arguments.add(oo);
                                 }
                             }
@@ -493,7 +540,7 @@ public class Phase4 {
                         n.set(i, o1);
                     }
                 }
-            }    
+            }
         }
 
     }

@@ -2,7 +2,7 @@
  * Phase 1 visitor that traverses all dependencies recrusively and adds nodes of all
  * dependencies, furthermore checks for duplciate files to avoid duplicate nodes
  * using hash list of absolute paths of files containing Java code
- *  
+ *
  * @author Shenghao Lin
  * @author Sai Akhil
  * @author Goktug Saatcioglu
@@ -42,7 +42,7 @@ public class Phase1 {
       *
       * @param   n  Node of type Node
       * @return     List of Java ASTs
-      */ 
+      */
     public static List<GNode> parse(Node n) {
 
         GNode node = (GNode) n;
@@ -86,8 +86,8 @@ public class Phase1 {
         }
     }
 
-    public static void mangle(Runtime runtime, SymbolTable table, Node n){
-        
+    public static void mangle(Runtime runtime, SymbolTable table, Node n) {
+
         Mangler mangler = new Mangler(runtime, table);
 
         mangler.dispatch(n);
@@ -120,7 +120,7 @@ public class Phase1 {
             Type callExpObjectType = callExpObjectLookup.getType();
             List<Type> callExpActuals = JavaEntities.typeList((List) dispatch(n.getNode(3)));
             MethodT callExpMethod =
-                    JavaEntities.typeDotMethod(table, classpath(), callExpObjectType, true, callExpMethodName, callExpActuals);
+                JavaEntities.typeDotMethod(table, classpath(), callExpObjectType, true, callExpMethodName, callExpActuals);
             return callExpMethod.getResult();
         }
 
@@ -157,8 +157,7 @@ public class Phase1 {
 
             if (extension == null) {
                 parentName = "Object";
-            }
-            else {
+            } else {
                 parentName = ((GNode) NodeUtil.dfs(n, "QualifiedIdentifier")).get(0).toString();
             }
 
@@ -169,7 +168,7 @@ public class Phase1 {
             SymbolTableUtil.exitScope(table, n);
         }
 
-        
+
         public void visitMethodDeclaration(GNode n) {
             SymbolTableUtil.enterScope(table, n);
             table.mark(n);
@@ -178,7 +177,7 @@ public class Phase1 {
             String methodName = n.getString(3);
 
             if (n.getProperty("mangledName") == null) {
-            
+
                 if ((!methodName.equals("main"))&&(!methodName.equals(className))) {
 
                     if (!mangleCounts.containsKey(methodName)) mangleCounts.put(methodName, 0);
@@ -230,7 +229,7 @@ public class Phase1 {
             }
             return b.toString();
         }
-        
+
 
         // Helper method to construct the Java AST representation of a 'this' expression.
         // The added type annotation is dependent on the class surrounding the current scope
@@ -241,7 +240,7 @@ public class Phase1 {
             return _this;
         }
 
-        
+
         public void visitCallExpression(GNode n) {
             visit(n);
             Node receiver = n.getNode(0);
@@ -256,8 +255,8 @@ public class Phase1 {
 
                     List<Type> actuals = JavaEntities.typeList((List) dispatch(n.getNode(3)));
                     MethodT method =
-                            JavaEntities.typeDotMethod(table, classpath(), typeToSearch, true, methodName, actuals);
-        
+                        JavaEntities.typeDotMethod(table, classpath(), typeToSearch, true, methodName, actuals);
+
                     if (methodName.equals("overloaded")) System.out.println("over");
 
                     if (method == null) return;
@@ -267,15 +266,14 @@ public class Phase1 {
                     if (!table.current().isDefinedLocally(methodName) && notStatic) {
                         n.setProperty("mangledName", methodScopeToMangledName.get(method.getScope()));
                     }
-                }
-                else if (receiver != null) {
+                } else if (receiver != null) {
                     //GET MANGLED NAME
                     if(receiver.getName().equals("PrimaryIdentifier")) {
                         VariableT objectLookup = (VariableT) table.lookup(receiver.get(0).toString());
                         Type objectType = objectLookup.getType();
                         List<Type> actuals = JavaEntities.typeList((List) dispatch(n.getNode(3)));
                         MethodT method =
-                                JavaEntities.typeDotMethod(table, classpath(), objectType, true, methodName, actuals);
+                            JavaEntities.typeDotMethod(table, classpath(), objectType, true, methodName, actuals);
                         n.setProperty("mangledName", methodScopeToMangledName.get(method.getScope()));
                     }
 
@@ -283,7 +281,7 @@ public class Phase1 {
                         Type objectType = returnTypeFromCallExpression(receiver);
                         List<Type> actuals = JavaEntities.typeList((List) dispatch(n.getNode(3)));
                         MethodT method =
-                                JavaEntities.typeDotMethod(table, classpath(), objectType, true, methodName, actuals);
+                            JavaEntities.typeDotMethod(table, classpath(), objectType, true, methodName, actuals);
                         n.setProperty("mangledName", methodScopeToMangledName.get(method.getScope()));
                     }
 
@@ -291,7 +289,7 @@ public class Phase1 {
                         Type currentType = JavaEntities.currentType(table);
                         List<Type> actuals = JavaEntities.typeList((List) dispatch(n.getNode(3)));
                         MethodT method =
-                                JavaEntities.typeDotMethod(table, classpath(), currentType, true, methodName, actuals);
+                            JavaEntities.typeDotMethod(table, classpath(), currentType, true, methodName, actuals);
                         n.setProperty("mangledName", methodScopeToMangledName.get(method.getScope()));
                     }
 
@@ -300,15 +298,15 @@ public class Phase1 {
                         Type superType = JavaEntities.directSuperTypes(table, classpath(), currentType).get(0);
                         List<Type> actuals = JavaEntities.typeList((List) dispatch(n.getNode(3)));
                         MethodT method =
-                                JavaEntities.typeDotMethod(table, classpath(), superType, true, methodName, actuals);
+                            JavaEntities.typeDotMethod(table, classpath(), superType, true, methodName, actuals);
                         n.setProperty("mangledName", methodScopeToMangledName.get(method.getScope()));
                     }
                 }
             }
         }
-        
 
-        
+
+
         public Node visitPrimaryIdentifier(GNode n) {
             String fieldName = n.getString(0);
 
@@ -334,9 +332,9 @@ public class Phase1 {
 
             return n;
         }
-        
-        
-        
+
+
+
         public List<Type> visitArguments(final GNode n) {
             List<Type> result = new ArrayList<Type>(n.size());
             for (int i = 0; i < n.size(); i++) {
@@ -354,7 +352,7 @@ public class Phase1 {
             }
             return result;
         }
-        
+
 
         public void visit(GNode n) {
             for (int i = 0; i < n.size(); ++i) {

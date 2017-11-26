@@ -73,7 +73,7 @@ public class Phase2 {
             //packageName = node.getNode(1).getString(0);
             visit(node);
         }
-        
+
         /**
          * For each class declaration in file add it to objectRepresentations
          *
@@ -318,7 +318,7 @@ public class Phase2 {
 
     /**
      * initializes a ObjectRepList with hardcoded Object, String and Class data
-     * fills ObjectRepList using unfilled list with fill method that also sets 
+     * fills ObjectRepList using unfilled list with fill method that also sets
      * parents of Objects
      * resolves VTable structure for each object using inheritance relationship
      * proces inherited fields for data layout for each object using inheritance
@@ -595,7 +595,7 @@ public class Phase2 {
 
         // update methods
         current.classRep.methods = updatedMethods;
-        
+
         return current;
     }
 
@@ -721,8 +721,7 @@ public class Phase2 {
                         if (idx == 0) {
                             parameters += param.type;
                             idx++;
-                        }
-                        else parameters += "," + param.type;
+                        } else parameters += "," + param.type;
                     }
                     Field temp = new Field(currentMethod.accessModifier, false, currentMethod.returnType, "*"+currentMethod.name, parameters);
                     temp.inheritedFrom = current.name;
@@ -764,8 +763,7 @@ public class Phase2 {
                     if (idx == 0) {
                         parameters += param.type;
                         idx++;
-                    }
-                    else parameters +=  "," + param.type;
+                    } else parameters +=  "," + param.type;
                 }
                 Field temp = new Field(currentMethod.accessModifier, false, currentMethod.returnType, "*"+currentMethod.name, parameters);
                 temp.inheritedFrom = current.name;
@@ -942,7 +940,7 @@ public class Phase2 {
     }
 
     /**
-     * Method to create root node and parse information in ObjectReps to it 
+     * Method to create root node and parse information in ObjectReps to it
      * giving the final AST that the printer in Phase 3 uses to print
      *
      * @param   packageName package name of package being processed
@@ -1071,7 +1069,7 @@ public class Phase2 {
     }
 
     /**
-     * Helper method for buildClassAst, process vtble information of an 
+     * Helper method for buildClassAst, process vtble information of an
      * ObjectRep and parse the information into a root node that holds
      * vfields and vmethods as child nodes of root
      *

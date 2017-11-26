@@ -25,14 +25,14 @@ public class Phase3Test {
     private static List<GNode> ast;
 
     @BeforeClass
-    public static void beforeClass(){
+    public static void beforeClass() {
         logger.debug("Executing Phase3Test");
         node = XtcTestUtils.loadTestFile("src/test/java/inputs/test050/Test050.java");
         ast = Phase1.parse(node);
     }
 
     @Test
-    public void testAll(){ //throws xtc.tree.VisitingException{
+    public void testAll() { //throws xtc.tree.VisitingException{
         List<GNode> javaAsts = Phase1.parse(node);
 
         ArrayList<Node> cppAsts = new ArrayList<Node>();

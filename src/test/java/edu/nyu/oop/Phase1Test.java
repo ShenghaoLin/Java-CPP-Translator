@@ -23,7 +23,7 @@ public class Phase1Test {
     private static Node node;// = null;
 
     @BeforeClass
-    public static void beforeClass(){
+    public static void beforeClass() {
         logger.debug("Executing Phase1Test");
         node = XtcTestUtils.loadTestFile("src/test/java/inputs/test050/Test050.java");
     }
@@ -35,7 +35,7 @@ public class Phase1Test {
 //    }
 
     @Test
-    public void testParse(){ //throws xtc.tree.VisitingException{
+    public void testParse() { //throws xtc.tree.VisitingException{
         List<GNode> ast = Phase1.parse(node);
 //        for(GNode nd: Phase1.parse(node.getNode(1))){
 //            ast.add(nd);
