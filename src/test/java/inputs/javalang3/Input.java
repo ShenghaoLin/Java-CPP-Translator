@@ -1,36 +1,73 @@
-package inputs.javalang;
+package inputs.javalang3;
 
 class A {
-    public int method() { return 12345;}
+    private char x;
+    protected char y;
+
+    public A(char x, char y) {
+        this.x = x;
+        this.y = y;
+        print();
+    }
+
+    public A(char x) {
+        this(x, (char) (x + 4));
+    }
+
     public String toString() {
-        return "A";
+        return "A(" + x + "," + y + ")";
+    }
+
+    public void overloaded(int i) {
+        System.out.println("overloaded(int)");
+    }
+
+    public void overloaded(byte b) {
+        System.out.println("overloaded(byte)");
+    }
+
+    public A overloaded(A a) {
+        System.out.println("overloaded(A)");
+        return a;
+    }
+
+    private void print() {
+        System.out.print(x);
+        System.out.print(",");
+        System.out.println(y);
     }
 }
 
 class B extends A {
-    public String toString() { return "B"; }
+
+    private char z = 42;
+
+    public B() {
+        super('x');
+    }
+
+    public B(char z) {
+        super(z);
+        this.z = z;
+        overloaded(this.z);
+    }
+
+    public String toString() {
+        String s = super.toString();
+        return "B(" + z + ") extends " + s;
+    }
+
+    public A overloaded(B b) {
+        System.out.println("overloaded(B)");
+        return b;
+    }
+
 }
 
-public class Input {
+public class Main {
     public static void main(String[] args) {
-        B b = new B();
-        A a1 = new A();
-        A a2 = b;
-
-        System.out.println(a1.toString());
-        System.out.println(a2.toString());
-
-        System.out.println(a1.method());
-        System.out.println(b.method());
-
-        Class ca1 = a1.getClass();
-        System.out.println(ca1.toString());
-
-        Class ca2 = a2.getClass();
-        System.out.println(ca2.toString());
-
-        if (a2 instanceof B) {
-            System.out.println(a2.getClass().getSuperclass().toString());
-        }
+        B b = new B('z');
+        System.out.println(b.toString());
+        b.overloaded(b).overloaded(b);
     }
 }
