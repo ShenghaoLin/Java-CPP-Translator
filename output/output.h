@@ -7,19 +7,22 @@ using namespace java::lang;
 #include <stdint.h>
 #include <string>
 
-namespace inputs { 
-namespace javalang3 { 
+namespace inputs
+{
+namespace javalang
+{
 
-  struct __A;
-  struct __A_VT;
+struct __A;
+struct __A_VT;
 
-  struct __B;
-  struct __B_VT;
+struct __B;
+struct __B_VT;
 
-  typedef __rt::Ptr<__A> A;
-  typedef __rt::Ptr<__B> B;
+typedef __rt::Ptr<__A> A;
+typedef __rt::Ptr<__B> B;
 
-  struct __A {
+struct __A
+{
 
     __A_VT* __vptr;
     char x;
@@ -47,9 +50,10 @@ namespace javalang3 {
     static Class __class();
 
     static __A_VT __vtable;
-  };
+};
 
-  struct __A_VT {
+struct __A_VT
+{
 
     Class __is_a;
 
@@ -64,21 +68,22 @@ namespace javalang3 {
     A (*overloaded)(A,A);
 
     __A_VT()
-      __is_a(__A::__class()),
-      hashCode((int32_t(*)(A)) &__Object::hashCode),
-      equals((bool(*)(A, Object)) &__Object::equals),
-      getClass((Class(*)(A)) &__Object::getClass),
-      toString(&__A::toString),
-      A(&__A::A),
-      A(&__A::A),
-      overloaded(&__A::overloaded),
-      overloaded(&__A::overloaded),
-      overloaded(&__A::overloaded)
+    __is_a(__A::__class()),
+           hashCode((int32_t(*)(A)) &__Object::hashCode),
+           equals((bool(*)(A, Object)) &__Object::equals),
+           getClass((Class(*)(A)) &__Object::getClass),
+           toString(&__A::toString),
+           A(&__A::A),
+           A(&__A::A),
+           overloaded(&__A::overloaded),
+           overloaded(&__A::overloaded),
+           overloaded(&__A::overloaded)
     {
     }
-  };
+};
 
-  struct __B {
+struct __B
+{
 
     __B_VT* __vptr;
     char x;
@@ -101,9 +106,10 @@ namespace javalang3 {
     static Class __class();
 
     static __B_VT __vtable;
-  };
+};
 
-  struct __B_VT {
+struct __B_VT
+{
 
     Class __is_a;
 
@@ -120,21 +126,21 @@ namespace javalang3 {
     Placeholder (*B)(B,char);
 
     __B_VT()
-      __is_a(__B::__class()),
-      hashCode((int32_t(*)(B)) &__Object::hashCode),
-      equals((bool(*)(B, Object)) &__Object::equals),
-      getClass((Class(*)(B)) &__Object::getClass),
-      toString(&__B::toString),
-      A((Placeholder(*)(B,char,char)) &__A::A),
-      A((Placeholder(*)(B,char)) &__A::A),
-      overloaded(&__B::overloaded),
-      overloaded(&__B::overloaded),
-      overloaded(&__B::overloaded),
-      B(&__B::B),
-      B(&__B::B)
+    __is_a(__B::__class()),
+           hashCode((int32_t(*)(B)) &__Object::hashCode),
+           equals((bool(*)(B, Object)) &__Object::equals),
+           getClass((Class(*)(B)) &__Object::getClass),
+           toString(&__B::toString),
+           A((Placeholder(*)(B,char,char)) &__A::A),
+           A((Placeholder(*)(B,char)) &__A::A),
+           overloaded(&__B::overloaded),
+           overloaded(&__B::overloaded),
+           overloaded(&__B::overloaded),
+           B(&__B::B),
+           B(&__B::B)
     {
     }
-  };
+};
 
 }
 }

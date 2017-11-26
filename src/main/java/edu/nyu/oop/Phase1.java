@@ -87,7 +87,11 @@ public class Phase1 {
     }
 
     public static void mangle(Runtime runtime, SymbolTable table, Node n){
-        new Mangler(runtime, table).dispatch(n);
+        
+        Mangler mangler = new Mangler(runtime, table);
+
+        mangler.dispatch(n);
+        mangler.dispatch(n);
     }
 
     public static class Mangler extends Visitor {
@@ -172,18 +176,18 @@ public class Phase1 {
 
             //Mangle name
             String methodName = n.getString(3);
+
+            if (n.getProperty("mangledName") == null) {
             
-            if ((!methodName.equals("main"))&&(!methodName.equals(className))) {
+                if ((!methodName.equals("main"))&&(!methodName.equals(className))) {
 
-                
-
-                if (!mangleCounts.containsKey(methodName)) mangleCounts.put(methodName, 0);
-                String newMethodName = methodName + "_" + mangleCounts.get(methodName);
-                methodScopeToMangledName.put(table.current().getQualifiedName(), newMethodName);
-                mangleCounts.put(methodName, mangleCounts.get(methodName) + 1);
-                n.setProperty("mangledName", newMethodName);
+                    if (!mangleCounts.containsKey(methodName)) mangleCounts.put(methodName, 0);
+                    String newMethodName = methodName + "_" + mangleCounts.get(methodName);
+                    methodScopeToMangledName.put(table.current().getQualifiedName(), newMethodName);
+                    mangleCounts.put(methodName, mangleCounts.get(methodName) + 1);
+                    n.setProperty("mangledName", newMethodName);
+                }
             }
-            
 
             visit(n);
             SymbolTableUtil.exitScope(table, n);
@@ -242,59 +246,63 @@ public class Phase1 {
             visit(n);
             Node receiver = n.getNode(0);
             String methodName = n.getString(2);
-            if (receiver != null)
-                System.out.println(methodName + " received by " + receiver);
-            if ((receiver == null) &&
-                    (!"super".equals(methodName)) &&
-                    (!"this".equals(methodName))) {
-                Type typeToSearch = JavaEntities.currentType(table);
+            if (n.getProperty("mangledName") == null) {
+                if (receiver != null)
+                    System.out.println(methodName + " received by " + receiver);
+                if ((receiver == null) &&
+                        (!"super".equals(methodName)) &&
+                        (!"this".equals(methodName))) {
+                    Type typeToSearch = JavaEntities.currentType(table);
 
-                List<Type> actuals = JavaEntities.typeList((List) dispatch(n.getNode(3)));
-                MethodT method =
-                        JavaEntities.typeDotMethod(table, classpath(), typeToSearch, true, methodName, actuals);
-    
-                if (method == null) return;
-
-                // EXPLICIT THIS ACCESS (if method name isn't defined locally and method is not static, add "this.")
-                boolean notStatic = (method.getAttribute("storage") == null || !method.getAttribute("storage").getValue().equals("static"));
-                if (!table.current().isDefinedLocally(methodName) && notStatic) {
-                    n.setProperty("mangledName", methodName);
-                }
-            }
-            else if (receiver != null) {
-                //GET MANGLED NAME
-                if(receiver.getName().equals("PrimaryIdentifier")) {
-                    VariableT objectLookup = (VariableT) table.lookup(receiver.get(0).toString());
-                    Type objectType = objectLookup.getType();
                     List<Type> actuals = JavaEntities.typeList((List) dispatch(n.getNode(3)));
                     MethodT method =
-                            JavaEntities.typeDotMethod(table, classpath(), objectType, true, methodName, actuals);
-                    n.setProperty("mangledName", methodScopeToMangledName.get(method.getScope()));
-                }
+                            JavaEntities.typeDotMethod(table, classpath(), typeToSearch, true, methodName, actuals);
+        
+                    if (methodName.equals("overloaded")) System.out.println("over");
 
-                else if (receiver.getName().equals("CallExpression")) {
-                    Type objectType = returnTypeFromCallExpression(receiver);
-                    List<Type> actuals = JavaEntities.typeList((List) dispatch(n.getNode(3)));
-                    MethodT method =
-                            JavaEntities.typeDotMethod(table, classpath(), objectType, true, methodName, actuals);
-                    n.setProperty("mangledName", methodScopeToMangledName.get(method.getScope()));
-                }
+                    if (method == null) return;
 
-                else if (receiver.getName().equals("ThisExpression")) {
-                    Type currentType = JavaEntities.currentType(table);
-                    List<Type> actuals = JavaEntities.typeList((List) dispatch(n.getNode(3)));
-                    MethodT method =
-                            JavaEntities.typeDotMethod(table, classpath(), currentType, true, methodName, actuals);
-                    n.setProperty("mangledName", methodScopeToMangledName.get(method.getScope()));
+                    // EXPLICIT THIS ACCESS (if method name isn't defined locally and method is not static, add "this.")
+                    boolean notStatic = (method.getAttribute("storage") == null || !method.getAttribute("storage").getValue().equals("static"));
+                    if (!table.current().isDefinedLocally(methodName) && notStatic) {
+                        n.setProperty("mangledName", methodScopeToMangledName.get(method.getScope()));
+                    }
                 }
+                else if (receiver != null) {
+                    //GET MANGLED NAME
+                    if(receiver.getName().equals("PrimaryIdentifier")) {
+                        VariableT objectLookup = (VariableT) table.lookup(receiver.get(0).toString());
+                        Type objectType = objectLookup.getType();
+                        List<Type> actuals = JavaEntities.typeList((List) dispatch(n.getNode(3)));
+                        MethodT method =
+                                JavaEntities.typeDotMethod(table, classpath(), objectType, true, methodName, actuals);
+                        n.setProperty("mangledName", methodScopeToMangledName.get(method.getScope()));
+                    }
 
-                else if (receiver.getName().equals("SuperExpression")) {
-                    Type currentType = JavaEntities.currentType(table);
-                    Type superType = JavaEntities.directSuperTypes(table, classpath(), currentType).get(0);
-                    List<Type> actuals = JavaEntities.typeList((List) dispatch(n.getNode(3)));
-                    MethodT method =
-                            JavaEntities.typeDotMethod(table, classpath(), superType, true, methodName, actuals);
-                    n.setProperty("mangledName", methodScopeToMangledName.get(method.getScope()));
+                    else if (receiver.getName().equals("CallExpression")) {
+                        Type objectType = returnTypeFromCallExpression(receiver);
+                        List<Type> actuals = JavaEntities.typeList((List) dispatch(n.getNode(3)));
+                        MethodT method =
+                                JavaEntities.typeDotMethod(table, classpath(), objectType, true, methodName, actuals);
+                        n.setProperty("mangledName", methodScopeToMangledName.get(method.getScope()));
+                    }
+
+                    else if (receiver.getName().equals("ThisExpression")) {
+                        Type currentType = JavaEntities.currentType(table);
+                        List<Type> actuals = JavaEntities.typeList((List) dispatch(n.getNode(3)));
+                        MethodT method =
+                                JavaEntities.typeDotMethod(table, classpath(), currentType, true, methodName, actuals);
+                        n.setProperty("mangledName", methodScopeToMangledName.get(method.getScope()));
+                    }
+
+                    else if (receiver.getName().equals("SuperExpression")) {
+                        Type currentType = JavaEntities.currentType(table);
+                        Type superType = JavaEntities.directSuperTypes(table, classpath(), currentType).get(0);
+                        List<Type> actuals = JavaEntities.typeList((List) dispatch(n.getNode(3)));
+                        MethodT method =
+                                JavaEntities.typeDotMethod(table, classpath(), superType, true, methodName, actuals);
+                        n.setProperty("mangledName", methodScopeToMangledName.get(method.getScope()));
+                    }
                 }
             }
         }

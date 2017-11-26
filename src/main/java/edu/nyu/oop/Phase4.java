@@ -301,7 +301,7 @@ public class Phase4 {
         }
 
         public void visitPrimaryIdentifier(GNode n) {
-            if (n.get(0).toString().equals("__this")) {
+            if (n.get(0).toString().contains("__this")) {
                 return;
             }
             
@@ -346,7 +346,7 @@ public class Phase4 {
         public void visitCallExpression(GNode n) {
 
             //collect info
-            Object o = n.get(0);
+            Object o = n.getNode(0);
             GNode select, primaryID;
             select = null;
             primaryID = null;
@@ -375,13 +375,13 @@ public class Phase4 {
                     }
 
                     //call parent's __init
-                    else if (n.get(2).toString().equals("this")) {
+                    else if (n.get(2).toString().equals("super")) {
                         String parentName = "";
                         if (extension == null) {
                             parentName = "Object";
                         }
                         else {
-                            parentName = ((GNode) NodeUtil.dfs(n, "QualifiedIdentifier")).get(0).toString();
+                            parentName = ((GNode) NodeUtil.dfs((Node) extension, "QualifiedIdentifier")).get(0).toString();
                         }
 
                         GNode arguments = GNode.create("Arguments");
@@ -441,7 +441,24 @@ public class Phase4 {
             if (o instanceof GNode) {
 
                 GNode child = (GNode) o;
-                if (child != null) {
+
+                if (child.hasName("SuperExpression")) {
+                    String parentName = "";
+                    if (extension == null) {
+                        parentName = "Object";
+                    }
+                    else {
+                        parentName = ((GNode) NodeUtil.dfs((Node) extension, "QualifiedIdentifier")).get(0).toString();
+                    }
+
+                    n.set(0, "((" + parentName + ") __this)");
+                }
+
+                else if (child.hasName("ThisExpression")) {
+                    n.set(0, "__this");
+                }
+
+                if (n.get(0) != null) {
 
                     //start the method from vtable
                     String methodName = (String) n.get(2);
@@ -451,9 +468,10 @@ public class Phase4 {
                         //add the object to arguments
                         GNode arguments = GNode.create("Arguments");
 
-                        arguments.add(child);
+                        arguments.add(GNode.create("Argument", n.get(0)));
                         GNode oldArg = (GNode) NodeUtil.dfs(n, "Arguments");
                         n.set(3, arguments);
+
                         if (oldArg != null) {
                             for (Object oo : oldArg) {
                                 if (!oo.equals(arguments.get(0))){
