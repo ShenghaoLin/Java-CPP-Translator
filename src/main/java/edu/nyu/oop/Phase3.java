@@ -7,11 +7,13 @@
  * visitABC methods visit relevant nodes (e.g. ABC node will be visited)
  * headOfFile() and endOfFile() does some simple pre and post processing
  * print method flushes output of printer to file
+ * logic has been fully seperated so that Phase 2 and Phase 3 are
+ * independent of each other
  *
  * @author Sai Akhil
  * @author Goktug Saatcioglu
  *
- * @version 1.0
+ * @version 2.0
  */
 
 package edu.nyu.oop;

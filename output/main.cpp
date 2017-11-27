@@ -5,13 +5,11 @@
 using namespace java::lang;
 
 using namespace std;
-using namespace inputs::javalang3;
+using namespace inputs::test017;
 
-int32_t main (ArrayOfString args )
-{
-    B b = __B::__init (new __B(), 'z' );
-    cout << b -> __vptr -> toString_0 (b )<< endl ;
-    b -> __vptr -> overloaded_0 (b, b )-> __vptr -> overloaded_2 (b -> __vptr -> overloaded_0 (b, b ), b );
-    return 0 ;
+int32_t main (ArrayOfString args ){
+A a = __A::__init (new __A() , 5 );
+cout << a -> __vptr -> self_0 (a )-> __vptr -> toString (a -> __vptr -> self_0 (a ))-> data << endl ;
+return 0 ;
 }
 
