@@ -5,6 +5,7 @@
  * and A ~ Object, all inheritance data can be resolved using Object ~ A ~ B),
  * vtable populates vfields and vmethods, finally data is dumped into a new AST
  * structure to be used for Phase 3 printer that visits said AST
+ * final version using mangled names and delete method have also been implemented
  *
  * @author Goktug Saatcioglu
  * @author Sam Holloway
