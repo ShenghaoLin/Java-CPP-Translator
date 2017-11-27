@@ -190,6 +190,10 @@ public class Phase2 {
             Method method = new Method(accessModifier, isStatic, returnType, methodName, parameters);
             if (!returnType.equals("Placeholder")) objectRepresentations.getCurrent().classRep.methods.add(method);
             else {
+                if (constructorFlag) {
+                    objectRepresentations.getCurrent().classRep.constructors.remove(1);
+                    constructorFlag = false;
+                }
                 Constructor constructor = new Constructor(accessModifier, "init", parameters);
                 boolean toAdd = true;
                 for (Constructor other : objectRepresentations.getCurrent().classRep.constructors) {
@@ -197,10 +201,7 @@ public class Phase2 {
                 }
                 if (toAdd) objectRepresentations.getCurrent().classRep.constructors.add(constructor);
                 
-                if (constructorFlag) {
-                    objectRepresentations.getCurrent().classRep.constructors.remove(1);
-                    constructorFlag = false;
-                }
+                
             }
 
             visit(node);
