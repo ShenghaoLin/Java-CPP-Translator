@@ -7,40 +7,34 @@ using namespace java::lang;
 #include <stdint.h>
 #include <string>
 
-namespace inputs
-{
-namespace input
-{
+namespace inputs { 
+namespace test033 { 
 
-struct __A;
-struct __A_VT;
+  struct __A;
+  struct __A_VT;
 
-struct __B;
-struct __B_VT;
+  typedef __rt::Ptr<__A> A;
 
-
-typedef __A* A;
-typedef __B* B;
-
-
-struct __A
-{
+  struct __A {
 
     __A_VT* __vptr;
 
     __A();
     static A __init(A __this);
 
-    static String toString(A );
-    static int32_t method(A );
+    static int32_t m_0(int32_t i);
+    static void m_1(A a);
+    static void m_2(double d);
+    static void m_3(Object o);
+    static void m_4(Object o1, Object o2);
+    static void m_5(A a1, Object o2);
 
     static Class __class();
 
     static __A_VT __vtable;
-};
+  };
 
-struct __A_VT
-{
+  struct __A_VT {
 
     Class __is_a;
 
@@ -48,55 +42,16 @@ struct __A_VT
     bool (*equals)(A, Object);
     Class (*getClass)(A);
     String (*toString)(A);
-    int32_t (*method)(A);
 
     __A_VT()
-        : __is_a(__A::__class()),
-          hashCode((int32_t(*)(A)) &__Object::hashCode),
-          equals((bool(*)(A, Object)) &__Object::equals),
-          getClass((Class(*)(A)) &__Object::getClass),
-          toString(&__A::toString),
-          method(&__A::method)
+      __is_a(__A::__class()),
+      hashCode((int32_t(*)(A)) &__Object::hashCode),
+      equals((bool(*)(A, Object)) &__Object::equals),
+      getClass((Class(*)(A)) &__Object::getClass),
+      toString((String(*)(A)) &__Object::toString)
     {
     }
-};
-
-struct __B
-{
-
-    __B_VT* __vptr;
-
-    __B();
-    static B __init(B __this);
-
-    static String toString(B );
-
-    static Class __class();
-
-    static __B_VT __vtable;
-};
-
-struct __B_VT
-{
-
-    Class __is_a;
-
-    int32_t (*hashCode)(B);
-    bool (*equals)(B, Object);
-    Class (*getClass)(B);
-    String (*toString)(B);
-    int32_t (*method)(B);
-
-    __B_VT()
-        : __is_a(__B::__class()),
-          hashCode((int32_t(*)(B)) &__Object::hashCode),
-          equals((bool(*)(B, Object)) &__Object::equals),
-          getClass((Class(*)(B)) &__Object::getClass),
-          toString(&__B::toString),
-          method((int32_t(*)(B)) &__A::method)
-    {
-    }
-};
+  };
 
 }
 }
