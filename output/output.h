@@ -26,7 +26,12 @@ namespace test033 {
     __A();
     static A __init(A __this);
 
-    static int32_t m(int32_t i);
+    static int32_t m_0(int32_t i);
+    static void m_1(A a);
+    static void m_2(double d);
+    static void m_3(Object o);
+    static void m_4(Object o1, Object o2);
+    static void m_5(A a1, Object o2);
 
     static Class __class();
 

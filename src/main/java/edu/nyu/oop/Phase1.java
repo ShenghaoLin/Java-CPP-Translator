@@ -246,8 +246,9 @@ public class Phase1 {
             visit(n);
             Node receiver = n.getNode(0);
             String methodName = n.getString(2);
-            System.out.println(methodName + " received by " + receiver);
-            System.out.println(n);
+            // debugging below
+            // System.out.println(methodName + " received by " + receiver);
+            // System.out.println(n);
             if (n.getProperty("mangledName") == null) {
                 if ((receiver == null) &&
                         (!"super".equals(methodName)) &&
