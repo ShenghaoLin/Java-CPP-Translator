@@ -140,6 +140,7 @@ namespace java {
     String __Class::toString(Class __this) {
       return new __String("class " + __this->name->data);
     }
+<<<<<<< HEAD
 
     // java.lang.Class.getName()
     String __Class::getName(Class __this) {
@@ -173,6 +174,41 @@ namespace java {
       // is an instance of a given class
       Class k = o->__vptr->getClass(o);
 
+=======
+
+    // java.lang.Class.getName()
+    String __Class::getName(Class __this) {
+      return __this->name;
+    }
+
+    // java.lang.Class.getSuperclass()
+    Class __Class::getSuperclass(Class __this) {
+      return __this->parent;
+    }
+
+    // java.lang.Class.isPrimitive()
+    bool __Class::isPrimitive(Class __this) {
+      return __this->primitive;
+    }
+
+    // java.lang.Class.isArray()
+    bool __Class::isArray(Class __this) {
+      return (Class)__rt::null() != __this->component;
+    }
+
+    // java.lang.Class.getComponentType()
+    Class __Class::getComponentType(Class __this) {
+      return __this->component;
+    }
+
+    // java.lang.Class.isInstance(Object)
+    bool __Class::isInstance(Class __this, Object o) {
+      // isInstance traverses the inheritance hierarchy upwards
+      // (until it hits null) to determine whether an object
+      // is an instance of a given class
+      Class k = o->__vptr->getClass(o);
+
+>>>>>>> 58fcabd521db7666e979ade35eed2feaf5132530
       do {
         if (__this->__vptr->equals(__this, (Object)k)) return true;
 
