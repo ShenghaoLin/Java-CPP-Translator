@@ -5,11 +5,11 @@
 using namespace java::lang;
 
 using namespace std;
-using namespace inputs::test017;
+using namespace inputs::test009;
 
 int32_t main (ArrayOfString args ){
-A a = __A::__init (new __A() , 5 );
-cout << a -> __vptr -> self_0 (a )-> __vptr -> toString (a -> __vptr -> self_0 (a ))-> data << endl ;
+A a = __A::__init (new __A() );
+cout << a -> self -> __vptr -> toString (a -> self )-> data << endl ;
 return 0 ;
 }
 
