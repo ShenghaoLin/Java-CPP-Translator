@@ -18,6 +18,7 @@ import edu.nyu.oop.util.SymbolTableUtil;
 import edu.nyu.oop.util.NodeUtil;
 import edu.nyu.oop.util.TypeUtil;
 import xtc.Constants;
+import xtc.lang.Java;
 import xtc.lang.JavaEntities;
 import xtc.tree.GNode;
 import xtc.tree.Node;
@@ -245,6 +246,8 @@ public class Phase1 {
             visit(n);
             Node receiver = n.getNode(0);
             String methodName = n.getString(2);
+            System.out.println(methodName + " received by " + receiver);
+            System.out.println(n);
             if (n.getProperty("mangledName") == null) {
                 if ((receiver == null) &&
                         (!"super".equals(methodName)) &&
@@ -266,11 +269,18 @@ public class Phase1 {
                 } else if (receiver != null) {
                     //GET MANGLED NAME
                     if(receiver.getName().equals("PrimaryIdentifier")) {
-                        VariableT objectLookup = (VariableT) table.lookup(receiver.get(0).toString());
-                        Type objectType = objectLookup.getType();
+                        Type typeToSearch = null;
+                        //STATIC
+                        if (JavaEntities.simpleNameToType(table, classpath(), table.current().getQualifiedName(), receiver.get(0).toString()) != null)
+                            typeToSearch = JavaEntities.simpleNameToType(table, classpath(), table.current().getQualifiedName(), receiver.get(0).toString());
+                        //OBJECTS
+                        else {
+                            VariableT objectLookup = (VariableT) table.lookup(receiver.get(0).toString());
+                            Type typetoSearch = objectLookup.getType();
+                        }
                         List<Type> actuals = JavaEntities.typeList((List) dispatch(n.getNode(3)));
                         MethodT method =
-                            JavaEntities.typeDotMethod(table, classpath(), objectType, true, methodName, actuals);
+                            JavaEntities.typeDotMethod(table, classpath(), typeToSearch, true, methodName, actuals);
                         n.setProperty("mangledName", methodScopeToMangledName.get(method.getScope()));
                     }
 
