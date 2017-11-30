@@ -103,6 +103,7 @@ public class Phase1 {
         protected HashMap<String, Integer> mangleCounts;
         protected String className = "";
         protected String parentName = "";
+        protected HashMap<String, HashMap<String, String>> initializers;
 
         public final List<File> classpath() {
             return JavaEntities.classpath(runtime);
@@ -112,6 +113,11 @@ public class Phase1 {
             this.runtime = runtime;
             this.table = table;
             this.methodScopeToMangledName = new HashMap<String, String>();
+            this.initializers = new HashMap<String, HashMap<String, String>>();
+        }
+
+        public HashMap<String, HashMap<String, String>> getInitializers () {
+            return initializers;
         }
 
         //MISC. HELPFUL METHODS
@@ -121,7 +127,7 @@ public class Phase1 {
             Type callExpObjectType = callExpObjectLookup.getType();
             List<Type> callExpActuals = JavaEntities.typeList((List) dispatch(n.getNode(3)));
             MethodT callExpMethod =
-                JavaEntities.typeDotMethod(table, classpath(), callExpObjectType, true, callExpMethodName, callExpActuals);
+                    JavaEntities.typeDotMethod(table, classpath(), callExpObjectType, true, callExpMethodName, callExpActuals);
             return callExpMethod.getResult();
         }
 
@@ -142,6 +148,16 @@ public class Phase1 {
             table.setScope(table.root());
         }
 
+
+        public void visitFieldDeclaration(GNode n) {
+            String fieldName = n.getNode(2).getNode(0).getString(0);
+            if(JavaEntities.typeDotField(table, classpath(), JavaEntities.currentType(table), true, fieldName) != null) {
+                String initial = "0";
+                if(n.getNode(2).getNode(0).getNode(2) != null) initial = n.getNode(2).getNode(0).getNode(2).get(0).toString();
+                initializers.get(JavaEntities.currentType(table).getName()).put(fieldName, initial);
+            }
+        }
+
         public String visitPackageDeclaration(GNode n) {
             String canonicalName = null == n ? "" : (String) dispatch(n.getNode(1));
             final PackageT result = JavaEntities.canonicalNameToPackage(table, canonicalName);
@@ -152,6 +168,8 @@ public class Phase1 {
             this.mangleCounts = new HashMap<String, Integer>();
             SymbolTableUtil.enterScope(table, n);
             table.mark(n);
+
+            initializers.put(JavaEntities.currentType(table).getName(), new HashMap<String, String>());
 
             className = n.get(1).toString();
             Object extension = NodeUtil.dfs(n, "Extension");
@@ -246,9 +264,6 @@ public class Phase1 {
             visit(n);
             Node receiver = n.getNode(0);
             String methodName = n.getString(2);
-            // debugging below
-            // System.out.println(methodName + " received by " + receiver);
-            // System.out.println(n);
             if (n.getProperty("mangledName") == null) {
                 if ((receiver == null) &&
                         (!"super".equals(methodName)) &&
@@ -257,7 +272,7 @@ public class Phase1 {
 
                     List<Type> actuals = JavaEntities.typeList((List) dispatch(n.getNode(3)));
                     MethodT method =
-                        JavaEntities.typeDotMethod(table, classpath(), typeToSearch, true, methodName, actuals);
+                            JavaEntities.typeDotMethod(table, classpath(), typeToSearch, true, methodName, actuals);
 
                     if (methodName.equals("overloaded")) System.out.println("over");
 
@@ -274,14 +289,14 @@ public class Phase1 {
                         //STATIC
                         if (JavaEntities.simpleNameToType(table, classpath(), table.current().getQualifiedName(), receiver.get(0).toString()) != null)
                             typeToSearch = JavaEntities.simpleNameToType(table, classpath(), table.current().getQualifiedName(), receiver.get(0).toString());
-                        //OBJECTS
+                            //OBJECTS
                         else {
                             VariableT objectLookup = (VariableT) table.lookup(receiver.get(0).toString());
                             Type typetoSearch = objectLookup.getType();
                         }
                         List<Type> actuals = JavaEntities.typeList((List) dispatch(n.getNode(3)));
                         MethodT method =
-                            JavaEntities.typeDotMethod(table, classpath(), typeToSearch, true, methodName, actuals);
+                                JavaEntities.typeDotMethod(table, classpath(), typeToSearch, true, methodName, actuals);
                         n.setProperty("mangledName", methodScopeToMangledName.get(method.getScope()));
                     }
 
@@ -289,7 +304,7 @@ public class Phase1 {
                         Type objectType = returnTypeFromCallExpression(receiver);
                         List<Type> actuals = JavaEntities.typeList((List) dispatch(n.getNode(3)));
                         MethodT method =
-                            JavaEntities.typeDotMethod(table, classpath(), objectType, true, methodName, actuals);
+                                JavaEntities.typeDotMethod(table, classpath(), objectType, true, methodName, actuals);
                         n.setProperty("mangledName", methodScopeToMangledName.get(method.getScope()));
                     }
 
@@ -297,7 +312,7 @@ public class Phase1 {
                         Type currentType = JavaEntities.currentType(table);
                         List<Type> actuals = JavaEntities.typeList((List) dispatch(n.getNode(3)));
                         MethodT method =
-                            JavaEntities.typeDotMethod(table, classpath(), currentType, true, methodName, actuals);
+                                JavaEntities.typeDotMethod(table, classpath(), currentType, true, methodName, actuals);
                         n.setProperty("mangledName", methodScopeToMangledName.get(method.getScope()));
                     }
 
@@ -306,7 +321,7 @@ public class Phase1 {
                         Type superType = JavaEntities.directSuperTypes(table, classpath(), currentType).get(0);
                         List<Type> actuals = JavaEntities.typeList((List) dispatch(n.getNode(3)));
                         MethodT method =
-                            JavaEntities.typeDotMethod(table, classpath(), superType, true, methodName, actuals);
+                                JavaEntities.typeDotMethod(table, classpath(), superType, true, methodName, actuals);
                         n.setProperty("mangledName", methodScopeToMangledName.get(method.getScope()));
                     }
                 }

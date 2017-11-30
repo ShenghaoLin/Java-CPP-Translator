@@ -22,6 +22,7 @@ namespace test033 {
   struct __A {
 
     __A_VT* __vptr;
+    int32_t x;
 
     __A();
     static A __init(A __this);
