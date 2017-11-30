@@ -5,11 +5,12 @@
 using namespace java::lang;
 
 using namespace std;
-using namespace inputs::test009;
+using namespace inputs::javalang3;
 
 int32_t main (ArrayOfString args ){
-A a = __A::__init (new __A() );
-cout << a -> self -> __vptr -> toString (a -> self )-> data << endl ;
+B b = __B::__init (new __B() , 'z' );
+cout << b -> __vptr -> toString_0 (b )<< endl ;
+b -> __vptr -> overloaded_0 (b , b )-> __vptr -> overloaded_2 (b -> __vptr -> overloaded_0 (b , b ), b );
 return 0 ;
 }
 

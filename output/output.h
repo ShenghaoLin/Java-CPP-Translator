@@ -8,25 +8,42 @@ using namespace java::lang;
 #include <string>
 
 namespace inputs { 
-namespace test009 { 
+namespace javalang3 { 
 
   struct __A;
   struct __A_VT;
 
-  struct __Test009;
-  struct __Test009_VT;
+  struct __B;
+  struct __B_VT;
+
+  struct __Main;
+  struct __Main_VT;
 
   typedef __rt::Ptr<__A> A;
-  typedef __rt::Ptr<__Test009> Test009;
+  typedef __rt::Ptr<__B> B;
+  typedef __rt::Ptr<__Main> Main;
 
   struct __A {
 
     __A_VT* __vptr;
-    A self;
+    char x;
+    char y;
 
     __A();
-    static A __init(A __this);
+    static A __init(A __this, char x, char y);
+    static A __init(A __this, char x);
 
+    static String toString(A __this);
+    static void overloaded(A __this, int32_t i);
+    static void overloaded(A __this, int8_t b);
+    static A overloaded(A __this, A a);
+    static void overloaded(A __this, int32_t i);
+    static void overloaded(A __this, int8_t b);
+    static A overloaded(A __this, A a);
+    static void overloaded(A __this, int32_t i);
+    static void overloaded(A __this, int8_t b);
+    static A overloaded(A __this, A a);
+    static void print(A __this);
 
     static Class __class();
 
@@ -42,6 +59,9 @@ namespace test009 {
     bool (*equals)(A, Object);
     Class (*getClass)(A);
     String (*toString)(A);
+    void (*overloaded)(A,int32_t);
+    void (*overloaded)(A,int8_t);
+    A (*overloaded)(A,A);
 
     __A_VT()
       __is_a(__A::__class()),
@@ -49,42 +69,94 @@ namespace test009 {
       hashCode((int32_t(*)(A)) &__Object::hashCode),
       equals((bool(*)(A, Object)) &__Object::equals),
       getClass((Class(*)(A)) &__Object::getClass),
-      toString((String(*)(A)) &__Object::toString)
+      toString(&__A::toString),
+      overloaded(&__A::overloaded),
+      overloaded(&__A::overloaded),
+      overloaded(&__A::overloaded)
     {
     }
   };
 
-  struct __Test009 {
+  struct __B {
 
-    __Test009_VT* __vptr;
+    __B_VT* __vptr;
+    char x;
+    char y;
+    char z;
+    String s;
 
-    __Test009();
-    static Test009 __init(Test009 __this);
+    __B();
+    static B __init(B __this);
+    static B __init(B __this, char z);
+
+    static String toString(B __this);
+    static A overloaded(B __this, B b);
+    static A overloaded(B __this, B b);
+    static A overloaded(B __this, B b);
+
+    static Class __class();
+
+    static __B_VT __vtable;
+  };
+
+  struct __B_VT {
+
+    Class __is_a;
+
+    void (*__delete)(__B*);
+    int32_t (*hashCode)(B);
+    bool (*equals)(B, Object);
+    Class (*getClass)(B);
+    String (*toString)(B);
+    A (*overloaded)(B,B);
+    A (*overloaded)(B,B);
+    A (*overloaded)(B,B);
+
+    __B_VT()
+      __is_a(__B::__class()),
+      __delete(&__rt::__delete<__B>),
+      hashCode((int32_t(*)(B)) &__Object::hashCode),
+      equals((bool(*)(B, Object)) &__Object::equals),
+      getClass((Class(*)(B)) &__Object::getClass),
+      toString(&__B::toString),
+      overloaded(&__B::overloaded),
+      overloaded(&__B::overloaded),
+      overloaded(&__B::overloaded)
+    {
+    }
+  };
+
+  struct __Main {
+
+    __Main_VT* __vptr;
+
+    __Main();
+    static Main __init(Main __this);
 
     static void main(__rt::Array<String> args);
 
     static Class __class();
 
-    static __Test009_VT __vtable;
+    static __Main_VT __vtable;
   };
 
-  struct __Test009_VT {
+  struct __Main_VT {
 
     Class __is_a;
 
-    void (*__delete)(__Test009*);
-    int32_t (*hashCode)(Test009);
-    bool (*equals)(Test009, Object);
-    Class (*getClass)(Test009);
-    String (*toString)(Test009);
+    void (*__delete)(__Main*);
+    int32_t (*hashCode)(Main);
+    bool (*equals)(Main, Object);
+    Class (*getClass)(Main);
+    String (*toString)(Main);
 
-    __Test009_VT()
-      __is_a(__Test009::__class()),
-      __delete(&__rt::__delete<__Test009>),
-      hashCode((int32_t(*)(Test009)) &__Object::hashCode),
-      equals((bool(*)(Test009, Object)) &__Object::equals),
-      getClass((Class(*)(Test009)) &__Object::getClass),
-      toString((String(*)(Test009)) &__Object::toString)
+    __Main_VT()
+      __is_a(__Main::__class()),
+      __delete(&__rt::__delete<__Main>),
+      hashCode((int32_t(*)(Main)) &__Object::hashCode),
+      equals((bool(*)(Main, Object)) &__Object::equals),
+      getClass((Class(*)(Main)) &__Object::getClass),
+      toString((String(*)(Main)) &__Object::toString)
     {
     }
   };

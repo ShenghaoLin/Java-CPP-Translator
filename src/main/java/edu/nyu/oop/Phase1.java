@@ -246,8 +246,6 @@ public class Phase1 {
             Node receiver = n.getNode(0);
             String methodName = n.getString(2);
             if (n.getProperty("mangledName") == null) {
-                if (receiver != null)
-                    System.out.println(methodName + " received by " + receiver);
                 if ((receiver == null) &&
                         (!"super".equals(methodName)) &&
                         (!"this".equals(methodName))) {
@@ -262,9 +260,8 @@ public class Phase1 {
                     if (method == null) return;
 
                     // EXPLICIT THIS ACCESS (if method name isn't defined locally and method is not static, add "this.")
-                    boolean notStatic = (method.getAttribute("storage") == null || !method.getAttribute("storage").getValue().equals("static"));
-                    if (!table.current().isDefinedLocally(methodName) && notStatic) {
-                        n.setProperty("mangledName", methodScopeToMangledName.get(method.getScope()));
+                    if (!TypeUtil.isStaticType(method)) {
+                        n.set(0, makeThisExpression());
                     }
                 } else if (receiver != null) {
                     //GET MANGLED NAME
@@ -325,10 +322,17 @@ public class Phase1 {
 
             if (field == null) return n;
 
-            // EXPLICIT THIS ACCESS (if field name isn't defined locally and field is not static, add "this.")
-            boolean notStatic = (field.getAttribute("storage") == null || !field.getAttribute("storage").getValue().equals("static"));
-            //if ((!table.current().isDefinedLocally(fieldName)) && notStatic) n.set(0, "this." + fieldName);
+            //explicit this access
+            Type t = (Type) table.lookup(fieldName);
+            if (t == null || !t.isVariable()) {
+                t = field;
+            }
 
+            if (JavaEntities.isFieldT(t) && !TypeUtil.isStaticType(t)) {
+                GNode n1 = GNode.create("SelectionExpression", makeThisExpression(), fieldName);
+                TypeUtil.setType(n1, TypeUtil.getType(n));
+                return n1;
+            }
 
             return n;
         }
