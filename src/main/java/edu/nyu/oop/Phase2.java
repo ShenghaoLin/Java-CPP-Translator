@@ -24,9 +24,13 @@ import edu.nyu.oop.util.NodeUtil;
 
 import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.HashMap;
 import java.util.HashSet;
 
 public class Phase2 {
+
+    // HashMap of children to their parents
+    public static HashMap<String, String> childrenToParents = new HashMap<String, String>();
 
     /**
      * main method, calls visitor, populates ObjectRepList, build CPP AST
@@ -480,6 +484,12 @@ public class Phase2 {
                     filled.add(rep);
                 }
             }
+        }
+
+        // processparents here too
+        for (ObjectRep rep : filled) {
+            if (rep.parent != null && rep.parent.equals(filled.get(0))) childrenToParents.put(rep.name, "");
+            else if (rep.parent != null) childrenToParents.put(rep.name, rep.parent.name);
         }
 
         return filled;
