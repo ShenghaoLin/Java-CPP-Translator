@@ -196,14 +196,16 @@ public class Phase1 {
             String methodName = n.getString(3);
 
             if (n.getProperty("mangledName") == null) {
-
                 if ((!methodName.equals("main"))&&(!methodName.equals(className))) {
+                    String paramString = "";
+                    GNode params = (GNode) n.get(4);
+                    for (int i = 0; i < params.size(); i++) {
+                        paramString += "_" + params.getNode(i).getNode(1).getNode(0).getString(0);
+                    }
 
-                    if (!mangleCounts.containsKey(methodName)) mangleCounts.put(methodName, 0);
-                    String newMethodName = methodName + "_" + mangleCounts.get(methodName);
-                    methodScopeToMangledName.put(table.current().getQualifiedName(), newMethodName);
-                    mangleCounts.put(methodName, mangleCounts.get(methodName) + 1);
-                    n.setProperty("mangledName", newMethodName);
+                    String mangledName = methodName + " " + paramString;
+
+                    n.setProperty("mangledName", mangledName);
                 }
             }
 
@@ -264,6 +266,7 @@ public class Phase1 {
             visit(n);
             Node receiver = n.getNode(0);
             String methodName = n.getString(2);
+            System.out.println(methodName);
             if (n.getProperty("mangledName") == null) {
                 if ((receiver == null) &&
                         (!"super".equals(methodName)) &&
@@ -292,7 +295,7 @@ public class Phase1 {
                             //OBJECTS
                         else {
                             VariableT objectLookup = (VariableT) table.lookup(receiver.get(0).toString());
-                            Type typetoSearch = objectLookup.getType();
+                            typeToSearch = objectLookup.getType();
                         }
                         List<Type> actuals = JavaEntities.typeList((List) dispatch(n.getNode(3)));
                         MethodT method =
