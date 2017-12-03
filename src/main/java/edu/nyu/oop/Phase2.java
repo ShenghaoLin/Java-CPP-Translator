@@ -176,6 +176,7 @@ public class Phase2 {
             String methodName = node.getString(3);
             if (node.getProperty("mangledName") != null) methodName = (String) node.getProperty("mangledName"); //node.getString(3);
             if (methodName.equals("main")) mainFlag = true;
+            methodName = methodName.replaceAll("\\s", "");
 
             // parameters
             ArrayList<Parameter> parameters = new ArrayList<Parameter>();
