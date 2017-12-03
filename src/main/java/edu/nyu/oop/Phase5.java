@@ -85,21 +85,21 @@ public class Phase5 extends Visitor {
     public void visitClassDeclaration(GNode n) {
 
         GNode mainfunction = (GNode) NodeUtil.dfs(n, "MethodDeclaration");
-        if (mainfunction != null) {
-            if (mainfunction.get(3).toString().equals("main")) {
-                Phase5 mainPrint = new Phase5("main.cpp");
-                Printer mainPrinter = mainPrint.printer();
-                mainPrinter.register(mainPrint);
-                mainPrinter.pln("#include \"java_lang.h\"").flush();
-                mainPrint.headOfFile();
-                mainPrinter.pln("using namespace std;");
-                mainPrinter.pln("using namespace " +
-                                packageInfo.substring(0, packageInfo.length() - 1).replace(".", "::") + ";").pln().flush();
-                mainPrint.print(mainfunction);
+        // if (mainfunction != null) {
+        //     if (mainfunction.get(3).toString().equals("main")) {
+        //         Phase5 mainPrint = new Phase5("main.cpp");
+        //         Printer mainPrinter = mainPrint.printer();
+        //         mainPrinter.register(mainPrint);
+        //         mainPrinter.pln("#include \"java_lang.h\"").flush();
+        //         mainPrint.headOfFile();
+        //         mainPrinter.pln("using namespace std;");
+        //         mainPrinter.pln("using namespace " +
+        //                         packageInfo.substring(0, packageInfo.length() - 1).replace(".", "::") + ";").pln().flush();
+        //         mainPrint.print(mainfunction);
 
-                return;
-            }
-        }
+        //         return;
+        //     }
+        // }
 
         //Obtaining information of class name of parent class name
         String className = n.get(1).toString();
@@ -305,11 +305,11 @@ public class Phase5 extends Visitor {
                     dispatch((Node) o);
 
                     //toString handling
-                    if (gnode.hasName("CallExpression")) {
-                        if (gnode.get(2).toString().endsWith("toString")) {
-                            printer.p("-> data ").flush();
-                        }
-                    }
+                    // if (gnode.hasName("CallExpression")) {
+                    //     if (gnode.get(2).toString().endsWith("toString")) {
+                    //         printer.p("-> data ").flush();
+                    //     }
+                    // }
                 }
 
                 if (o instanceof String) printer.p(((String) o) + " ").flush();
@@ -452,11 +452,8 @@ public class Phase5 extends Visitor {
             //print string
             if (o instanceof String) {
                 String s = (String) o;
-                if (s.equals("int")) {
-                    printer.p("int32_t ").flush();
-                } else {
-                    printer.p(s + " ").flush();
-                }
+                
+                printer.p(s + " ").flush();
             }
         }
     }

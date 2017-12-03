@@ -66,6 +66,9 @@ class B extends A {
 
 public class Main {
     public static void main(String[] args) {
+        int[] a = new int[10];
+        A[] aaa = new A[10];
+        System.out.println(a[0]);
         B b = new B('z');
         System.out.println(b.toString());
         b.overloaded(b).overloaded(b);

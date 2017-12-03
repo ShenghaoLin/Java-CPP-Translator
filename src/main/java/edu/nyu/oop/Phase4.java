@@ -14,6 +14,8 @@ import xtc.type.*;
 
 import edu.nyu.oop.util.NodeUtil;
 import edu.nyu.oop.util.SymbolTableBuilder;
+//import edu.nyu.oop.BigArray;
+//import edu.nyu.oop.PrimitiveArray;
 
 import java.util.List;
 import java.util.Set;
@@ -26,6 +28,10 @@ public class Phase4 {
     private Runtime runtime;
     private HashMap<String, String> ctp = new HashMap<String, String>();
     private HashMap<String, HashMap<String, String>> inis = new HashMap<String, HashMap<String, String>>();
+
+    public ArrayList<BigArray> bigArrays = new ArrayList<BigArray>();
+    public ArrayList<PrimitiveArray> primitiveArrays = new ArrayList<PrimitiveArray>();
+
 
     public Phase4 (Runtime runtime) {
         this.runtime = runtime;
@@ -64,6 +70,8 @@ public class Phase4 {
     public Node runNode(Node n, SymbolTable table) {
         Phase4Visitor visitor = new Phase4Visitor(table, runtime, ctp, inis);
         visitor.traverse(n);
+        //bigArrays.addAll(visitor.bigArrays);
+        //primitiveArrays.addAll(visitor.primitiveArrays);
         return n;
     }
 
@@ -84,6 +92,9 @@ public class Phase4 {
         private HashMap<String, HashMap<String, String>> inis;
 
         private SymbolTable table;
+
+        public ArrayList<BigArray> bigArrays = new ArrayList<BigArray>();
+        public ArrayList<PrimitiveArray> primitiveArrays = new ArrayList<PrimitiveArray>();
 
         public Phase4Visitor(SymbolTable table, Runtime runtime, 
             HashMap<String, String> ctp, HashMap<String, HashMap<String, String>> inis) {
@@ -122,6 +133,8 @@ public class Phase4 {
         }
 
 
+
+
         /* Visitor for Modifiers
          * Modifiers are not considered in our translator
          */
@@ -132,12 +145,60 @@ public class Phase4 {
             visit(n);
         }
 
+        public String toCppType(String type) {
+
+            String cppType;
+            switch (type) {
+                case "long":
+                    cppType = "int64_t";
+                    break;
+                case "int":
+                    cppType = "int32_t";
+                    break;
+                case "short":
+                    cppType = "int16_t";
+                    break;
+                case "byte":
+                    cppType = "int8_t";
+                    break;
+                case "boolean":
+                    cppType = "bool";
+                    break;
+                default:
+                    cppType = type;
+                    break;
+            }
+            return cppType;
+
+        }
+
+        public boolean isPrimitiveType(String type) {
+            if (type.equals("boolean")||type.equals("byte")||type.equals("char")||
+                type.equals("short")||type.equals("int")||type.equals("long")||
+                type.equals("float")||type.equals("double")) {
+                return true;
+            }
+            return false;
+
+        }
+
         public void visitType(GNode n) {
             Object dim = NodeUtil.dfs(n, "Dimensions");
 
             if (dim != null) {
                 String className = n.getNode(0).get(0).toString();
-                n.set(0, GNode.create("QualifiedIdentifier", "ArrayOf" + className));
+
+                className = toCppType(className);
+
+                if (isPrimitiveType(className)) {
+                    className = toCppType(className);
+                    primitiveArrays.add(new PrimitiveArray(className));
+                }
+                else {
+                    bigArrays.add(new BigArray(className, packageInfo));
+                }
+
+                n.set(0, GNode.create("QualifiedIdentifier", "__rt::Array<" + className + ">"));
                 n.set(1, null);
             }
             visit(n);
@@ -145,7 +206,12 @@ public class Phase4 {
 
         public void visitNewArrayExpression(GNode n) {
             String className = n.getNode(0).get(0).toString();
-            n.set(0, GNode.create("QualifiedIdentifier", "__ArrayOf" + className));
+
+            if (isPrimitiveType(className)) {
+                    className = toCppType(className);
+            }
+
+            n.set(0, GNode.create("QualifiedIdentifier", "__rt::Array<" + className + ">"));
             visit(n);
         }
 
@@ -247,7 +313,7 @@ public class Phase4 {
 
                     dCon += "(" + f.get((String) o) + "), ";
 
-                    //System.out.println(((VariableT) o).getType().getName());
+                    // System.out.println(((VariableT) o).getType().getName());
                     // Set<String> types = ((VariableT) o).getType().getScope();
                     // for (Object oo : types){
                     //     System.out.println((String) oo);
@@ -301,7 +367,7 @@ public class Phase4 {
             methodName = table.current().getName();
 
             if (n.getProperty("mangledName") != null) {
-                n.set(3, n.getProperty("mangledName"));
+                n.set(3, n.getProperty("mangledName").toString().replace(" ", ""));
             }
 
             //main function has no field method
@@ -450,6 +516,7 @@ public class Phase4 {
          */
         public void visitCallExpression(GNode n) {
 
+            //System.out.println("good");
             //collect info
             Object o = n.getNode(0);
             GNode select, primaryID;
@@ -464,7 +531,8 @@ public class Phase4 {
             }
 
             if (n.getProperty("mangledName") != null) {
-                n.set(2, n.getProperty("mangledName"));
+                n.set(2, n.getProperty("mangledName").toString().replace(" ", ""));
+                System.out.println("mangledName");
             }
 
             //method in current class

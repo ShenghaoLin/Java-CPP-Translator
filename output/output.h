@@ -7,23 +7,26 @@ using namespace java::lang;
 #include <stdint.h>
 #include <string>
 
-namespace inputs { 
-namespace javalang3 { 
+namespace inputs
+{
+namespace javalang3
+{
 
-  struct __A;
-  struct __A_VT;
+struct __A;
+struct __A_VT;
 
-  struct __B;
-  struct __B_VT;
+struct __B;
+struct __B_VT;
 
-  struct __Main;
-  struct __Main_VT;
+struct __Main;
+struct __Main_VT;
 
-  typedef __rt::Ptr<__A> A;
-  typedef __rt::Ptr<__B> B;
-  typedef __rt::Ptr<__Main> Main;
+typedef __rt::Ptr<__A> A;
+typedef __rt::Ptr<__B> B;
+typedef __rt::Ptr<__Main> Main;
 
-  struct __A {
+struct __A
+{
 
     __A_VT* __vptr;
     char x;
@@ -42,9 +45,10 @@ namespace javalang3 {
     static Class __class();
 
     static __A_VT __vtable;
-  };
+};
 
-  struct __A_VT {
+struct __A_VT
+{
 
     Class __is_a;
 
@@ -58,20 +62,21 @@ namespace javalang3 {
     A (*overloaded_A_0)(A,A);
 
     __A_VT()
-      __is_a(__A::__class()),
-      __delete(&__rt::__delete<__A>),
-      hashCode((int32_t(*)(A)) &__Object::hashCode),
-      equals((bool(*)(A, Object)) &__Object::equals),
-      getClass((Class(*)(A)) &__Object::getClass),
-      toString(&__A::toString),
-      overloaded_int_0(&__A::overloaded_int_0),
-      overloaded_byte_0(&__A::overloaded_byte_0),
-      overloaded_A_0(&__A::overloaded_A_0)
+    __is_a(__A::__class()),
+           __delete(&__rt::__delete<__A>),
+           hashCode((int32_t(*)(A)) &__Object::hashCode),
+           equals((bool(*)(A, Object)) &__Object::equals),
+           getClass((Class(*)(A)) &__Object::getClass),
+           toString(&__A::toString),
+           overloaded_int_0(&__A::overloaded_int_0),
+           overloaded_byte_0(&__A::overloaded_byte_0),
+           overloaded_A_0(&__A::overloaded_A_0)
     {
     }
-  };
+};
 
-  struct __B {
+struct __B
+{
 
     __B_VT* __vptr;
     char x;
@@ -89,9 +94,10 @@ namespace javalang3 {
     static Class __class();
 
     static __B_VT __vtable;
-  };
+};
 
-  struct __B_VT {
+struct __B_VT
+{
 
     Class __is_a;
 
@@ -106,21 +112,22 @@ namespace javalang3 {
     A (*overloaded_B_0)(B,B);
 
     __B_VT()
-      __is_a(__B::__class()),
-      __delete(&__rt::__delete<__B>),
-      hashCode((int32_t(*)(B)) &__Object::hashCode),
-      equals((bool(*)(B, Object)) &__Object::equals),
-      getClass((Class(*)(B)) &__Object::getClass),
-      toString(&__B::toString),
-      overloaded_int_0((void(*)(B,int32_t)) &__A::overloaded_int_0),
-      overloaded_byte_0((void(*)(B,int8_t)) &__A::overloaded_byte_0),
-      overloaded_A_0((A(*)(B,A)) &__A::overloaded_A_0),
-      overloaded_B_0(&__B::overloaded_B_0)
+    __is_a(__B::__class()),
+           __delete(&__rt::__delete<__B>),
+           hashCode((int32_t(*)(B)) &__Object::hashCode),
+           equals((bool(*)(B, Object)) &__Object::equals),
+           getClass((Class(*)(B)) &__Object::getClass),
+           toString(&__B::toString),
+           overloaded_int_0((void(*)(B,int32_t)) &__A::overloaded_int_0),
+           overloaded_byte_0((void(*)(B,int8_t)) &__A::overloaded_byte_0),
+           overloaded_A_0((A(*)(B,A)) &__A::overloaded_A_0),
+           overloaded_B_0(&__B::overloaded_B_0)
     {
     }
-  };
+};
 
-  struct __Main {
+struct __Main
+{
 
     __Main_VT* __vptr;
 
@@ -132,9 +139,10 @@ namespace javalang3 {
     static Class __class();
 
     static __Main_VT __vtable;
-  };
+};
 
-  struct __Main_VT {
+struct __Main_VT
+{
 
     Class __is_a;
 
@@ -145,15 +153,15 @@ namespace javalang3 {
     String (*toString)(Main);
 
     __Main_VT()
-      __is_a(__Main::__class()),
-      __delete(&__rt::__delete<__Main>),
-      hashCode((int32_t(*)(Main)) &__Object::hashCode),
-      equals((bool(*)(Main, Object)) &__Object::equals),
-      getClass((Class(*)(Main)) &__Object::getClass),
-      toString((String(*)(Main)) &__Object::toString)
+    __is_a(__Main::__class()),
+           __delete(&__rt::__delete<__Main>),
+           hashCode((int32_t(*)(Main)) &__Object::hashCode),
+           equals((bool(*)(Main, Object)) &__Object::equals),
+           getClass((Class(*)(Main)) &__Object::getClass),
+           toString((String(*)(Main)) &__Object::toString)
     {
     }
-  };
+};
 
 }
 }
