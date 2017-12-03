@@ -6,6 +6,7 @@ import java.io.Reader;
 import java.util.List;
 import java.util.ArrayList;
 import java.util.LinkedList;
+import java.util.HashMap;
 
 
 import edu.nyu.oop.util.JavaFiveImportParser;
@@ -24,6 +25,7 @@ import xtc.util.Tool;
 import xtc.lang.JavaPrinter;
 import xtc.parser.ParseException;
 import xtc.util.Runtime;
+
 
 /**
  * A 'Tool' is an entry point to a program that uses XTC. It configures the user interface, defining
@@ -219,11 +221,13 @@ public class Boot extends Tool {
 
             List<GNode> javaAsts = Phase1.parse(n);
 
+            HashMap<String, HashMap<String, String>> inis = new HashMap<String, HashMap<String, String>>();
+
             LinkedList<SymbolTable> tables = new LinkedList<SymbolTable>();
 
             for (GNode unmangledAst : javaAsts) {
                 SymbolTable table = new SymbolTableBuilder(runtime).getTable(unmangledAst);
-                Phase1.mangle(runtime, table, unmangledAst);
+                inis.putAll(Phase1.mangle(runtime, table, unmangledAst));
                 tables.add(table);
             }
 
@@ -232,9 +236,17 @@ public class Boot extends Tool {
             // Node cppAst = Phase2.runPhase2(javaAsts.get(0));
 
             ArrayList<Node> cppAsts = new ArrayList<Node>();
+
+
+            HashMap<String, String> ctp = new HashMap<String, String>();
+
             for (Node javaAst : javaAsts) {
-                Node cppAst = Phase2.runPhase2(javaAst);
+                Phase2 phase2 = new Phase2();
+                Node cppAst = phase2.runPhase2(javaAst);
                 cppAsts.add(cppAst);
+
+                ctp.putAll(phase2.childrenToParents);
+
                 runtime.console().format(cppAst).pln().flush();
             }
 
@@ -246,7 +258,7 @@ public class Boot extends Tool {
                 phase3.print((GNode) cppAst);
             }
 
-            Phase4 p = new Phase4(runtime);
+            Phase4 p = new Phase4(runtime, ctp, inis);
 
             ArrayList<GNode> asts = new ArrayList<GNode>();
 

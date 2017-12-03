@@ -87,12 +87,14 @@ public class Phase1 {
         }
     }
 
-    public static void mangle(Runtime runtime, SymbolTable table, Node n) {
+    public static HashMap<String, HashMap<String, String>> mangle(Runtime runtime, SymbolTable table, Node n) {
 
         Mangler mangler = new Mangler(runtime, table);
 
         mangler.dispatch(n);
         mangler.dispatch(n);
+
+        return mangler.getInitializers();
     }
 
     public static class Mangler extends Visitor {

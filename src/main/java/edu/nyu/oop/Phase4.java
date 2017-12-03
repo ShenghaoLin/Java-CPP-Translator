@@ -16,15 +16,25 @@ import edu.nyu.oop.util.NodeUtil;
 import edu.nyu.oop.util.SymbolTableBuilder;
 
 import java.util.List;
+import java.util.Set;
 import java.util.ArrayList;
+import java.util.HashMap;
 
 /* Building C++ style AST given a root node of a java AST */
 public class Phase4 {
 
     private Runtime runtime;
+    private HashMap<String, String> ctp = new HashMap<String, String>();
+    private HashMap<String, HashMap<String, String>> inis = new HashMap<String, HashMap<String, String>>();
 
     public Phase4 (Runtime runtime) {
         this.runtime = runtime;
+    }
+
+    public Phase4 (Runtime runtime, HashMap<String, String> ctp, HashMap<String, HashMap<String, String>> inis) {
+        this.runtime = runtime;
+        this.ctp = ctp;
+        this.inis = inis;
     }
 
     /* process a list of nodes */
@@ -41,18 +51,18 @@ public class Phase4 {
         for (Object o : cppAst) {
             if (o instanceof Node) {
 
-
                 SymbolTable table = new SymbolTableBuilder(runtime).getTable((GNode) o);
-                Phase4Visitor visitor = new Phase4Visitor(table);
+                Phase4Visitor visitor = new Phase4Visitor(table, runtime, ctp, inis);
                 visitor.traverse((Node) o);
             }
         }
+
         return cppAst;
     }
 
     /* process a single node */
     public Node runNode(Node n, SymbolTable table) {
-        Phase4Visitor visitor = new Phase4Visitor(table);
+        Phase4Visitor visitor = new Phase4Visitor(table, runtime, ctp, inis);
         visitor.traverse(n);
         return n;
     }
@@ -62,16 +72,25 @@ public class Phase4 {
 
         private Logger logger = org.slf4j.LoggerFactory.getLogger(this.getClass());
 
+        private Runtime runtime;
+
         private String currentClass = null;
         private Object extension = null;
         private boolean isMain = false;
         private String methodName = "";
         private String packageInfo = "";
+        private boolean constructorFlag = false;
+        private HashMap<String, String> ctp;
+        private HashMap<String, HashMap<String, String>> inis;
 
         private SymbolTable table;
 
-        public Phase4Visitor(SymbolTable table) {
+        public Phase4Visitor(SymbolTable table, Runtime runtime, 
+            HashMap<String, String> ctp, HashMap<String, HashMap<String, String>> inis) {
             this.table = table;
+            this.runtime = runtime;
+            this.ctp = ctp;
+            this.inis = inis;
         }
 
         public void visitCompilationUnit(GNode n) {
@@ -159,6 +178,37 @@ public class Phase4 {
             visit(n);
         }
 
+        public HashMap<String, String> fieldsInit(String c) {
+            ArrayList<String> parents = new ArrayList<String>();
+            parents.add(c);
+            
+            while (this.ctp.get(c) != null) {
+                c = this.ctp.get(c);
+                parents.add(c);
+            }
+
+            HashMap<String, String> f = new HashMap<String, String>();
+
+            for (int i = parents.size() - 1; i >= 0; i --) {
+                HashMap<String, String> cf = this.inis.get(parents.get(i));
+
+                if (cf != null) {
+                    // System.out.println(parents.get(i));
+                    // for (Object o : cf.keySet()) {
+                    //     if (o instanceof String) {
+                    //         System.out.println((String) o);
+                    //     }   
+                    // }
+                    f.putAll(cf);
+                }
+
+                //f.putAll(cf);
+            }
+
+            return f;
+
+        }
+
         /* Visitor for ClassDeclaration
          * Modified method name to "__class::method"
          * Adding __this argument to each method
@@ -186,7 +236,30 @@ public class Phase4 {
                 parentName = "Object";
             }
 
-            n.setProperty("defaultConstructor", "__" + name + "::__" + name + "() : __vptr(&__vtable) {}");
+            String dCon = "__" + name + "::__" + name + "() : ";
+
+            HashMap<String, String> f = fieldsInit(currentClass);
+
+            for (Object o : f.keySet()) {
+                if (o instanceof String) {
+
+                    dCon += (String) o;
+
+                    dCon += "(" + f.get((String) o) + "), ";
+
+                    //System.out.println(((VariableT) o).getType().getName());
+                    // Set<String> types = ((VariableT) o).getType().getScope();
+                    // for (Object oo : types){
+                    //     System.out.println((String) oo);
+                    // }
+                }
+            }
+
+            dCon += "__vptr(&__vtable) {}";
+
+            System.out.println(dCon);
+
+            n.setProperty("defaultConstructor", dCon);
 
             String classInfo = "";
 
@@ -260,6 +333,8 @@ public class Phase4 {
 
             else {
 
+                constructorFlag = false;
+
                 visit(n);
 
                 //constructor
@@ -271,6 +346,10 @@ public class Phase4 {
 
                     GNode blockContent = (GNode) NodeUtil.dfs(n, "Block");
                     GNode newBlock = GNode.create("Block");
+
+                    if (!constructorFlag) {
+                        newBlock.add(GNode.create("Statement", "__Object::__init(__this);\n"));
+                    }
 
                     for (Object o : blockContent) {
                         newBlock.add(o);
@@ -396,12 +475,13 @@ public class Phase4 {
                     if (n.get(2).toString().equals("this")) {
 
                         n.set(2, "__" + currentClass + "::__init");
-
+                        constructorFlag = true;
 
                     }
 
                     //call parent's __init
                     else if (n.get(2).toString().equals("super")) {
+                        constructorFlag = true;
                         String parentName = "";
                         if (extension == null) {
                             parentName = "Object";
