@@ -219,6 +219,7 @@ public class Phase1 {
                     }
 
                     n.setProperty("mangledName", mangledName);
+                    methodScopeToMangledName.put(table.current().getQualifiedName(), mangledName);
                 }
             }
 
@@ -279,7 +280,6 @@ public class Phase1 {
             visit(n);
             Node receiver = n.getNode(0);
             String methodName = n.getString(2);
-            System.out.println(methodName);
             if (n.getProperty("mangledName") == null) {
                 if ((receiver == null) &&
                         (!"super".equals(methodName)) &&
