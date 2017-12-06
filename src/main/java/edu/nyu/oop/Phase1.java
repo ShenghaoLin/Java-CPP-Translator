@@ -128,7 +128,7 @@ public class Phase1 {
             else if(typeName.equals("short"))
                 return "0";
             else
-                return "__rt::null";
+                return "__rt::null()";
         }
     }
 
@@ -198,7 +198,7 @@ public class Phase1 {
                 String typeName = n.getNode(1).getNode(0).getString(0);
                 String value;
                 if(n.getNode(2).getNode(0).getNode(2) != null) value = n.getNode(2).getNode(0).getNode(2).get(0).toString();
-                else value = "null";
+                else value = "";
                 Initializer initializer = new Initializer(fieldName, isStatic, typeName, value);
                 initializers.get(JavaEntities.currentType(table).getName()).add(initializer);
             }
