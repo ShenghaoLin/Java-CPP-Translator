@@ -87,7 +87,7 @@ public class Phase1 {
         }
     }
 
-    public static HashMap<String, HashMap<String, String>> mangle(Runtime runtime, SymbolTable table, Node n) {
+    public static HashMap<String, ArrayList<Initializer>> mangle(Runtime runtime, SymbolTable table, Node n) {
 
         Mangler mangler = new Mangler(runtime, table);
 
@@ -95,6 +95,39 @@ public class Phase1 {
         mangler.dispatch(n);
 
         return mangler.getInitializers();
+    }
+
+    public static class Initializer {
+        String name = "";
+        boolean isStatic = false;
+        String initial = "";
+        String value = "";
+
+        public Initializer(String name, boolean isStatic, String typeName, String value) {
+            this.name = name;
+            this.isStatic = isStatic;
+            this.initial = getInitial(typeName);
+            this.value = value;
+        }
+
+        public static String getInitial(String typeName){
+            if(typeName.equals("boolean"))
+                return "false";
+            else if(typeName.equals("int"))
+                return "0";
+            else if(typeName.equals("double"))
+                return "0";
+            else if(typeName.equals("float"))
+                return "0";
+            else if(typeName.equals("char"))
+                return "0";
+            else if(typeName.equals("byte"))
+                return "0";
+            else if(typeName.equals("short"))
+                return "0";
+            else
+                return "__rt::null";
+        }
     }
 
     public static class Mangler extends Visitor {
@@ -105,7 +138,8 @@ public class Phase1 {
         protected HashMap<String, Integer> mangleCounts;
         protected String className = "";
         protected String parentName = "";
-        protected HashMap<String, HashMap<String, String>> initializers;
+        protected HashMap<String, ArrayList<Initializer>> initializers;
+
 
         public final List<File> classpath() {
             return JavaEntities.classpath(runtime);
@@ -116,10 +150,10 @@ public class Phase1 {
             this.table = table;
             this.methodScopeToMangledName = new HashMap<String, String>();
             this.mangleCounts = new HashMap<String, Integer>();
-            this.initializers = new HashMap<String, HashMap<String, String>>();
+            this.initializers = new HashMap<String, ArrayList<Initializer>>();
         }
 
-        public HashMap<String, HashMap<String, String>> getInitializers () {
+        public HashMap<String, ArrayList<Initializer>> getInitializers () {
             return initializers;
         }
 
@@ -155,9 +189,16 @@ public class Phase1 {
         public void visitFieldDeclaration(GNode n) {
             String fieldName = n.getNode(2).getNode(0).getString(0);
             if(JavaEntities.typeDotField(table, classpath(), JavaEntities.currentType(table), true, fieldName) != null) {
-                String initial = "0";
-                if(n.getNode(2).getNode(0).getNode(2) != null) initial = n.getNode(2).getNode(0).getNode(2).get(0).toString();
-                initializers.get(JavaEntities.currentType(table).getName()).put(fieldName, initial);
+                VariableT field = JavaEntities.typeDotField(table, classpath(), JavaEntities.currentType(table), true, fieldName);
+                boolean isStatic;
+                if(TypeUtil.isStaticType(field)) isStatic = true;
+                else isStatic = false;
+                String typeName = n.getNode(1).getNode(0).getString(0);
+                String value;
+                if(n.getNode(2).getNode(0).getNode(2) != null) value = n.getNode(2).getNode(0).getNode(2).get(0).toString();
+                else value = "null";
+                Initializer initializer = new Initializer(fieldName, isStatic, typeName, value);
+                initializers.get(JavaEntities.currentType(table).getName()).add(initializer);
             }
         }
 
@@ -171,7 +212,7 @@ public class Phase1 {
             SymbolTableUtil.enterScope(table, n);
             table.mark(n);
 
-            initializers.put(JavaEntities.currentType(table).getName(), new HashMap<String, String>());
+            initializers.put(JavaEntities.currentType(table).getName(), new ArrayList<Initializer>());
 
             className = n.get(1).toString();
             Object extension = NodeUtil.dfs(n, "Extension");

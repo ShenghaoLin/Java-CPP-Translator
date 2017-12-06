@@ -221,7 +221,7 @@ public class Boot extends Tool {
 
             List<GNode> javaAsts = Phase1.parse(n);
 
-            HashMap<String, HashMap<String, String>> inis = new HashMap<String, HashMap<String, String>>();
+            HashMap<String, ArrayList<Phase1.Initializer>> inis = new HashMap<String, ArrayList<Phase1.Initializer>>();
 
             LinkedList<SymbolTable> tables = new LinkedList<SymbolTable>();
 

@@ -27,7 +27,7 @@ public class Phase4 {
 
     private Runtime runtime;
     private HashMap<String, String> ctp = new HashMap<String, String>();
-    private HashMap<String, HashMap<String, String>> inis = new HashMap<String, HashMap<String, String>>();
+    private HashMap<String, ArrayList<Phase1.Initializer>> inis = new HashMap<String, ArrayList<Phase1.Initializer>>();
 
     public ArrayList<BigArray> bigArrays = new ArrayList<BigArray>();
     public ArrayList<PrimitiveArray> primitiveArrays = new ArrayList<PrimitiveArray>();
@@ -37,7 +37,7 @@ public class Phase4 {
         this.runtime = runtime;
     }
 
-    public Phase4 (Runtime runtime, HashMap<String, String> ctp, HashMap<String, HashMap<String, String>> inis) {
+    public Phase4 (Runtime runtime, HashMap<String, String> ctp, HashMap<String, ArrayList<Phase1.Initializer>> inis) {
         this.runtime = runtime;
         this.ctp = ctp;
         this.inis = inis;
@@ -89,7 +89,7 @@ public class Phase4 {
         private String packageInfo = "";
         private boolean constructorFlag = false;
         private HashMap<String, String> ctp;
-        private HashMap<String, HashMap<String, String>> inis;
+        private HashMap<String, ArrayList<Phase1.Initializer>> inis;
 
         private SymbolTable table;
 
@@ -97,7 +97,7 @@ public class Phase4 {
         public ArrayList<PrimitiveArray> primitiveArrays = new ArrayList<PrimitiveArray>();
 
         public Phase4Visitor(SymbolTable table, Runtime runtime, 
-            HashMap<String, String> ctp, HashMap<String, HashMap<String, String>> inis) {
+            HashMap<String, String> ctp, HashMap<String, ArrayList<Phase1.Initializer>> inis) {
             this.table = table;
             this.runtime = runtime;
             this.ctp = ctp;
@@ -255,21 +255,21 @@ public class Phase4 {
 
             HashMap<String, String> f = new HashMap<String, String>();
 
-            for (int i = parents.size() - 1; i >= 0; i --) {
-                HashMap<String, String> cf = this.inis.get(parents.get(i));
+            //for (int i = parents.size() - 1; i >= 0; i --) {
+            //    HashMap<String, String> cf = this.inis.get(parents.get(i));
 
-                if (cf != null) {
+            //    if (cf != null) {
                     // System.out.println(parents.get(i));
                     // for (Object o : cf.keySet()) {
                     //     if (o instanceof String) {
                     //         System.out.println((String) o);
                     //     }   
                     // }
-                    f.putAll(cf);
-                }
+            //       f.putAll(cf);
+            //    }
 
                 //f.putAll(cf);
-            }
+            //}
 
             return f;
 
