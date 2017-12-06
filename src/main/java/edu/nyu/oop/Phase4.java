@@ -45,7 +45,7 @@ public class Phase4 {
         resolveInitializers();
     }
 
-    public void resolveInitializers() {
+    public void resolveInitializers() { 
         for (String key : childrenToParents.keySet()) {
             String toUpdate = key;
             Stack<String> stack = new Stack<String>();
