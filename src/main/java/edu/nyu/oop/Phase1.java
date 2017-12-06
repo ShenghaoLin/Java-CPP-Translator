@@ -102,12 +102,14 @@ public class Phase1 {
         boolean isStatic = false;
         String initial = "";
         String value = "";
+        String typeName = "";
 
         public Initializer(String name, boolean isStatic, String typeName, String value) {
             this.name = name;
             this.isStatic = isStatic;
             this.initial = getInitial(typeName);
             this.value = value;
+            this.typeName = typeName;
         }
 
         public static String getInitial(String typeName){

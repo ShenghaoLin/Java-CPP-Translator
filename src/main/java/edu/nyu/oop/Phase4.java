@@ -17,17 +17,18 @@ import edu.nyu.oop.util.SymbolTableBuilder;
 //import edu.nyu.oop.BigArray;
 //import edu.nyu.oop.PrimitiveArray;
 
-import java.util.List;
-import java.util.Set;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
+import java.util.Set;
+import java.util.Stack;
 
 /* Building C++ style AST given a root node of a java AST */
 public class Phase4 {
 
     private Runtime runtime;
-    private HashMap<String, String> ctp = new HashMap<String, String>();
-    private HashMap<String, ArrayList<Phase1.Initializer>> inis = new HashMap<String, ArrayList<Phase1.Initializer>>();
+    private HashMap<String, String> childrenToParents = new HashMap<String, String>();
+    private HashMap<String, ArrayList<Phase1.Initializer>> inits = new HashMap<String, ArrayList<Phase1.Initializer>>();
 
     public ArrayList<BigArray> bigArrays = new ArrayList<BigArray>();
     public ArrayList<PrimitiveArray> primitiveArrays = new ArrayList<PrimitiveArray>();
@@ -37,10 +38,41 @@ public class Phase4 {
         this.runtime = runtime;
     }
 
-    public Phase4 (Runtime runtime, HashMap<String, String> ctp, HashMap<String, ArrayList<Phase1.Initializer>> inis) {
+    public Phase4 (Runtime runtime, HashMap<String, String> childrenToParents, HashMap<String, ArrayList<Phase1.Initializer>> inits) {
         this.runtime = runtime;
-        this.ctp = ctp;
-        this.inis = inis;
+        this.childrenToParents = childrenToParents;
+        this.inits = inits;
+        resolveInitializers();
+    }
+
+    public void resolveInitializers() {
+        for (String key : childrenToParents.keySet()) {
+            String toUpdate = key;
+            Stack<String> stack = new Stack<String>();
+            stack.push(key);
+            String temp = key;
+            while (childrenToParents.get(temp).equals("")) {
+                stack.push(childrenToParents.get(temp));
+                temp = childrenToParents.get(temp);
+            }
+            ArrayList<Phase1.Initializer> start = inits.get(stack.pop());
+            while (!stack.empty()) {
+                ArrayList<Phase1.Initializer> temp = inits.get(stack.pop());
+                for (Phase1.Initializer elem : temp) {
+                    if (!elem.isStatic) {
+                        boolean addFlag = true;
+                        for (int i = 0; i < start.size(); i++) {
+                            if (elem.name.equals(start.get(i).name) && elem.typeName.equals(start.get(i).typeName)) {
+                                start.set(i, elem);
+                                addFlag = false;
+                            }
+                        }
+                        if (addFlag) start.add(elem);
+                    }
+                }
+            }
+            inits.put(toUpdate, start);
+        }
     }
 
     /* process a list of nodes */
