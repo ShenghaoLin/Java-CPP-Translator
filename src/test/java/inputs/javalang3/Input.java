@@ -48,7 +48,7 @@ class B extends A {
 
     public B(char z) {
         super(z);
-        z = z;
+        this.z = z;
         overloaded(this.z);
     }
 

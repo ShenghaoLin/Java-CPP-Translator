@@ -42,7 +42,40 @@ public class Phase4 {
         this.runtime = runtime;
         this.childrenToParents = childrenToParents;
         this.inits = inits;
+
+        // Set<String> set = this.inits.keySet();
+        // for (Object key : set) {
+
+        //     ArrayList<Phase1.Initializer> list = this.inits.get((String) key);
+
+        //     System.out.println((String) key);
+
+        //     for (Object o : list) {
+        //         if (o instanceof Phase1.Initializer) {
+
+        //             Phase1.Initializer init = (Phase1.Initializer) o;
+        //             System.out.println(init.name + " " + init.initial + " " + init.value);
+        //         }
+        //     }
+        // }
+
         resolveInitializers();
+
+        // set = this.inits.keySet();
+        // for (Object key : set) {
+
+        //     ArrayList<Phase1.Initializer> list = this.inits.get((String) key);
+
+        //     System.out.println((String) key);
+
+        //     for (Object o : list) {
+        //         if (o instanceof Phase1.Initializer) {
+
+        //             Phase1.Initializer init = (Phase1.Initializer) o;
+        //             System.out.println(init.name + " " + init.initial + " " + init.value);
+        //         }
+        //     }
+        // }
     }
 
     public void resolveInitializers() { 
@@ -51,14 +84,20 @@ public class Phase4 {
             Stack<String> stack = new Stack<String>();
             stack.push(key);
             String temp = key;
-            while (childrenToParents.get(temp).equals("")) {
+            while (!childrenToParents.get(temp).equals("")) {
                 stack.push(childrenToParents.get(temp));
                 temp = childrenToParents.get(temp);
             }
-            ArrayList<Phase1.Initializer> start = inits.get(stack.pop());
+            ArrayList<Phase1.Initializer> tmpAL = inits.get(stack.pop());
+            ArrayList<Phase1.Initializer> start = new ArrayList<Phase1.Initializer>();
+            if (tmpAL != null) {
+                start = (ArrayList<Phase1.Initializer>) tmpAL.clone();
+
+            }
+
             while (!stack.empty()) {
-                ArrayList<Phase1.Initializer> temp = inits.get(stack.pop());
-                for (Phase1.Initializer elem : temp) {
+                ArrayList<Phase1.Initializer> tempList = inits.get(stack.pop());
+                for (Phase1.Initializer elem : tempList) {
                     if (!elem.isStatic) {
                         boolean addFlag = true;
                         for (int i = 0; i < start.size(); i++) {
@@ -90,7 +129,7 @@ public class Phase4 {
             if (o instanceof Node) {
 
                 SymbolTable table = new SymbolTableBuilder(runtime).getTable((GNode) o);
-                Phase4Visitor visitor = new Phase4Visitor(table, runtime, ctp, inis);
+                Phase4Visitor visitor = new Phase4Visitor(table, runtime, childrenToParents, inits);
                 visitor.traverse((Node) o);
             }
         }
@@ -100,7 +139,7 @@ public class Phase4 {
 
     /* process a single node */
     public Node runNode(Node n, SymbolTable table) {
-        Phase4Visitor visitor = new Phase4Visitor(table, runtime, ctp, inis);
+        Phase4Visitor visitor = new Phase4Visitor(table, runtime, childrenToParents, inits);
         visitor.traverse(n);
         //bigArrays.addAll(visitor.bigArrays);
         //primitiveArrays.addAll(visitor.primitiveArrays);
@@ -122,6 +161,8 @@ public class Phase4 {
         private boolean constructorFlag = false;
         private HashMap<String, String> ctp;
         private HashMap<String, ArrayList<Phase1.Initializer>> inis;
+        private boolean defaultConstructorNeeded = false;
+
 
         private SymbolTable table;
 
@@ -276,37 +317,6 @@ public class Phase4 {
             visit(n);
         }
 
-        public HashMap<String, String> fieldsInit(String c) {
-            ArrayList<String> parents = new ArrayList<String>();
-            parents.add(c);
-            
-            while (this.ctp.get(c) != null) {
-                c = this.ctp.get(c);
-                parents.add(c);
-            }
-
-            HashMap<String, String> f = new HashMap<String, String>();
-
-            //for (int i = parents.size() - 1; i >= 0; i --) {
-            //    HashMap<String, String> cf = this.inis.get(parents.get(i));
-
-            //    if (cf != null) {
-                    // System.out.println(parents.get(i));
-                    // for (Object o : cf.keySet()) {
-                    //     if (o instanceof String) {
-                    //         System.out.println((String) o);
-                    //     }   
-                    // }
-            //       f.putAll(cf);
-            //    }
-
-                //f.putAll(cf);
-            //}
-
-            return f;
-
-        }
-
         /* Visitor for ClassDeclaration
          * Modified method name to "__class::method"
          * Adding __this argument to each method
@@ -317,6 +327,8 @@ public class Phase4 {
 
             SymbolTableUtil.enterScope(table, n);
             table.mark(n);
+
+            defaultConstructorNeeded = true;
 
             //collect class info
             String name = n.get(1).toString();
@@ -336,14 +348,16 @@ public class Phase4 {
 
             String dCon = "__" + name + "::__" + name + "() : ";
 
-            HashMap<String, String> f = fieldsInit(currentClass);
+            ArrayList<Phase1.Initializer> f = inis.get(name);
 
-            for (Object o : f.keySet()) {
-                if (o instanceof String) {
+            for (Object o : f) {
+                if (o instanceof Phase1.Initializer) {
 
-                    dCon += (String) o;
+                    Phase1.Initializer init = (Phase1.Initializer) o;
 
-                    dCon += "(" + f.get((String) o) + "), ";
+                    dCon += init.name;
+
+                    dCon += "(" + init.initial + "), ";
 
                     // System.out.println(((VariableT) o).getType().getName());
                     // Set<String> types = ((VariableT) o).getType().getScope();
@@ -376,6 +390,32 @@ public class Phase4 {
             n.setProperty("vtableInit", vtableInit);
 
             visit(n);
+
+            if (defaultConstructorNeeded) {
+                String defaultCon = "";
+                defaultCon += currentClass + " __"
+                        + currentClass + "::__init("
+                        + currentClass + " __this) {\n";
+                defaultCon += "__Object::__Object(__this);\n";
+
+                ArrayList<Phase1.Initializer> fff = inis.get(currentClass);
+
+                for (Object ooo : fff) {
+                    if (ooo instanceof Phase1.Initializer) {
+
+                        Phase1.Initializer init = (Phase1.Initializer) ooo;
+                        if (!init.value.equals("")) {
+                            defaultCon += "__this -> " + init.name;
+                            defaultCon += " = " + init.value + ";\n";
+                        }
+                    }
+                }
+
+                defaultCon += "return __this;\n";
+                defaultCon += "}\n";
+
+                n.setProperty("realDefaultConstructor", defaultCon);
+            }
 
             extension = null;
             currentClass = null;
@@ -438,6 +478,8 @@ public class Phase4 {
                 //constructor
                 if (n.get(3).toString().equals(currentClass)) {
 
+                    defaultConstructorNeeded = false;
+
                     n.set(0, GNode.create("Modifiers"));
                     n.set(2, currentClass);
                     n.set(3, "__" + currentClass + "::" + "__init");
@@ -447,6 +489,24 @@ public class Phase4 {
 
                     if (!constructorFlag) {
                         newBlock.add(GNode.create("Statement", "__Object::__init(__this);\n"));
+
+
+                        String addon = "";
+
+                        ArrayList<Phase1.Initializer> fff = inis.get(currentClass);
+
+                        for (Object ooo : fff) {
+                            if (ooo instanceof Phase1.Initializer) {
+
+                                Phase1.Initializer init = (Phase1.Initializer) ooo;
+                                if (!init.value.equals("")) {
+                                    addon += "__this -> " + init.name;
+                                    addon += " = " + init.value + ";\n";
+                                }
+                            }
+                        }
+
+                        newBlock.add(GNode.create("Statement", addon));
                     }
 
                     for (Object o : blockContent) {
@@ -460,7 +520,6 @@ public class Phase4 {
                 //normal methods
                 else {
                     n.set(0, GNode.create("Modifiers"));
-                    n.set(2, currentClass);
                     n.set(3, "__" + currentClass + "::" + n.get(3).toString());
                 }
 
@@ -577,6 +636,23 @@ public class Phase4 {
                         n.set(2, "__" + currentClass + "::__init");
                         constructorFlag = true;
 
+                        String addon = "";
+
+                        ArrayList<Phase1.Initializer> fff = inis.get(currentClass);
+
+                        for (Object ooo : fff) {
+                            if (ooo instanceof Phase1.Initializer) {
+
+                                Phase1.Initializer init = (Phase1.Initializer) ooo;
+                                if (!init.value.equals("")) {
+                                    addon += "__this -> " + init.name;
+                                    addon += " = " + init.value + ";\n";
+                                }
+                            }
+                        }
+
+                        n.setProperty("addOnSentence", addon);
+
                     }
 
                     //call parent's __init
@@ -591,6 +667,23 @@ public class Phase4 {
 
                         GNode arguments = GNode.create("Arguments");
                         n.set(2, "__" + parentName + "::__init");
+
+                        String addon = "";
+
+                        ArrayList<Phase1.Initializer> fff = inis.get(currentClass);
+
+                        for (Object ooo : fff) {
+                            if (ooo instanceof Phase1.Initializer) {
+
+                                Phase1.Initializer init = (Phase1.Initializer) ooo;
+                                if (!init.value.equals("")) {
+                                    addon += "__this -> " + init.name;
+                                    addon += " = " + init.value + ";\n";
+                                }
+                            }
+                        }
+
+                        n.setProperty("addOnSentence", addon);
                     }
 
                     else {

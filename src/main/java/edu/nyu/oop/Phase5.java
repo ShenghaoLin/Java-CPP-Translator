@@ -116,17 +116,20 @@ public class Phase5 extends Visitor {
 
 
         //default constructor
-        printer.pln((String)n. getProperty("defaultConstructor"));
+        printer.pln((String) n.getProperty("defaultConstructor"));
         printer.pln().flush();
 
         //real default constructor
-        Object o = NodeUtil.dfs(n, "ConstructorDelaration");
-        if (o == null) {
-            printer.pln(n.get(1).toString() + " __"
-                        + n.get(1).toString() + "::__init("
-                        + n.get(1).toString() + " __this) {");
-            printer.pln("return __this;");
-            printer.pln("}");
+        // Object o = NodeUtil.dfs(n, "ConstructorDelaration");
+        // if (o == null) {
+        //     printer.pln(n.get(1).toString() + " __"
+        //                 + n.get(1).toString() + "::__init("
+        //                 + n.get(1).toString() + " __this) {");
+        //     printer.pln("return __this;");
+        //     printer.pln("}");
+        // }
+        if (n.getProperty("realDefaultConstructor") != null) {
+            printer.pln((String) n.getProperty("realDefaultConstructor"));
         }
 
         //visit class body
@@ -318,10 +321,12 @@ public class Phase5 extends Visitor {
 
         //other calling will not be specialized.
         else {
+
             visit(n);
         }
 
         inCout = false;
+
     }
 
     /* Visitor for ExpressionStatement
@@ -330,7 +335,20 @@ public class Phase5 extends Visitor {
     public void visitExpressionStatement(GNode n) {
         visit(n);
         printer.pln(";").flush();
+
+        Object call = NodeUtil.dfs(n, "CallExpression");
+
+        if (call != null) {
+
+            GNode nn = (GNode) call;
+
+            Object o = nn.getProperty("addOnSentence");
+            if (o != null) {
+                printer.p((String) o).flush();
+            }
+        }
     }
+
 
     /* Visitor for ReturnStatement
      * print return, ending with ";"
