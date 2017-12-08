@@ -139,6 +139,10 @@ public class Phase5 extends Visitor {
         //class method
         printer.pln((String) n.getProperty("classInfo"));
 
+        if (n.getProperty("staticInit") != null) {
+            printer.pln((String) n.getProperty("staticInit"));
+        }
+
         //vtable initialization
         printer.pln((String) n.getProperty("vtableInit")).flush();
 

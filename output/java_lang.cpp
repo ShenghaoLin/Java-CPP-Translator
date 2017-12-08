@@ -161,7 +161,6 @@ String __Class::toString(Class __this)
 {
     return new __String("class " + __this->name->data);
 }
-<<<<<<< HEAD
 
 // java.lang.Class.getName()
 String __Class::getName(Class __this)
@@ -201,76 +200,35 @@ bool __Class::isInstance(Class __this, Object o)
     // is an instance of a given class
     Class k = o->__vptr->getClass(o);
 
-    =======
-
-        // java.lang.Class.getName()
-        String __Class::getName(Class __this)
+    do
     {
-        return __this->name;
-    }
+        if (__this->__vptr->equals(__this, (Object)k)) return true;
 
-    // java.lang.Class.getSuperclass()
-    Class __Class::getSuperclass(Class __this)
-    {
-        return __this->parent;
-    }
-
-    // java.lang.Class.isPrimitive()
-    bool __Class::isPrimitive(Class __this)
-    {
-        return __this->primitive;
-    }
-
-    // java.lang.Class.isArray()
-    bool __Class::isArray(Class __this)
-    {
-        return (Class)__rt::null() != __this->component;
-    }
-
-    // java.lang.Class.getComponentType()
-    Class __Class::getComponentType(Class __this)
-    {
-        return __this->component;
-    }
-
-    // java.lang.Class.isInstance(Object)
-    bool __Class::isInstance(Class __this, Object o)
-    {
-        // isInstance traverses the inheritance hierarchy upwards
-        // (until it hits null) to determine whether an object
-        // is an instance of a given class
-        Class k = o->__vptr->getClass(o);
-
-        >>>>>>> 58fcabd521db7666e979ade35eed2feaf5132530
-        do
+        // Array covariance test
+        if (__this->__vptr->isArray(__this) && k->__vptr->isArray(k))
         {
-            if (__this->__vptr->equals(__this, (Object)k)) return true;
-
-            // Array covariance test
-            if (__this->__vptr->isArray(__this) && k->__vptr->isArray(k))
-            {
-                // k != __this implies component type of k must not be equal to component type of __this
-                k = k->__vptr->getComponentType(k);
-                __this = __this->__vptr->getComponentType(__this);
-            }
-
-            k = k->__vptr->getSuperclass(k);
+            // k != __this implies component type of k must not be equal to component type of __this
+            k = k->__vptr->getComponentType(k);
+            __this = __this->__vptr->getComponentType(__this);
         }
-        while ((Class)__rt::null() != k);
 
-        return false;
+        k = k->__vptr->getSuperclass(k);
     }
+    while ((Class)__rt::null() != k);
 
-    // Internal accessor for java.lang.Class' class.
-    Class __Class::__class()
-    {
-        static Class k = new __Class(__rt::literal("java.lang.Class"), __Object::__class());
-        return k;
-    }
+    return false;
+}
 
-    // The vtable for java.lang.Class.  Note that this definition
-    // invokes the default no-arg constructor for __Class_VT.
-    __Class_VT __Class::__vtable;
+// Internal accessor for java.lang.Class' class.
+Class __Class::__class()
+{
+    static Class k = new __Class(__rt::literal("java.lang.Class"), __Object::__class());
+    return k;
+}
+
+// The vtable for java.lang.Class.  Note that this definition
+// invokes the default no-arg constructor for __Class_VT.
+__Class_VT __Class::__vtable;
 
 }
 }

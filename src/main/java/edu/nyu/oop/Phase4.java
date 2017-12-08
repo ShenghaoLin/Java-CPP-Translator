@@ -43,21 +43,21 @@ public class Phase4 {
         this.childrenToParents = childrenToParents;
         this.inits = inits;
 
-        Set<String> set = this.inits.keySet();
-        for (Object key : set) {
+        // Set<String> set = this.inits.keySet();
+        // for (Object key : set) {
 
-            ArrayList<Phase1.Initializer> list = this.inits.get((String) key);
+        //     ArrayList<Phase1.Initializer> list = this.inits.get((String) key);
 
-            System.out.println((String) key);
+        //     System.out.println((String) key);
 
-            for (Object o : list) {
-                if (o instanceof Phase1.Initializer) {
+        //     for (Object o : list) {
+        //         if (o instanceof Phase1.Initializer) {
 
-                    Phase1.Initializer init = (Phase1.Initializer) o;
-                    System.out.println(init.name + " " + init.initial + " " + init.value);
-                }
-            }
-        }
+        //             Phase1.Initializer init = (Phase1.Initializer) o;
+        //             System.out.println(init.name + " " + init.initial + " " + init.value);
+        //         }
+        //     }
+        // }
 
         resolveInitializers();
 
@@ -404,7 +404,7 @@ public class Phase4 {
                     if (ooo instanceof Phase1.Initializer) {
 
                         Phase1.Initializer init = (Phase1.Initializer) ooo;
-                        if (!init.value.equals("")) {
+                        if ((!init.value.equals(""))&&(!init.isStatic)) {
                             defaultCon += "__this -> " + init.name;
                             defaultCon += " = " + init.value + ";\n";
                         }
@@ -415,6 +415,33 @@ public class Phase4 {
                 defaultCon += "}\n";
 
                 n.setProperty("realDefaultConstructor", defaultCon);
+            }
+
+
+            String staticInit = "";
+
+            ArrayList<Phase1.Initializer> fff = inis.get(currentClass);
+
+            for (Object ooo : fff) {
+                if (ooo instanceof Phase1.Initializer) {
+
+                    Phase1.Initializer init = (Phase1.Initializer) ooo;
+                    if (init.isStatic) {
+                        if (init.value.equals("")) {
+                            staticInit += currentClass + "::" + init.name;
+                            staticInit += " = " + init.initial + ";\n";
+                        }
+                        else {
+                            staticInit += currentClass + "::" + init.name;
+                            staticInit += " = " + init.value + ";\n";
+                        }
+                        
+                    }
+                }
+            }
+
+            if (!staticInit.equals("")) {
+                n.setProperty("staticInit", staticInit);
             }
 
             extension = null;
@@ -447,10 +474,12 @@ public class Phase4 {
 
                 isMain = true;
 
-                n.set(2, "int");
+                n.set(2, "int32_t");
 
                 //cannot handling array now
                 //n.set(4, GNode.create("Arguments", GNode.create("VoidType")));
+
+                n.set(3, currentClass + "::" + n.get(3).toString());
 
                 visit(n);
 
@@ -499,7 +528,7 @@ public class Phase4 {
                             if (ooo instanceof Phase1.Initializer) {
 
                                 Phase1.Initializer init = (Phase1.Initializer) ooo;
-                                if (!init.value.equals("")) {
+                                if ((!init.value.equals(""))&&(!init.isStatic)) {
                                     addon += "__this -> " + init.name;
                                     addon += " = " + init.value + ";\n";
                                 }
@@ -584,10 +613,24 @@ public class Phase4 {
          * C++ style "->" for selection
          */
         public void visitSelectionExpression(GNode n) {
-            for (int i = 1; i < n.size(); i++) {
-                if (n.get(i) instanceof String) {
-                    if (!n.get(i).toString().startsWith("-> ")) {
-                        n.set(i, "-> " + n.get(i).toString());
+
+            String pi = "";
+
+            Object piO = NodeUtil.dfs(n, "PrimaryIdentifier");
+
+            if (piO != null) {
+                pi = ((GNode) piO).get(0).toString();
+            }
+
+            if (inis.keySet().contains(pi)) {
+                n.set(1, "::" + n.get(1).toString());
+            }
+            else {
+                for (int i = 1; i < n.size(); i++) {
+                    if (n.get(i) instanceof String) {
+                        if (!n.get(i).toString().startsWith("-> ")) {
+                            n.set(i, "-> " + n.get(i).toString());
+                        }
                     }
                 }
             }
@@ -646,7 +689,7 @@ public class Phase4 {
                             if (ooo instanceof Phase1.Initializer) {
 
                                 Phase1.Initializer init = (Phase1.Initializer) ooo;
-                                if (!init.value.equals("")) {
+                                if ((!init.value.equals(""))&&(!init.isStatic)) {
                                     addon += "__this -> " + init.name;
                                     addon += " = " + init.value + ";\n";
                                 }
@@ -678,7 +721,7 @@ public class Phase4 {
                             if (ooo instanceof Phase1.Initializer) {
 
                                 Phase1.Initializer init = (Phase1.Initializer) ooo;
-                                if (!init.value.equals("")) {
+                                if ((!init.value.equals(""))&&(!init.isStatic)) {
                                     addon += "__this -> " + init.name;
                                     addon += " = " + init.value + ";\n";
                                 }

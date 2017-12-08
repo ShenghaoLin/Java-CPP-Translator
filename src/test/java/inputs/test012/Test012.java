@@ -46,5 +46,6 @@ public class Test012 {
         a.printOther(b1);
         a.printOther(b2);
         a.printOther(c);
+        c.myToString();
     }
 }
