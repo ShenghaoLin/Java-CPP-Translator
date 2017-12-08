@@ -326,6 +326,7 @@ public class Phase1 {
             visit(n);
             Node receiver = n.getNode(0);
             String methodName = n.getString(2);
+            if (methodName.equals("this")) return;
             if (n.getProperty("mangledName") == null) {
                 if ((receiver == null) &&
                         (!"super".equals(methodName)) &&
@@ -335,8 +336,6 @@ public class Phase1 {
                     List<Type> actuals = JavaEntities.typeList((List) dispatch(n.getNode(3)));
                     MethodT method =
                             JavaEntities.typeDotMethod(table, classpath(), typeToSearch, true, methodName, actuals);
-
-                    if (methodName.equals("overloaded")) System.out.println("over");
 
                     if (method == null) return;
 
