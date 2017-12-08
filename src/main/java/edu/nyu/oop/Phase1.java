@@ -24,6 +24,7 @@ import xtc.tree.GNode;
 import xtc.tree.Node;
 import xtc.tree.Visitor;
 import xtc.type.*;
+import xtc.tree.Attribute;
 import xtc.util.Runtime;
 import xtc.util.SymbolTable;
 
@@ -63,6 +64,7 @@ public class Phase1 {
       */
     private static void parse(GNode node, Set<Path> paths, List<GNode> ast) {
 
+
         // use a queue of nodes to find dependencies and process them
         Queue<GNode> nodes = new ArrayDeque<GNode>();
         nodes.add(node);
@@ -85,6 +87,7 @@ public class Phase1 {
                 nodes.addAll(JavaFiveImportParser.parse(next));
             }
         }
+
     }
 
     public static HashMap<String, ArrayList<Initializer>> mangle(Runtime runtime, SymbolTable table, Node n) {
@@ -168,6 +171,12 @@ public class Phase1 {
             MethodT callExpMethod =
                     JavaEntities.typeDotMethod(table, classpath(), callExpObjectType, true, callExpMethodName, callExpActuals);
             return callExpMethod.getResult();
+        }
+
+        public boolean isPrivateType(Type type) {
+            if (type == null) return false;
+            Attribute attr  = type.getAttribute(Constants.NAME_VISIBILITY);
+            return "private".equals(attr == null ? null : attr.getValue());
         }
 
         //VISIT METHODS
@@ -360,7 +369,6 @@ public class Phase1 {
                                 JavaEntities.typeDotMethod(table, classpath(), typeToSearch, true, methodName, actuals);
                         n.setProperty("mangledName", methodScopeToMangledName.get(method.getScope()));
                     }
-
                     else if (receiver.getName().equals("CallExpression")) {
                         Type objectType = returnTypeFromCallExpression(receiver);
                         List<Type> actuals = JavaEntities.typeList((List) dispatch(n.getNode(3)));

@@ -5,58 +5,220 @@ using namespace java::lang;
 
 namespace inputs
 {
-namespace test006
+namespace javalang
 {
-__A::__A() : fld(__rt::null()), __vptr(&__vtable) {}
+__A::__A() : x(0), y(0), __vptr(&__vtable) {}
 
-A __A::__init (A __this ){
+A __A::__init (A __this , char x , char y ){
 __Object::__init(__this);
- __this -> fld = "A";
- return __this ;
+  __this -> x = x ;
+__this -> y = y ;
+__this -> __vptr -> print_0 (__this );
+return __this ;
 }
 
-void __A::setFld_String_0 (A __this , String f ){
-__this -> fld = f ;
+A __A::__init (A __this , char x ){
+__A::__init (__this , x , (char ) x + 4 );
+return __this ;
 }
 
-void __A::almostSetFld_String_0 (A __this , String f ){
-String fld;
-fld = f ;
+String __A::toString (A __this ){
+return new __String("A(" )+ __this -> x + new __String("," )+ __this -> y + new __String(")" );
 }
 
-String __A::getFld_0 (A __this ){
-return __this -> fld ;
+void __A::overloaded_int_0 (A __this , int i ){
+cout << "overloaded(int)" << endl ;
+}
+
+void __A::overloaded_byte_0 (A __this , byte b ){
+cout << "overloaded(byte)" << endl ;
+}
+
+A __A::overloaded_A_0 (A __this , A a ){
+cout << "overloaded(A)" << endl ;
+return a ;
+}
+
+void __A::print_0 (A __this ){
+cout << __this -> x ;
+cout << "," ;
+cout << __this -> y << endl ;
 }
 
 Class __A::__class() {
-static Class k = new __Class(__rt::literal("inputs.test006.A"), __Object::__class());
+static Class k = new __Class(__rt::literal("inputs.javalang.A"), __Object::__class());
 return k;
 }
 
 __A_VT __A::__vtable;
 
-__Test006::__Test006() : __vptr(&__vtable) {}
+__B::__B() : x(0), y(0), z(0), __vptr(&__vtable) {}
 
-Test006 __Test006::__init(Test006 __this) {
-__Object::__Object(__this);
+B __B::__init (B __this ){
+__A::__init (__this , 'x' );
+__this -> z = 42;
+return __this ;
+}
+
+B __B::__init (B __this , char z ){
+__A::__init (__this , z );
+__this -> z = 42;
+__this -> z = z ;
+__this -> __vptr -> overloaded_int_0 (__this , __this -> z );
+return __this ;
+}
+
+String __B::toString (B __this ){
+String s = (new __A()) -> __vptr -> toString ((A) __this );
+return new __String("B(" )+ __this -> z + new __String(") extends " )+ s ;
+}
+
+A __B::overloaded_B_0 (B __this , B b ){
+cout << "overloaded(B)" << endl ;
+return b ;
+}
+
+Class __B::__class() {
+static Class k = new __Class(__rt::literal("inputs.javalang.B"), __A::__class());
+return k;
+}
+
+__B_VT __B::__vtable;
+
+__Main::__Main() : __vptr(&__vtable) {}
+
+Main __Main::__init(Main __this) {
+__Object::__init(__this);
 return __this;
 }
 
 int main (__rt::Array<String> args ){
-A a = __A::__init (new __A() );
-a -> __vptr -> almostSetFld_String_0 (a , new __String("B" ));
-cout << a -> __vptr -> getFld_0 (a )<< endl ;
-a -> __vptr -> setFld_String_0 (a , new __String("B" ));
-cout << a -> __vptr -> getFld_0 (a )<< endl ;
+__rt::Array<int32_t> a = new __rt::Array<int32_t> (10 );
+__rt::Array<A> aaa = new __rt::Array<A> (10 );
+cout << a -> data[0 ]<< endl ;
+B b = __B::__init (new __B() , 'z' );
+cout << b -> __vptr -> toString (b )<< endl ;
+b -> __vptr -> overloaded_B_0 (b , b )-> __vptr -> overloaded_A_0 (b -> __vptr -> overloaded_B_0 (b , b ), b );
 return 0 ;
 }
 
-Class __Test006::__class() {
-static Class k = new __Class(__rt::literal("inputs.test006.Test006"), __Object::__class());
+Class __Main::__class() {
+static Class k = new __Class(__rt::literal("inputs.javalang.Main"), __Object::__class());
 return k;
 }
 
-__Test006_VT __Test006::__vtable;
+__Main_VT __Main::__vtable;
+
+}
+}
+
+#include "output.h"
+#include <iostream>
+
+using namespace java::lang;
+
+namespace inputs
+{
+namespace javalang
+{
+__A::__A() : x(0), y(0), __vptr(&__vtable) {}
+
+A __A::__init (A __this , char x , char y ){
+__Object::__init(__this);
+  __this -> x = x ;
+__this -> y = y ;
+__this -> __vptr -> print_0 (__this );
+return __this ;
+}
+
+A __A::__init (A __this , char x ){
+__A::__init (__this , x , (char ) x + 4 );
+return __this ;
+}
+
+String __A::toString (A __this ){
+return new __String("A(" )+ __this -> x + new __String("," )+ __this -> y + new __String(")" );
+}
+
+void __A::overloaded_int_0 (A __this , int i ){
+cout << "overloaded(int)" << endl ;
+}
+
+void __A::overloaded_byte_0 (A __this , byte b ){
+cout << "overloaded(byte)" << endl ;
+}
+
+A __A::overloaded_A_0 (A __this , A a ){
+cout << "overloaded(A)" << endl ;
+return a ;
+}
+
+void __A::print_0 (A __this ){
+cout << __this -> x ;
+cout << "," ;
+cout << __this -> y << endl ;
+}
+
+Class __A::__class() {
+static Class k = new __Class(__rt::literal("inputs.javalang.A"), __Object::__class());
+return k;
+}
+
+__A_VT __A::__vtable;
+
+__B::__B() : x(0), y(0), z(0), __vptr(&__vtable) {}
+
+B __B::__init (B __this ){
+__A::__init (__this , 'x' );
+__this -> z = 42;
+return __this ;
+}
+
+B __B::__init (B __this , char z ){
+__A::__init (__this , z );
+__this -> z = 42;
+__this -> z = z ;
+__this -> __vptr -> overloaded_int_0 (__this , __this -> z );
+return __this ;
+}
+
+String __B::toString (B __this ){
+String s = (new __A()) -> __vptr -> toString ((A) __this );
+return new __String("B(" )+ __this -> z + new __String(") extends " )+ s ;
+}
+
+A __B::overloaded_B_0 (B __this , B b ){
+cout << "overloaded(B)" << endl ;
+return b ;
+}
+
+Class __B::__class() {
+static Class k = new __Class(__rt::literal("inputs.javalang.B"), __A::__class());
+return k;
+}
+
+__B_VT __B::__vtable;
+
+__Main::__Main() : __vptr(&__vtable) {}
+
+Main __Main::__init(Main __this) {
+__Object::__init(__this);
+return __this;
+}
+
+int main (__rt::Array<String> args ){
+B b = __B::__init (new __B() , 'z' );
+cout << b -> __vptr -> toString (b )<< endl ;
+b -> __vptr -> overloaded_B_0 (b , b )-> __vptr -> overloaded_A_0 (b -> __vptr -> overloaded_B_0 (b , b ), b );
+return 0 ;
+}
+
+Class __Main::__class() {
+static Class k = new __Class(__rt::literal("inputs.javalang.Main"), __Object::__class());
+return k;
+}
+
+__Main_VT __Main::__vtable;
 
 }
 }

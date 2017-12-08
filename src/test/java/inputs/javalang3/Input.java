@@ -1,4 +1,4 @@
-package inputs.javalang3;
+package inputs.javalang;
 
 class A {
     private char x;
