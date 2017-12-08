@@ -353,7 +353,7 @@ public class Phase1 {
                         n.set(0, makeThisExpression());
                     }
                 } else if (receiver != null) {
-                    //GET MANGLED NAME
+                    //GET METHOD
                     if(receiver.getName().equals("PrimaryIdentifier")) {
                         Type typeToSearch = null;
                         //STATIC
@@ -367,14 +367,12 @@ public class Phase1 {
                         List<Type> actuals = JavaEntities.typeList((List) dispatch(n.getNode(3)));
                         MethodT method =
                                 JavaEntities.typeDotMethod(table, classpath(), typeToSearch, true, methodName, actuals);
-                        n.setProperty("mangledName", methodScopeToMangledName.get(method.getScope()));
                     }
                     else if (receiver.getName().equals("CallExpression")) {
                         Type objectType = returnTypeFromCallExpression(receiver);
                         List<Type> actuals = JavaEntities.typeList((List) dispatch(n.getNode(3)));
                         MethodT method =
                                 JavaEntities.typeDotMethod(table, classpath(), objectType, true, methodName, actuals);
-                        n.setProperty("mangledName", methodScopeToMangledName.get(method.getScope()));
                     }
 
                     else if (receiver.getName().equals("ThisExpression")) {
@@ -382,7 +380,6 @@ public class Phase1 {
                         List<Type> actuals = JavaEntities.typeList((List) dispatch(n.getNode(3)));
                         MethodT method =
                                 JavaEntities.typeDotMethod(table, classpath(), currentType, true, methodName, actuals);
-                        n.setProperty("mangledName", methodScopeToMangledName.get(method.getScope()));
                     }
 
                     else if (receiver.getName().equals("SuperExpression")) {
@@ -391,8 +388,14 @@ public class Phase1 {
                         List<Type> actuals = JavaEntities.typeList((List) dispatch(n.getNode(3)));
                         MethodT method =
                                 JavaEntities.typeDotMethod(table, classpath(), superType, true, methodName, actuals);
-                        n.setProperty("mangledName", methodScopeToMangledName.get(method.getScope()));
                     }
+                    //Set mangled name
+                    n.setProperty("mangledName", methodScopeToMangledName.get(method.getScope()));
+                    //Set method type
+                    String methodType = "dynamic";
+                    if(isPrivateType(method)) methodType = "private";
+                    if(TypeUtil.isStaticType(method)) methodType = "static";
+                    n.setProperty("methodType", methodType);
                 }
             }
         }
