@@ -354,6 +354,7 @@ public class Phase1 {
                     }
                 } else if (receiver != null) {
                     //GET METHOD
+                    MethodT method = null;
                     if(receiver.getName().equals("PrimaryIdentifier")) {
                         Type typeToSearch = null;
                         //STATIC
@@ -365,37 +366,39 @@ public class Phase1 {
                             typeToSearch = objectLookup.getType();
                         }
                         List<Type> actuals = JavaEntities.typeList((List) dispatch(n.getNode(3)));
-                        MethodT method =
-                                JavaEntities.typeDotMethod(table, classpath(), typeToSearch, true, methodName, actuals);
+                        method =
+                            JavaEntities.typeDotMethod(table, classpath(), typeToSearch, true, methodName, actuals);
                     }
                     else if (receiver.getName().equals("CallExpression")) {
                         Type objectType = returnTypeFromCallExpression(receiver);
                         List<Type> actuals = JavaEntities.typeList((List) dispatch(n.getNode(3)));
-                        MethodT method =
-                                JavaEntities.typeDotMethod(table, classpath(), objectType, true, methodName, actuals);
+                        method =
+                            JavaEntities.typeDotMethod(table, classpath(), objectType, true, methodName, actuals);
                     }
 
                     else if (receiver.getName().equals("ThisExpression")) {
                         Type currentType = JavaEntities.currentType(table);
                         List<Type> actuals = JavaEntities.typeList((List) dispatch(n.getNode(3)));
-                        MethodT method =
-                                JavaEntities.typeDotMethod(table, classpath(), currentType, true, methodName, actuals);
+                        method =
+                            JavaEntities.typeDotMethod(table, classpath(), currentType, true, methodName, actuals);
                     }
 
                     else if (receiver.getName().equals("SuperExpression")) {
                         Type currentType = JavaEntities.currentType(table);
                         Type superType = JavaEntities.directSuperTypes(table, classpath(), currentType).get(0);
                         List<Type> actuals = JavaEntities.typeList((List) dispatch(n.getNode(3)));
-                        MethodT method =
-                                JavaEntities.typeDotMethod(table, classpath(), superType, true, methodName, actuals);
+                        method =
+                            JavaEntities.typeDotMethod(table, classpath(), superType, true, methodName, actuals);
                     }
-                    //Set mangled name
-                    n.setProperty("mangledName", methodScopeToMangledName.get(method.getScope()));
-                    //Set method type
-                    String methodType = "dynamic";
-                    if(isPrivateType(method)) methodType = "private";
-                    if(TypeUtil.isStaticType(method)) methodType = "static";
-                    n.setProperty("methodType", methodType);
+                    if (method != null) {
+                        //Set mangled name
+                        n.setProperty("mangledName", methodScopeToMangledName.get(method.getScope()));
+                        //Set method type
+                        String methodType = "dynamic";
+                        if(isPrivateType(method)) methodType = "private";
+                        if(TypeUtil.isStaticType(method)) methodType = "static";
+                        n.setProperty("methodType", methodType);
+                    }
                 }
             }
         }
