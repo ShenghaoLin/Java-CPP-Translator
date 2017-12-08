@@ -509,8 +509,10 @@ public class Phase4 {
                         newBlock.add(GNode.create("Statement", addon));
                     }
 
-                    for (Object o : blockContent) {
-                        newBlock.add(o);
+                    if(blockContent != null) {
+                        for (Object o : blockContent) {
+                            newBlock.add(o);
+                        }
                     }
 
                     newBlock.add(GNode.create("ReturnStatement", "__this"));

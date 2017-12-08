@@ -200,6 +200,9 @@ public class Phase1 {
                 if(n.getNode(2).getNode(0).getNode(2) != null) value = n.getNode(2).getNode(0).getNode(2).get(0).toString();
                 else value = "";
                 Initializer initializer = new Initializer(fieldName, isStatic, typeName, value);
+                ArrayList<Initializer> currentInitializers = initializers.get(JavaEntities.currentType(table).getName());
+                for(Initializer currentInitializer : currentInitializers)
+                    if((currentInitializer.name.equals(initializer.name)) && (currentInitializer.typeName.equals(initializer.typeName))) return;
                 initializers.get(JavaEntities.currentType(table).getName()).add(initializer);
             }
         }
