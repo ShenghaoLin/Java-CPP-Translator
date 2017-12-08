@@ -219,7 +219,7 @@ public class Phase3 extends Visitor {
         // this was un-seperated logic: printer.indent().pln(": __is_a(__" + className + "::__class()),");
         printer.incr();
         for(int i = 0; i < node.size(); i++) {
-            if (i == 0) printer.indent().pln(node.getNode(i).getNode(0).getString(0) + node.getNode(i).getNode(1).getString(0) + ",");
+            if (i == 0) printer.indent().pln(":" + node.getNode(i).getNode(0).getString(0) + node.getNode(i).getNode(1).getString(0) + ",");
             else { // old if statement here for reference: if (!node.getNode(i).getNode(0).getString(0).equals("__is_a") && !node.getNode(i).getNode(1).getString(0).equals("(__" + className + "::__class())"))
                 if (i == node.size() - 1) printer.indent().pln(node.getNode(i).getNode(0).getString(0) + node.getNode(i).getNode(1).getString(0));
                 else printer.indent().pln(node.getNode(i).getNode(0).getString(0) + node.getNode(i).getNode(1).getString(0) + ",");

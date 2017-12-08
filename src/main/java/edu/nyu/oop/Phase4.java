@@ -43,21 +43,21 @@ public class Phase4 {
         this.childrenToParents = childrenToParents;
         this.inits = inits;
 
-        // Set<String> set = this.inits.keySet();
-        // for (Object key : set) {
+        Set<String> set = this.inits.keySet();
+        for (Object key : set) {
 
-        //     ArrayList<Phase1.Initializer> list = this.inits.get((String) key);
+            ArrayList<Phase1.Initializer> list = this.inits.get((String) key);
 
-        //     System.out.println((String) key);
+            System.out.println((String) key);
 
-        //     for (Object o : list) {
-        //         if (o instanceof Phase1.Initializer) {
+            for (Object o : list) {
+                if (o instanceof Phase1.Initializer) {
 
-        //             Phase1.Initializer init = (Phase1.Initializer) o;
-        //             System.out.println(init.name + " " + init.initial + " " + init.value);
-        //         }
-        //     }
-        // }
+                    Phase1.Initializer init = (Phase1.Initializer) o;
+                    System.out.println(init.name + " " + init.initial + " " + init.value);
+                }
+            }
+        }
 
         resolveInitializers();
 
@@ -396,7 +396,7 @@ public class Phase4 {
                 defaultCon += currentClass + " __"
                         + currentClass + "::__init("
                         + currentClass + " __this) {\n";
-                defaultCon += "__Object::__Object(__this);\n";
+                defaultCon += "__Object::__init(__this);\n";
 
                 ArrayList<Phase1.Initializer> fff = inis.get(currentClass);
 
@@ -509,7 +509,7 @@ public class Phase4 {
                         newBlock.add(GNode.create("Statement", addon));
                     }
 
-                    if(blockContent != null) {
+                    if (blockContent != null) {
                         for (Object o : blockContent) {
                             newBlock.add(o);
                         }
