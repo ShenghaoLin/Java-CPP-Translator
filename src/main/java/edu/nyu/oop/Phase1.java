@@ -2,7 +2,7 @@
  * Phase 1 visitor that traverses all dependencies recrusively and adds nodes of all
  * dependencies, furthermore checks for duplciate files to avoid duplicate nodes
  * using hash list of absolute paths of files containing Java code
- *  
+ *
  * @author Shenghao Lin
  * @author Sai Akhil
  * @author Goktug Saatcioglu
@@ -15,15 +15,19 @@ package edu.nyu.oop;
 
 import edu.nyu.oop.util.JavaFiveImportParser;
 import edu.nyu.oop.util.SymbolTableUtil;
+import edu.nyu.oop.util.NodeUtil;
 import edu.nyu.oop.util.TypeUtil;
 import xtc.Constants;
+import xtc.lang.Java;
 import xtc.lang.JavaEntities;
 import xtc.tree.GNode;
 import xtc.tree.Node;
 import xtc.tree.Visitor;
 import xtc.type.*;
+import xtc.tree.Attribute;
 import xtc.util.Runtime;
 import xtc.util.SymbolTable;
+
 
 import java.io.File;
 import java.util.*;
@@ -40,7 +44,7 @@ public class Phase1 {
       *
       * @param   n  Node of type Node
       * @return     List of Java ASTs
-      */ 
+      */
     public static List<GNode> parse(Node n) {
 
         GNode node = (GNode) n;
@@ -59,6 +63,7 @@ public class Phase1 {
       * @param    ast  List of ASTs
       */
     private static void parse(GNode node, Set<Path> paths, List<GNode> ast) {
+
 
         // use a queue of nodes to find dependencies and process them
         Queue<GNode> nodes = new ArrayDeque<GNode>();
@@ -82,10 +87,52 @@ public class Phase1 {
                 nodes.addAll(JavaFiveImportParser.parse(next));
             }
         }
+
     }
 
-    public static void mangle(Runtime runtime, SymbolTable table, Node n){
-        new Mangler(runtime, table).dispatch(n);
+    public static HashMap<String, ArrayList<Initializer>> mangle(Runtime runtime, SymbolTable table, Node n) {
+
+        Mangler mangler = new Mangler(runtime, table);
+
+        mangler.dispatch(n);
+        mangler.dispatch(n);
+
+        return mangler.getInitializers();
+    }
+
+    public static class Initializer {
+        String name = "";
+        boolean isStatic = false;
+        String initial = "";
+        String value = "";
+        String typeName = "";
+
+        public Initializer(String name, boolean isStatic, String typeName, String value) {
+            this.name = name;
+            this.isStatic = isStatic;
+            this.initial = getInitial(typeName);
+            this.value = value;
+            this.typeName = typeName;
+        }
+
+        public static String getInitial(String typeName){
+            if(typeName.equals("boolean"))
+                return "false";
+            else if(typeName.equals("int"))
+                return "0";
+            else if(typeName.equals("double"))
+                return "0";
+            else if(typeName.equals("float"))
+                return "0";
+            else if(typeName.equals("char"))
+                return "0";
+            else if(typeName.equals("byte"))
+                return "0";
+            else if(typeName.equals("short"))
+                return "0";
+            else
+                return "__rt::null()";
+        }
     }
 
     public static class Mangler extends Visitor {
@@ -94,6 +141,10 @@ public class Phase1 {
         protected Runtime runtime;
         protected HashMap<String, String> methodScopeToMangledName;
         protected HashMap<String, Integer> mangleCounts;
+        protected String className = "";
+        protected String parentName = "";
+        protected HashMap<String, ArrayList<Initializer>> initializers;
+
 
         public final List<File> classpath() {
             return JavaEntities.classpath(runtime);
@@ -103,7 +154,32 @@ public class Phase1 {
             this.runtime = runtime;
             this.table = table;
             this.methodScopeToMangledName = new HashMap<String, String>();
+            this.mangleCounts = new HashMap<String, Integer>();
+            this.initializers = new HashMap<String, ArrayList<Initializer>>();
         }
+
+        public HashMap<String, ArrayList<Initializer>> getInitializers () {
+            return initializers;
+        }
+
+        //MISC. HELPFUL METHODS
+        public Type returnTypeFromCallExpression(Node n) {
+            VariableT callExpObjectLookup = (VariableT) table.lookup(n.getNode(0).get(0).toString());
+            String callExpMethodName = (String) n.getString(2);
+            Type callExpObjectType = callExpObjectLookup.getType();
+            List<Type> callExpActuals = JavaEntities.typeList((List) dispatch(n.getNode(3)));
+            MethodT callExpMethod =
+                    JavaEntities.typeDotMethod(table, classpath(), callExpObjectType, true, callExpMethodName, callExpActuals);
+            return callExpMethod.getResult();
+        }
+
+        public boolean isPrivateType(Type type) {
+            if (type == null) return false;
+            Attribute attr  = type.getAttribute(Constants.NAME_VISIBILITY);
+            return "private".equals(attr == null ? null : attr.getValue());
+        }
+
+        //VISIT METHODS
         public void visitCompilationUnit(GNode n) {
             String packageScope = null == n.get(0) ? visitPackageDeclaration(null) : (String) dispatch(n.getNode(0));
             table.enter(packageScope);
@@ -120,6 +196,26 @@ public class Phase1 {
             table.setScope(table.root());
         }
 
+
+        public void visitFieldDeclaration(GNode n) {
+            String fieldName = n.getNode(2).getNode(0).getString(0);
+            if(JavaEntities.typeDotField(table, classpath(), JavaEntities.currentType(table), true, fieldName) != null) {
+                VariableT field = JavaEntities.typeDotField(table, classpath(), JavaEntities.currentType(table), true, fieldName);
+                boolean isStatic;
+                if(TypeUtil.isStaticType(field)) isStatic = true;
+                else isStatic = false;
+                String typeName = n.getNode(1).getNode(0).getString(0);
+                String value;
+                if(n.getNode(2).getNode(0).getNode(2) != null) value = n.getNode(2).getNode(0).getNode(2).get(0).toString();
+                else value = "";
+                Initializer initializer = new Initializer(fieldName, isStatic, typeName, value);
+                ArrayList<Initializer> currentInitializers = initializers.get(JavaEntities.currentType(table).getName());
+                for(Initializer currentInitializer : currentInitializers)
+                    if((currentInitializer.name.equals(initializer.name)) && (currentInitializer.typeName.equals(initializer.typeName))) return;
+                initializers.get(JavaEntities.currentType(table).getName()).add(initializer);
+            }
+        }
+
         public String visitPackageDeclaration(GNode n) {
             String canonicalName = null == n ? "" : (String) dispatch(n.getNode(1));
             final PackageT result = JavaEntities.canonicalNameToPackage(table, canonicalName);
@@ -127,12 +223,27 @@ public class Phase1 {
         }
 
         public void visitClassDeclaration(GNode n) {
-            this.mangleCounts = new HashMap<String, Integer>();
             SymbolTableUtil.enterScope(table, n);
             table.mark(n);
+
+            initializers.put(JavaEntities.currentType(table).getName(), new ArrayList<Initializer>());
+
+            className = n.get(1).toString();
+            Object extension = NodeUtil.dfs(n, "Extension");
+
+            if (extension == null) {
+                parentName = "Object";
+            } else {
+                parentName = ((GNode) NodeUtil.dfs(n, "QualifiedIdentifier")).get(0).toString();
+            }
+
+
             visit(n);
+            className = "";
+            parentName = "";
             SymbolTableUtil.exitScope(table, n);
         }
+
 
         public void visitMethodDeclaration(GNode n) {
             SymbolTableUtil.enterScope(table, n);
@@ -140,17 +251,37 @@ public class Phase1 {
 
             //Mangle name
             String methodName = n.getString(3);
-            if(!methodName.equals("main")) {
-                if (!mangleCounts.containsKey(methodName)) mangleCounts.put(methodName, 0);
-                String newMethodName = methodName + "_" + mangleCounts.get(methodName);
-                methodScopeToMangledName.put(table.current().getQualifiedName(), newMethodName);
-                mangleCounts.put(methodName, mangleCounts.get(methodName) + 1);
-                n.set(3, newMethodName);
+
+            if (n.getProperty("mangledName") == null) {
+                if ((!methodName.equals("main"))&&(!methodName.equals(className))) {
+                    String paramString = "";
+                    GNode params = (GNode) n.get(4);
+                    for (int i = 0; i < params.size(); i++) {
+                        paramString += "_" + params.getNode(i).getNode(1).getNode(0).getString(0);
+                    }
+
+                    String mangledName = methodName + " " + paramString;
+                    if (mangledName.equals("toString ") || mangledName.equals("hashCode ") || mangledName.equals("getClass ") || (mangledName.split("_").length == 2 && mangledName.split("_")[0].equals("equals ") && mangledName.split("_")[1].equals("Object"))) {
+                        mangledName = mangledName.replaceAll("\\s", "").split("_")[0];
+                    }
+                    else if (mangleCounts.containsKey(mangledName)) {
+                        mangleCounts.put(mangledName, mangleCounts.get(mangledName) + 1);
+                        mangledName += mangleCounts.get(mangledName);
+                    }
+                    else {
+                        mangleCounts.put(mangledName, 0);
+                        mangledName += "_" + mangleCounts.get(mangledName);
+                    }
+
+                    n.setProperty("mangledName", mangledName);
+                    methodScopeToMangledName.put(table.current().getQualifiedName(), mangledName);
+                }
             }
 
             visit(n);
             SymbolTableUtil.exitScope(table, n);
         }
+
 
         public void visitBlockDeclaration(GNode n) {
             SymbolTableUtil.enterScope(table, n);
@@ -174,7 +305,7 @@ public class Phase1 {
             SymbolTableUtil.exitScope(table, n);
         }
 
-        /**
+        /*
          * Visit a QualifiedIdentifier = Identifier+.
          */
         public String visitQualifiedIdentifier(final GNode n) {
@@ -189,6 +320,7 @@ public class Phase1 {
             return b.toString();
         }
 
+
         // Helper method to construct the Java AST representation of a 'this' expression.
         // The added type annotation is dependent on the class surrounding the current scope
         // during the traversal of the AST.
@@ -198,38 +330,79 @@ public class Phase1 {
             return _this;
         }
 
+
         public void visitCallExpression(GNode n) {
             visit(n);
             Node receiver = n.getNode(0);
             String methodName = n.getString(2);
-            if (receiver == null &&
-                    !"super".equals(methodName) &&
-                    !"this".equals(methodName)) {
-                Type typeToSearch = JavaEntities.currentType(table);
+            if (methodName.equals("this")) return;
+            if (n.getProperty("mangledName") == null) {
+                if ((receiver == null) &&
+                        (!"super".equals(methodName)) &&
+                        (!"this".equals(methodName))) {
+                    Type typeToSearch = JavaEntities.currentType(table);
 
-                List<Type> actuals = JavaEntities.typeList((List) dispatch(n.getNode(3)));
-                MethodT method =
-                        JavaEntities.typeDotMethod(table, classpath(), typeToSearch, true, methodName, actuals);
-
-                if (method == null) return;
-
-                // EXPLICIT THIS ACCESS (if method name isn't defined locally and method is not static, add "this.")
-                boolean notStatic = (method.getAttribute("storage") == null || !method.getAttribute("storage").getValue().equals("static"));
-                if (!table.current().isDefinedLocally(methodName) && notStatic) n.set(2, "this." + methodName);
-            }
-            else {
-                //GET MANGLED NAME
-                VariableT objectLookup;
-                if(table.lookup((receiver.get(0).toString())) != null) {
-                    objectLookup = (VariableT) table.lookup(receiver.get(0).toString());
-                    Type objectType = objectLookup.getType();
                     List<Type> actuals = JavaEntities.typeList((List) dispatch(n.getNode(3)));
                     MethodT method =
+                            JavaEntities.typeDotMethod(table, classpath(), typeToSearch, true, methodName, actuals);
+
+                    if (method == null) return;
+
+                    // EXPLICIT THIS ACCESS (if method name isn't defined locally and method is not static, add "this.")
+                    if (!TypeUtil.isStaticType(method)) {
+                        n.set(0, makeThisExpression());
+                    }
+                } else if (receiver != null) {
+                    //GET METHOD
+                    MethodT method = null;
+                    if(receiver.getName().equals("PrimaryIdentifier")) {
+                        Type typeToSearch = null;
+                        //STATIC
+                        if (JavaEntities.simpleNameToType(table, classpath(), table.current().getQualifiedName(), receiver.get(0).toString()) != null)
+                            typeToSearch = JavaEntities.simpleNameToType(table, classpath(), table.current().getQualifiedName(), receiver.get(0).toString());
+                            //OBJECTS
+                        else {
+                            VariableT objectLookup = (VariableT) table.lookup(receiver.get(0).toString());
+                            typeToSearch = objectLookup.getType();
+                        }
+                        List<Type> actuals = JavaEntities.typeList((List) dispatch(n.getNode(3)));
+                        method =
+                            JavaEntities.typeDotMethod(table, classpath(), typeToSearch, true, methodName, actuals);
+                    }
+                    else if (receiver.getName().equals("CallExpression")) {
+                        Type objectType = returnTypeFromCallExpression(receiver);
+                        List<Type> actuals = JavaEntities.typeList((List) dispatch(n.getNode(3)));
+                        method =
                             JavaEntities.typeDotMethod(table, classpath(), objectType, true, methodName, actuals);
-                    n.set(2, methodScopeToMangledName.get(method.getScope()));
+                    }
+
+                    else if (receiver.getName().equals("ThisExpression")) {
+                        Type currentType = JavaEntities.currentType(table);
+                        List<Type> actuals = JavaEntities.typeList((List) dispatch(n.getNode(3)));
+                        method =
+                            JavaEntities.typeDotMethod(table, classpath(), currentType, true, methodName, actuals);
+                    }
+
+                    else if (receiver.getName().equals("SuperExpression")) {
+                        Type currentType = JavaEntities.currentType(table);
+                        Type superType = JavaEntities.directSuperTypes(table, classpath(), currentType).get(0);
+                        List<Type> actuals = JavaEntities.typeList((List) dispatch(n.getNode(3)));
+                        method =
+                            JavaEntities.typeDotMethod(table, classpath(), superType, true, methodName, actuals);
+                    }
+                    if (method != null) {
+                        //Set mangled name
+                        n.setProperty("mangledName", methodScopeToMangledName.get(method.getScope()));
+                        //Set method type
+                        String methodType = "dynamic";
+                        if(isPrivateType(method)) methodType = "private";
+                        if(TypeUtil.isStaticType(method)) methodType = "static";
+                        n.setProperty("methodType", methodType);
+                    }
                 }
             }
         }
+
 
 
         public Node visitPrimaryIdentifier(GNode n) {
@@ -250,13 +423,21 @@ public class Phase1 {
 
             if (field == null) return n;
 
-            // EXPLICIT THIS ACCESS (if field name isn't defined locally and field is not static, add "this.")
-            boolean notStatic = (field.getAttribute("storage") == null || !field.getAttribute("storage").getValue().equals("static"));
-            if ((!table.current().isDefinedLocally(fieldName)) && notStatic) n.set(0, "this." + fieldName);
+            //explicit this access
+            Type t = (Type) table.lookup(fieldName);
+            if (t == null || !t.isVariable()) {
+                t = field;
+            }
 
+            if (JavaEntities.isFieldT(t) && !TypeUtil.isStaticType(t)) {
+                GNode n1 = GNode.create("SelectionExpression", makeThisExpression(), fieldName);
+                TypeUtil.setType(n1, TypeUtil.getType(n));
+                return n1;
+            }
 
             return n;
         }
+
 
 
         public List<Type> visitArguments(final GNode n) {
@@ -276,6 +457,7 @@ public class Phase1 {
             }
             return result;
         }
+
 
         public void visit(GNode n) {
             for (int i = 0; i < n.size(); ++i) {

@@ -14,7 +14,7 @@ __Object::__Object() : __vptr(&__vtable) {}
 // java.lang.Object.hashCode()
 int32_t __Object::hashCode(Object __this)
 {
-    return (int32_t)(intptr_t) __this;
+    return (int32_t)(intptr_t) __this.raw();
 }
 
 // java.lang.Object.equals(Object)
@@ -37,15 +37,14 @@ String __Object::toString(Object __this)
 
     std::ostringstream sout;
     sout << k->__vptr->getName(k)->data
-         << '@' << std::hex << (uintptr_t) __this;
+         << '@' << std::hex << (uintptr_t) __this.raw();
     return new __String(sout.str());
 }
 
 // Internal accessor for java.lang.Object's class.
 Class __Object::__class()
 {
-    static Class k =
-        new __Class(__rt::literal("java.lang.Object"), (Class) __rt::null());
+    static Class k = new __Class(__rt::literal("java.lang.Object"), __rt::null());
     return k;
 }
 
@@ -87,7 +86,7 @@ bool __String::equals(String __this, Object o)
     if (! k->__vptr->isInstance(k, o)) return false;
 
     // Do the actual comparison.
-    String other = (String) o; // Downcast.
+    String other = o; // Implicit downcast.
     return __this->data.compare(other->data) == 0;
 }
 
@@ -100,7 +99,7 @@ String __String::toString(String __this)
 // java.lang.String.length()
 int32_t __String::length(String __this)
 {
-    return __this->data.length();
+    return (int32_t) __this->data.length();
 }
 
 // java.lang.String.charAt()
@@ -119,8 +118,7 @@ char __String::charAt(String __this, int32_t idx)
 // Internal accessor for java.lang.String's class.
 Class __String::__class()
 {
-    static Class k =
-        new __Class(__rt::literal("java.lang.String"), __Object::__class());
+    static Class k = new __Class(__rt::literal("java.lang.String"), __Object::__class());
     return k;
 }
 
@@ -128,13 +126,33 @@ Class __String::__class()
 // invokes the default no-arg constructor for __String_VT.
 __String_VT __String::__vtable;
 
+// Overload << operator for convenient printing of String objects
+std::ostream& operator<<(std::ostream& out, String s)
+{
+    out << s->data;
+    return out;
+}
+
+String operator+(String s, char t)
+{
+    return new __String(safeToString(s)->data + t);
+}
+
+String operator+(char s, String t)
+{
+    return new __String(s + safeToString(t)->data);
+}
+
+
 // =======================================================================
 
 // java.lang.Class(String, Class)
-__Class::__Class(String name, Class parent)
+__Class::__Class(String name, Class parent, Class component, bool primitive)
     : __vptr(&__vtable),
       name(name),
-      parent(parent)
+      parent(parent),
+      component(component),
+      primitive(primitive)
 {
 }
 
@@ -156,6 +174,24 @@ Class __Class::getSuperclass(Class __this)
     return __this->parent;
 }
 
+// java.lang.Class.isPrimitive()
+bool __Class::isPrimitive(Class __this)
+{
+    return __this->primitive;
+}
+
+// java.lang.Class.isArray()
+bool __Class::isArray(Class __this)
+{
+    return (Class)__rt::null() != __this->component;
+}
+
+// java.lang.Class.getComponentType()
+Class __Class::getComponentType(Class __this)
+{
+    return __this->component;
+}
+
 // java.lang.Class.isInstance(Object)
 bool __Class::isInstance(Class __this, Object o)
 {
@@ -167,6 +203,15 @@ bool __Class::isInstance(Class __this, Object o)
     do
     {
         if (__this->__vptr->equals(__this, (Object)k)) return true;
+
+        // Array covariance test
+        if (__this->__vptr->isArray(__this) && k->__vptr->isArray(k))
+        {
+            // k != __this implies component type of k must not be equal to component type of __this
+            k = k->__vptr->getComponentType(k);
+            __this = __this->__vptr->getComponentType(__this);
+        }
+
         k = k->__vptr->getSuperclass(k);
     }
     while ((Class)__rt::null() != k);
@@ -177,8 +222,7 @@ bool __Class::isInstance(Class __this, Object o)
 // Internal accessor for java.lang.Class' class.
 Class __Class::__class()
 {
-    static Class k =
-        new __Class(__rt::literal("java.lang.Class"), __Object::__class());
+    static Class k = new __Class(__rt::literal("java.lang.Class"), __Object::__class());
     return k;
 }
 
@@ -199,6 +243,24 @@ java::lang::Object null()
 {
     static java::lang::Object value(0); // init the pointer type to 0, the 'null pointer'
     return value;
+}
+
+// Template specialization for arrays of ints.
+template<>
+java::lang::Class __Array<int32_t>::__class()
+{
+    // The Class object representing int.class
+    static java::lang::Class ik =
+        new java::lang::__Class(__rt::literal("int"),
+                                __rt::null(),
+                                __rt::null(),
+                                true);
+    // The Class object representing int[].class
+    static java::lang::Class k =
+        new java::lang::__Class(literal("[I"),
+                                java::lang::__Object::__class(),
+                                ik);
+    return k;
 }
 
 }

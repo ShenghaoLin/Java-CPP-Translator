@@ -22,113 +22,113 @@ import java.util.LinkedList;
  * which ever one it finds first.
  */
 public class JavaFiveImportParser {
-  private static Logger logger = org.slf4j.LoggerFactory.getLogger(JavaFiveImportParser.class);
+    private static Logger logger = org.slf4j.LoggerFactory.getLogger(JavaFiveImportParser.class);
 
-  private static List<String> inputLocations = loadInputLocations();
+    private static List<String> inputLocations = loadInputLocations();
 
-  public static List<GNode> parse(final GNode primarySrc) {
-    final List<GNode> importedSources = new LinkedList<GNode>();
+    public static List<GNode> parse(final GNode primarySrc) {
+        final List<GNode> importedSources = new LinkedList<GNode>();
 
-    new Visitor() {
+        new Visitor() {
 
-      public void visitPackageDeclaration(GNode node) throws IOException, ParseException {
-        String relPath = NodeUtil.mkString(node.getNode(1), File.separator);
-        importedSources.addAll(loadNodesFromDirectory(relPath));
-      }
-
-      public void visitImportDeclaration(GNode node) {
-        if (node.getString(2) == null) {   // There is no '*' character in the import, import single file.
-          String relPath = NodeUtil.mkString(node.getNode(1), File.separator) + ".java";
-          importedSources.add(loadNodeForFile(relPath));
-        } else {
-          String relPath = NodeUtil.mkString(node.getNode(1), File.separator);
-          importedSources.addAll(loadNodesFromDirectory(relPath));
-        }
-      }
-
-      public void visit(Node n) {
-        for (Object o : n) if (o instanceof Node) dispatch((Node) o);
-      }
-
-      private GNode loadNodeForFile(String relPath) {
-        GNode source = null;
-        for (String l : inputLocations) {
-          String absPath = System.getProperty("user.dir") + File.separator + l + File.separator + relPath;
-          File f = loadSourceFile(absPath);
-          if (f != null) {
-            source = (GNode) NodeUtil.parseJavaFile(f);
-            break;
-          }
-        }
-        if (source == null) {
-          logger.warn("Unable to find any source file for path " + relPath);
-        }
-
-        return source;
-      }
-
-      private List<GNode> loadNodesFromDirectory(String relPath) {
-        List<GNode> sources = new LinkedList<GNode>();
-        for (String l : inputLocations) {
-          String absPath = System.getProperty("user.dir") + File.separator + l + File.separator + relPath;
-          Set<File> files = loadFilesInDirectory(absPath);
-          if (files != null) {
-            for (File f : files) {
-              GNode n = (GNode) NodeUtil.parseJavaFile(f);
-              if (!n.equals(primarySrc)) sources.add(n); // Don't include the primary source.
+            public void visitPackageDeclaration(GNode node) throws IOException, ParseException {
+                String relPath = NodeUtil.mkString(node.getNode(1), File.separator);
+                importedSources.addAll(loadNodesFromDirectory(relPath));
             }
-            break; // stop at the first input location containing the package of the primary source
-          }
+
+            public void visitImportDeclaration(GNode node) {
+                if (node.getString(2) == null) {   // There is no '*' character in the import, import single file.
+                    String relPath = NodeUtil.mkString(node.getNode(1), File.separator) + ".java";
+                    importedSources.add(loadNodeForFile(relPath));
+                } else {
+                    String relPath = NodeUtil.mkString(node.getNode(1), File.separator);
+                    importedSources.addAll(loadNodesFromDirectory(relPath));
+                }
+            }
+
+            public void visit(Node n) {
+                for (Object o : n) if (o instanceof Node) dispatch((Node) o);
+            }
+
+            private GNode loadNodeForFile(String relPath) {
+                GNode source = null;
+                for (String l : inputLocations) {
+                    String absPath = System.getProperty("user.dir") + File.separator + l + File.separator + relPath;
+                    File f = loadSourceFile(absPath);
+                    if (f != null) {
+                        source = (GNode) NodeUtil.parseJavaFile(f);
+                        break;
+                    }
+                }
+                if (source == null) {
+                    logger.warn("Unable to find any source file for path " + relPath);
+                }
+
+                return source;
+            }
+
+            private List<GNode> loadNodesFromDirectory(String relPath) {
+                List<GNode> sources = new LinkedList<GNode>();
+                for (String l : inputLocations) {
+                    String absPath = System.getProperty("user.dir") + File.separator + l + File.separator + relPath;
+                    Set<File> files = loadFilesInDirectory(absPath);
+                    if (files != null) {
+                        for (File f : files) {
+                            GNode n = (GNode) NodeUtil.parseJavaFile(f);
+                            if (!n.equals(primarySrc)) sources.add(n); // Don't include the primary source.
+                        }
+                        break; // stop at the first input location containing the package of the primary source
+                    }
+                }
+                return sources;
+            }
+
+        } .dispatch(primarySrc);
+
+        return importedSources;
+    }
+
+    private static Set<File> loadFilesInDirectory(String path) {
+        File[] directory = new File(path).listFiles();
+        if (directory == null) {
+            logger.debug("Did not find a directory at " + path);
+            return null;
         }
-        return sources;
-      }
 
-    }.dispatch(primarySrc);
+        Set<File> files = new HashSet<File>();
+        for (File f : new File(path).listFiles()) {
+            File source = loadSourceFile(f.getAbsolutePath());
+            if (source != null) files.add(source);
+        }
+        if (files.size() == 0) {
+            logger.warn("Path with no source files. " + path);
+            return null;
+        }
 
-    return importedSources;
-  }
-
-  private static Set<File> loadFilesInDirectory(String path) {
-    File[] directory = new File(path).listFiles();
-    if (directory == null) {
-      logger.debug("Did not find a directory at " + path);
-      return null;
+        return files;
     }
 
-    Set<File> files = new HashSet<File>();
-    for (File f : new File(path).listFiles()) {
-      File source = loadSourceFile(f.getAbsolutePath());
-      if (source != null) files.add(source);
-    }
-    if (files.size() == 0) {
-      logger.warn("Path with no source files. " + path);
-      return null;
+    private static File loadSourceFile(String path) {
+        File f = new File(path);
+        if (f == null) {
+            logger.warn("Invalid path provided for file. " + path);
+            return null;
+        }
+
+        if (f.isFile() && f.getName().endsWith(".java")) {
+            logger.debug("Loading " + f.getName());
+            return f;
+        } else {
+            return null;
+        }
     }
 
-    return files;
-  }
-
-  private static File loadSourceFile(String path) {
-    File f = new File(path);
-    if (f == null) {
-      logger.warn("Invalid path provided for file. " + path);
-      return null;
+    private static List<String> loadInputLocations() {
+        // Load input locations with correct file separator for system
+        List<String> inputLocations = new LinkedList<String>();
+        for (String l : XtcProps.getList("input.locations")) {
+            inputLocations.add(l.replaceAll("/", File.separator));
+        }
+        return inputLocations;
     }
-
-    if (f.isFile() && f.getName().endsWith(".java")) {
-      logger.debug("Loading " + f.getName());
-      return f;
-    } else {
-      return null;
-    }
-  }
-
-  private static List<String> loadInputLocations() {
-    // Load input locations with correct file separator for system
-    List<String> inputLocations = new LinkedList<String>();
-    for (String l : XtcProps.getList("input.locations")) {
-      inputLocations.add(l.replaceAll("/", File.separator));
-    }
-    return inputLocations;
-  }
 }

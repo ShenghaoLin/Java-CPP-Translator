@@ -26,13 +26,13 @@ public class Phase5Test {
     private static Node node;// = null;
 
     @BeforeClass
-    public static void beforeClass(){
+    public static void beforeClass() {
         logger.debug("Executing Phase5Test");
         node = XtcTestUtils.loadTestFile("src/test/java/inputs/test050/Test050.java");
     }
 
     @Test
-    public void testProcess(){ //throws xtc.tree.VisitingException{
+    public void testProcess() { //throws xtc.tree.VisitingException{
         List<GNode> javaAsts = Phase1.parse(node);
 
         List<GNode> l = Phase4.process(javaAsts);

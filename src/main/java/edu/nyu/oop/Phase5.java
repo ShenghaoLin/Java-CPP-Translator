@@ -78,28 +78,28 @@ public class Phase5 extends Visitor {
         printer.pln("using namespace java::lang;").pln();
     }
 
-    /* Visitor for ClassDeclaration 
+    /* Visitor for ClassDeclaration
      * Generate code for default constructor, Class method(class identity and its parent)
      * and vtable initialization.
      */
     public void visitClassDeclaration(GNode n) {
 
         GNode mainfunction = (GNode) NodeUtil.dfs(n, "MethodDeclaration");
-        if (mainfunction != null) {
-            if (mainfunction.get(3).toString().equals("main")) {
-                Phase5 mainPrint = new Phase5("main.cpp");
-                Printer mainPrinter = mainPrint.printer();
-                mainPrinter.register(mainPrint);
-                mainPrinter.pln("#include \"java_lang.h\"").flush();
-                mainPrint.headOfFile();
-                mainPrinter.pln("using namespace std;");
-                mainPrinter.pln("using namespace " + 
-                    packageInfo.substring(0, packageInfo.length() - 1).replace(".", "::") + ";").pln().flush();
-                mainPrint.print(mainfunction);
+        // if (mainfunction != null) {
+        //     if (mainfunction.get(3).toString().equals("main")) {
+        //         Phase5 mainPrint = new Phase5("main.cpp");
+        //         Printer mainPrinter = mainPrint.printer();
+        //         mainPrinter.register(mainPrint);
+        //         mainPrinter.pln("#include \"java_lang.h\"").flush();
+        //         mainPrint.headOfFile();
+        //         mainPrinter.pln("using namespace std;");
+        //         mainPrinter.pln("using namespace " +
+        //                         packageInfo.substring(0, packageInfo.length() - 1).replace(".", "::") + ";").pln().flush();
+        //         mainPrint.print(mainfunction);
 
-                return;
-            }
-        }
+        //         return;
+        //     }
+        // }
 
         //Obtaining information of class name of parent class name
         String className = n.get(1).toString();
@@ -116,16 +116,20 @@ public class Phase5 extends Visitor {
 
 
         //default constructor
-        printer.pln("__" + n.get(1).toString() + "::__" + n.get(1).toString() + "() : __vptr(&__vtable) {}" );
+        printer.pln((String) n.getProperty("defaultConstructor"));
         printer.pln().flush();
 
-        Object o = NodeUtil.dfs(n, "ConstructorDelaration");
-        if (o == null) {
-            printer.pln(n.get(1).toString() + " __" 
-                + n.get(1).toString() + "::__init("
-                + n.get(1).toString() + " __this) {");
-            printer.pln("return __this;");
-            printer.pln("}");
+        //real default constructor
+        // Object o = NodeUtil.dfs(n, "ConstructorDelaration");
+        // if (o == null) {
+        //     printer.pln(n.get(1).toString() + " __"
+        //                 + n.get(1).toString() + "::__init("
+        //                 + n.get(1).toString() + " __this) {");
+        //     printer.pln("return __this;");
+        //     printer.pln("}");
+        // }
+        if (n.getProperty("realDefaultConstructor") != null) {
+            printer.pln((String) n.getProperty("realDefaultConstructor"));
         }
 
         //visit class body
@@ -133,18 +137,15 @@ public class Phase5 extends Visitor {
         dispatch(classBody);
 
         //class method
-        printer.pln("Class __" + n.get(1).toString() + "::__class() {");
-        printer.pln("static Class k = new __Class(__rt::literal(\""
-                    + packageInfo + className + "\"), __"
-                    + parentName + "::__class());");
-        printer.pln("return k;");
-        printer.pln("}");
-        printer.pln();
+        printer.pln((String) n.getProperty("classInfo"));
+
+        if (n.getProperty("staticInit") != null) {
+            printer.pln((String) n.getProperty("staticInit"));
+        }
 
         //vtable initialization
-        printer.pln("__" + className + "_VT __" + className
-                    + "::__vtable;");
-        printer.pln();
+        printer.pln((String) n.getProperty("vtableInit")).flush();
+
     }
 
     public void visitConditionalStatement(GNode n) {
@@ -178,7 +179,7 @@ public class Phase5 extends Visitor {
 
     }
 
-    /* Visitor for CompilationUnit 
+    /* Visitor for CompilationUnit
      * Generate information of the package and print namespace
      */
     public void visitCompilationUnit(GNode n) {
@@ -205,7 +206,7 @@ public class Phase5 extends Visitor {
         printer.pln().flush();
     }
 
-    /* Visitor for FieldDeclaration 
+    /* Visitor for FieldDeclaration
      * Add ";" at the end of each statement
      */
     public void visitFieldDeclaration(GNode n) {
@@ -213,7 +214,7 @@ public class Phase5 extends Visitor {
         printer.pln(";").flush();
     }
 
-    /* Visitor for Block 
+    /* Visitor for Block
      * Add brackets "{}" at beginning and ending
      */
     public void visitBlock(GNode n) {
@@ -224,7 +225,7 @@ public class Phase5 extends Visitor {
 
     }
 
-    /* Visitor for Arguments 
+    /* Visitor for Arguments
      * Add brackets "()" at beginning and ending
      * add comma between elements
      */
@@ -241,20 +242,18 @@ public class Phase5 extends Visitor {
             } catch (Exception e) {}
         }
 
-        try{
+        try {
             Object child = n.getGeneric(n.size() - 1);
             if (child instanceof GNode) {
-                dispatch((GNode) child);       
-            }
-            else if (child instanceof String) {
+                dispatch((GNode) child);
+            } else if (child instanceof String) {
                 printer.p((String) child).flush();
             }
-        }
-        catch (Exception e) {}
+        } catch (Exception e) {}
         printer.p(")").flush();
     }
 
-    /* Visitor for FormalParameters 
+    /* Visitor for FormalParameters
      * Same as Arguments
      */
     public void visitFormalParameters(GNode n) {
@@ -265,7 +264,7 @@ public class Phase5 extends Visitor {
         for (Object o : n) {
             if (o instanceof GNode) {
                 GNode node = (GNode) o;
-                if (!node.hasName("FieldDeclaration")){
+                if (!node.hasName("FieldDeclaration")) {
                     dispatch(node);
                 }
             }
@@ -300,7 +299,7 @@ public class Phase5 extends Visitor {
         //cout handling
         if (n.get(2).toString().equals("cout")) {
 
-        	inCout = true;
+            inCout = true;
 
             printer.p("cout ").flush();
             GNode arguments = (GNode) n.getGeneric(3);
@@ -313,11 +312,11 @@ public class Phase5 extends Visitor {
                     dispatch((Node) o);
 
                     //toString handling
-                    if (gnode.hasName("CallExpression")) {
-                        if (gnode.get(2).toString().endsWith("toString")) {
-                            printer.p("-> data ").flush();
-                        }
-                    }
+                    // if (gnode.hasName("CallExpression")) {
+                    //     if (gnode.get(2).toString().endsWith("toString")) {
+                    //         printer.p("-> data ").flush();
+                    //     }
+                    // }
                 }
 
                 if (o instanceof String) printer.p(((String) o) + " ").flush();
@@ -326,10 +325,12 @@ public class Phase5 extends Visitor {
 
         //other calling will not be specialized.
         else {
+
             visit(n);
         }
 
         inCout = false;
+
     }
 
     /* Visitor for ExpressionStatement
@@ -338,7 +339,20 @@ public class Phase5 extends Visitor {
     public void visitExpressionStatement(GNode n) {
         visit(n);
         printer.pln(";").flush();
+
+        Object call = NodeUtil.dfs(n, "CallExpression");
+
+        if (call != null) {
+
+            GNode nn = (GNode) call;
+
+            Object o = nn.getProperty("addOnSentence");
+            if (o != null) {
+                printer.p((String) o).flush();
+            }
+        }
     }
+
 
     /* Visitor for ReturnStatement
      * print return, ending with ";"
@@ -369,7 +383,7 @@ public class Phase5 extends Visitor {
 
                 if (child != null) {
                     if (!eq) {
-                        printer.p("= ").flush();
+                        printer.p(" = ").flush();
                         eq = true;
                     }
                     dispatch(child);
@@ -387,14 +401,7 @@ public class Phase5 extends Visitor {
         }
 
     }
-    
-    /* Visitor for NewClassExpression
-     * print "new"
-     */
-    public void visitNewClassExpression(GNode n) {
-        printer.p("new ").flush();
-        visit(n);
-    }
+
 
     /* Visitor for ThisExpression
      * print "__this"
@@ -404,15 +411,55 @@ public class Phase5 extends Visitor {
         visit(n);
     }
 
+    public void visitWhileStatement(GNode n) {
+        printer.p("while ").flush();
+        visit(n);
+    }
+
+    public void visitRelationalExpression(GNode n) {
+        printer.p("(").flush();
+        visit(n);
+        printer.p(")").flush();
+    }
+
     public void visitStringLiteral(GNode n) {
-    	if (!inCout) {
-        	printer.p("new __String(").flush();
-        	visit(n);
-        	printer.p(")").flush();
-    	}	
-    	else {
-   			visit(n);
-    	}
+        if (!inCout) {
+            printer.p("new __String(").flush();
+            visit(n);
+            printer.p(")").flush();
+        } else {
+            visit(n);
+        }
+    }
+
+    public void visitForStatement(GNode n) {
+        printer.p("for (").flush();
+        dispatch(n.getNode(0).getNode(1));
+        dispatch(n.getNode(0).getNode(2));
+        printer.p("; ").flush();
+        visit(n.getNode(0).getNode(3));
+        printer.p("; ").flush();
+        dispatch(n.getNode(0).getNode(4));
+        printer.pln(")").flush();
+        dispatch(n.getNode(1));
+    }
+
+    public void visitSubscriptExpression(GNode n) {
+        dispatch(n.getNode(0));
+        printer.p("-> data[").flush();
+        dispatch(n.getNode(1));
+        printer.p("]").flush();
+    }
+
+    public void visitConcreteDimensions(GNode n) {
+        printer.p("(").flush();
+        visit(n);
+        printer.p(")").flush();
+    }
+
+    public void visitNewArrayExpression(GNode n) {
+        printer.p("new ").flush();
+        visit(n);
     }
 
     /* General visitor
@@ -427,16 +474,8 @@ public class Phase5 extends Visitor {
             //print string
             if (o instanceof String) {
                 String s = (String) o;
-                if (s.equals("[")) {
-                    //array will be solved in the future
-                } 
-                else if (s.equals("int")) {
-                    printer.p("int32_t ").flush();
-                }
-                else
-                {
-                    printer.p(s + " ").flush();
-                }
+                
+                printer.p(s + " ").flush();
             }
         }
     }

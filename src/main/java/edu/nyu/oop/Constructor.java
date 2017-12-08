@@ -14,28 +14,28 @@ package edu.nyu.oop;
 import java.util.ArrayList;
 
 public class Constructor {
-	
-	public String accessModifier;
-	public String name;
-	public ArrayList<Parameter> parameters;
 
-	public Constructor(String accessModifier, String name, ArrayList<Parameter> parameters) {
-		this.accessModifier = accessModifier;
-		this.name = name;
-		this.parameters = parameters;
-	}
+    public String accessModifier;
+    public String name;
+    public ArrayList<Parameter> parameters;
 
-	public boolean equals(Constructor other) {
-		if (this.accessModifier.equals(other.accessModifier) && this.name.equals(other.name)) {
-			if (this.parameters == null && other.parameters == null) return true;
-			else if (this.parameters.size() == other.parameters.size()) {
-				for (int i = 0; i < this.parameters.size(); i++) {
-					if (!this.parameters.get(i).equals(other.parameters.get(i))) return false;
-				}
-				return true;
-			}
-			return false;
-		}
-		return false;
-	}
+    public Constructor(String accessModifier, String name, ArrayList<Parameter> parameters) {
+        this.accessModifier = accessModifier;
+        this.name = name;
+        this.parameters = parameters;
+    }
+
+    public boolean equals(Constructor other) {
+        if (this.accessModifier.equals(other.accessModifier) && this.name.equals(other.name)) {
+            if (this.parameters == null && other.parameters == null) return true;
+            else if (this.parameters.size() == other.parameters.size()) {
+                for (int i = 0; i < this.parameters.size(); i++) {
+                    if (!this.parameters.get(i).equals(other.parameters.get(i))) return false;
+                }
+                return true;
+            }
+            return false;
+        }
+        return false;
+    }
 }

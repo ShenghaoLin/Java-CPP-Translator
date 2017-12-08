@@ -5,11 +5,12 @@
  * and A ~ Object, all inheritance data can be resolved using Object ~ A ~ B),
  * vtable populates vfields and vmethods, finally data is dumped into a new AST
  * structure to be used for Phase 3 printer that visits said AST
+ * final version using mangled names and delete method have also been implemented
  *
  * @author Goktug Saatcioglu
  * @author Sam Holloway
  *
- * @version 1.0
+ * @version 2.0
  */
 
 package edu.nyu.oop;
@@ -23,9 +24,13 @@ import edu.nyu.oop.util.NodeUtil;
 
 import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.HashMap;
 import java.util.HashSet;
 
 public class Phase2 {
+
+    // HashMap of children to their parents
+    public static HashMap<String, String> childrenToParents = new HashMap<String, String>();
 
     /**
      * main method, calls visitor, populates ObjectRepList, build CPP AST
@@ -60,6 +65,8 @@ public class Phase2 {
 
         private String packageName = "";
         private ObjectRepList objectRepresentations = new ObjectRepList();
+        private boolean mainFlag = false;
+        private boolean constructorFlag = true;
 
         /**
          * Visits Package Declaration and assigns packagename
@@ -73,7 +80,7 @@ public class Phase2 {
             //packageName = node.getNode(1).getString(0);
             visit(node);
         }
-        
+
         /**
          * For each class declaration in file add it to objectRepresentations
          *
@@ -81,6 +88,8 @@ public class Phase2 {
          */
         public void visitClassDeclaration(GNode node) {
             objectRepresentations.add(new ObjectRep(node.getString(1)));
+            mainFlag = false;
+            constructorFlag = true;
             visit(node);
         }
 
@@ -159,27 +168,49 @@ public class Phase2 {
             // return type
             String returnType;
             Node returnNode = node.getNode(2);
-            if (returnNode.getName().equals("VoidType")) returnType = "void";
+            if(returnNode == null) returnType = "Placeholder";
+            else if (returnNode.getName().equals("VoidType")) returnType = "void";
             else returnType = convertType(returnNode.getNode(0).getString(0));
 
             // name
             String methodName = node.getString(3);
+            if (node.getProperty("mangledName") != null) methodName = (String) node.getProperty("mangledName"); //node.getString(3);
+            if (methodName.equals("main")) mainFlag = true;
+            methodName = methodName.replaceAll("\\s", "");
+
+            if (mainFlag) returnType = "int_32t";
 
             // parameters
             ArrayList<Parameter> parameters = new ArrayList<Parameter>();
-            if (!isStatic) parameters.add(new Parameter(objectRepresentations.getCurrent().name, "__this"));
+            if (returnType.equals("Placeholder")) parameters.add(new Parameter(objectRepresentations.getCurrent().name, "__this"));
+            else if (!isStatic) parameters.add(new Parameter(objectRepresentations.getCurrent().name, "__this"));
 
             Iterator parameterIter = node.getNode(4).iterator();
             while (parameterIter.hasNext()) {
                 Node parameterNode = (Node) parameterIter.next();
                 String parameterType = convertType(parameterNode.getNode(1).getNode(0).getString(0));
+                if (parameterType.equals("String")) parameterType = "__rt::Array<String>";
                 String parameterName = parameterNode.getString(3);
                 parameters.add(new Parameter(parameterType, parameterName));
             }
 
             // add
             Method method = new Method(accessModifier, isStatic, returnType, methodName, parameters);
-            objectRepresentations.getCurrent().classRep.methods.add(method);
+            if (!returnType.equals("Placeholder")) objectRepresentations.getCurrent().classRep.methods.add(method);
+            else {
+                if (constructorFlag) {
+                    objectRepresentations.getCurrent().classRep.constructors.remove(1);
+                    constructorFlag = false;
+                }
+                Constructor constructor = new Constructor(accessModifier, "init", parameters);
+                boolean toAdd = true;
+                for (Constructor other : objectRepresentations.getCurrent().classRep.constructors) {
+                    if (other.equals(constructor)) toAdd = false;
+                }
+                if (toAdd) objectRepresentations.getCurrent().classRep.constructors.add(constructor);
+                
+                
+            }
 
             visit(node);
         }
@@ -213,7 +244,7 @@ public class Phase2 {
 
             // add
             Field field = new Field(accessModifier, isStatic, fieldType, fieldName, initial);
-            objectRepresentations.getCurrent().classRep.fields.add(field);
+            if (!mainFlag) objectRepresentations.getCurrent().classRep.fields.add(field);
 
             visit(node);
         }
@@ -317,7 +348,7 @@ public class Phase2 {
 
     /**
      * initializes a ObjectRepList with hardcoded Object, String and Class data
-     * fills ObjectRepList using unfilled list with fill method that also sets 
+     * fills ObjectRepList using unfilled list with fill method that also sets
      * parents of Objects
      * resolves VTable structure for each object using inheritance relationship
      * proces inherited fields for data layout for each object using inheritance
@@ -340,6 +371,7 @@ public class Phase2 {
 
         // process reps
         for (ObjectRep rep : filled) {
+            /* main goes here so ignore this, see below for new implementation
             if (!rep.name.equals("Object") && !rep.name.equals("String") && !rep.name.equals("Class")) {
                 // check if main is in the rep
                 boolean main = false;
@@ -350,6 +382,14 @@ public class Phase2 {
                     int index = filled.getIndexFromName(newRep.name);
                     filled.set(index, newRep);
                 }
+            }
+            */
+
+            // this is the new implementation
+            if (!rep.name.equals("Object") && !rep.name.equals("String") && !rep.name.equals("Class")) {
+                ObjectRep newRep = processVTable(rep, rep.parent);
+                int index = filled.getIndexFromName(newRep.name);
+                filled.set(index, newRep);
             }
 
             // don't forget to update the parents after replacing so that logic works, "bubbling down"
@@ -382,6 +422,7 @@ public class Phase2 {
             }
         }
 
+        /* don't remove main anymore, it's legal
         // remove rep with main method
         int mainIndex = -1;
         for (ObjectRep rep : filled) {
@@ -391,6 +432,7 @@ public class Phase2 {
             }
         }
         if(mainIndex != -1) filled.remove(mainIndex);
+        */
 
         // remove Object, String, and Class
         filled.remove(0);
@@ -445,6 +487,12 @@ public class Phase2 {
                     filled.add(rep);
                 }
             }
+        }
+
+        // processparents here too
+        for (ObjectRep rep : filled) {
+            if (rep.parent != null && rep.parent.equals(filled.get(0))) childrenToParents.put(rep.name, "");
+            else if (rep.parent != null) childrenToParents.put(rep.name, rep.parent.name);
         }
 
         return filled;
@@ -594,7 +642,7 @@ public class Phase2 {
 
         // update methods
         current.classRep.methods = updatedMethods;
-        
+
         return current;
     }
 
@@ -678,10 +726,9 @@ public class Phase2 {
     public static ObjectRep processVTable(ObjectRep current, ObjectRep parent) {
 
         // first process the methods of the class declaration
-        // note: constructor processing is not required at the moment
         // fields are simply expanded out in visitor with corresponding method definitions
         // similarly update methods using relationship between an object and its parent
-        // constructors are basically simple, multiple constructors currently not allowed
+        // constructors are basically simple, multiple constructors are now allowed
         ObjectRep currentPrime = determineVTable(current, parent);
 
         return currentPrime;
@@ -720,8 +767,7 @@ public class Phase2 {
                         if (idx == 0) {
                             parameters += param.type;
                             idx++;
-                        }
-                        else parameters += "," + param.type;
+                        } else parameters += "," + param.type;
                     }
                     Field temp = new Field(currentMethod.accessModifier, false, currentMethod.returnType, "*"+currentMethod.name, parameters);
                     temp.inheritedFrom = current.name;
@@ -733,14 +779,20 @@ public class Phase2 {
             }
             // if method wasn't overwritten and is not class (which is initialized in ObjectRep creation), modify its args and simply add to updated_fields list, also add inheritnce to updated vMethods list (these will refer to Object)
             if (notUpdated && parentField.isStatic == false && !parentField.accessModifier.equals("private")) {
-                String inheritedFrom = "";
-                if (parentField.inheritedFrom.equals("")) inheritedFrom = "Object";
-                else inheritedFrom = parentField.inheritedFrom;
-                Field temp = new Field(parentField.accessModifier, parentField.isStatic, parentField.fieldType, parentField.fieldName, parentField.initial.replaceFirst(parent.name, current.name));
-                temp.inheritedFrom = inheritedFrom;
-                updatedFields.add(temp);
-                if (parentField.fieldName.equals("__is_a")) updatedVMethods.add(__is_a);
-                else updatedVMethods.add(new VMethod(parentField.accessModifier, parentField.isStatic, parentField.fieldName.replaceFirst("\\*",""), "(("+parentField.fieldType+"(*)("+parentField.initial.replaceFirst(parent.name, current.name)+")) &__"+inheritedFrom+"::"+parentField.fieldName.replaceFirst("\\*","")+")"));
+                if (parentField.fieldName.equals("*__delete")) {
+                    updatedFields.add(new Field("public", false, "void", "*__delete", "__" + current.name + "*"));
+                    updatedVMethods.add(new VMethod("public", false, "__delete", "(&__rt::__delete<__" + current.name + ">)"));
+                }
+                else {
+                    String inheritedFrom = "";
+                    if (parentField.inheritedFrom.equals("")) inheritedFrom = "Object";
+                    else inheritedFrom = parentField.inheritedFrom;
+                    Field temp = new Field(parentField.accessModifier, parentField.isStatic, parentField.fieldType, parentField.fieldName, parentField.initial.replaceFirst(parent.name, current.name));
+                    temp.inheritedFrom = inheritedFrom;
+                    updatedFields.add(temp);
+                    if (parentField.fieldName.equals("__is_a")) updatedVMethods.add(__is_a);
+                    else updatedVMethods.add(new VMethod(parentField.accessModifier, parentField.isStatic, parentField.fieldName.replaceFirst("\\*",""), "(("+parentField.fieldType+"(*)("+parentField.initial.replaceFirst(parent.name, current.name)+")) &__"+inheritedFrom+"::"+parentField.fieldName.replaceFirst("\\*","")+")"));
+                }
             }
         }
 
@@ -763,8 +815,7 @@ public class Phase2 {
                     if (idx == 0) {
                         parameters += param.type;
                         idx++;
-                    }
-                    else parameters +=  "," + param.type;
+                    } else parameters +=  "," + param.type;
                 }
                 Field temp = new Field(currentMethod.accessModifier, false, currentMethod.returnType, "*"+currentMethod.name, parameters);
                 temp.inheritedFrom = current.name;
@@ -809,6 +860,8 @@ public class Phase2 {
         Method toString = new Method("public", true, "String", "toString", params);
         objectRep.classRep.methods.add(toString);
         // class representation for Object filled, now do V-Table filling
+        Field v_delete = new Field("public", false, "void", "*__delete", "__Object*");
+        objectRep.vtable.fields.add(v_delete);
         Field v_hashCode = new Field("public", false, "int32_t", "*hashCode", "Object");
         objectRep.vtable.fields.add(v_hashCode);
         Field v_equals = new Field("public", false, "bool", "*equals", "Object, Object");
@@ -817,6 +870,8 @@ public class Phase2 {
         objectRep.vtable.fields.add(v_getClass);
         Field v_toString = new Field("public", false, "String", "*toString", "Object");
         objectRep.vtable.fields.add(v_toString);
+        VMethod v_method_delete = new VMethod("public", false, "__delete", "(&__rt::__delete<__Object>)");
+        objectRep.vtable.methods.add(v_method_delete);
         VMethod v_method_hashCode = new VMethod("public", false, "hashCode", "(&__Object::__hashCode)");
         objectRep.vtable.methods.add(v_method_hashCode);
         VMethod v_method_equals = new VMethod("public", false, "equals", "(&__Object::__equals)");
@@ -853,6 +908,8 @@ public class Phase2 {
         Method charAt = new Method("public", true, "char", "charAt", params);
         stringRep.classRep.methods.add(charAt);
         // class representation for String filled, now do V-Table filling
+        v_delete = new Field("public", false, "void", "*__delete", "__String*");
+        stringRep.vtable.fields.add(v_delete);
         v_hashCode = new Field("public", false, "int32_t", "*hashCode", "String");
         stringRep.vtable.fields.add(v_hashCode);
         v_equals = new Field("public", false, "bool", "*equals", "String, Object");
@@ -865,6 +922,8 @@ public class Phase2 {
         stringRep.vtable.fields.add(v_length);
         Field v_charAt = new Field("public", false, "char", "*charAt", "String");
         stringRep.vtable.fields.add(v_charAt);
+        v_method_delete = new VMethod("public", false, "__delete", "(&__rt::__delete<__String>)");
+        stringRep.vtable.methods.add(v_method_delete);
         v_method_hashCode = new VMethod("public", false, "hashCode", "(&__String::__hashCode())");
         stringRep.vtable.methods.add(v_method_hashCode);
         v_method_equals = new VMethod("public", false, "equals", "(&__String::equals)");
@@ -904,6 +963,8 @@ public class Phase2 {
         Method isInstance = new Method("public", true, "bool", "isInstance", params);
         classRep.classRep.methods.add(isInstance);
         // class representation for Class filled, now do V-Table filling
+        v_delete = new Field("public", false, "void", "*__delete", "__Class*");
+        classRep.vtable.fields.add(v_delete);
         v_hashCode = new Field("public", false, "int32_t", "*hashCode", "Class");
         classRep.vtable.fields.add(v_hashCode);
         v_equals = new Field("public", false, "bool", "*equals", "Class, Object");
@@ -918,6 +979,8 @@ public class Phase2 {
         classRep.vtable.fields.add(v_getSuperClass);
         Field v_isInstance = new Field("public", false, "String", "*isInstance", "Class");
         classRep.vtable.fields.add(v_isInstance);
+        v_method_delete = new VMethod("public", false, "__delete", "(&__rt::__delete<__Class>)");
+        classRep.vtable.methods.add(v_method_delete);
         v_method_hashCode = new VMethod("public", false, "hashCode", "((int32_t(*)(Class)) &__Object::hashCode)");
         classRep.vtable.methods.add(v_method_hashCode);
         v_method_equals = new VMethod("public", false, "equals", "((bool(*)(Class,Object)) &__Object::equals)");
@@ -941,7 +1004,7 @@ public class Phase2 {
     }
 
     /**
-     * Method to create root node and parse information in ObjectReps to it 
+     * Method to create root node and parse information in ObjectReps to it
      * giving the final AST that the printer in Phase 3 uses to print
      *
      * @param   packageName package name of package being processed
@@ -1070,7 +1133,7 @@ public class Phase2 {
     }
 
     /**
-     * Helper method for buildClassAst, process vtble information of an 
+     * Helper method for buildClassAst, process vtble information of an
      * ObjectRep and parse the information into a root node that holds
      * vfields and vmethods as child nodes of root
      *

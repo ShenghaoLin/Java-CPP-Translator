@@ -27,14 +27,14 @@ public class Phase2Test {
     private static List<GNode> ast;
 
     @BeforeClass
-    public static void beforeClass(){
+    public static void beforeClass() {
         logger.debug("Executing Phase2Test");
         node = XtcTestUtils.loadTestFile("src/test/java/inputs/test050/Test050.java");
         ast = Phase1.parse(node);
     }
 
     @Test
-    public void testInitializeRepList(){ //throws xtc.tree.VisitingException{
+    public void testInitializeRepList() { //throws xtc.tree.VisitingException{
         Phase2.ObjectRepList objList = Phase2.initializeRepList();
         assertTrue("OBJECT", objList.get(0).name.equals("Object"));
         assertTrue("OBJECT", objList.get(1).name.equals("String"));
@@ -43,7 +43,7 @@ public class Phase2Test {
     }
 
     @Test
-    public void testGetObjectRepresentation(){ //throws xtc.tree.VisitingException{
+    public void testGetObjectRepresentation() { //throws xtc.tree.VisitingException{
         Phase2.Phase2Visitor visitor = new Phase2.Phase2Visitor();
         visitor.traverse(node);
 
@@ -82,7 +82,7 @@ public class Phase2Test {
 
 
     @Test
-    public void testFill(){ //throws xtc.tree.VisitingException{
+    public void testFill() { //throws xtc.tree.VisitingException{
         Phase2.Phase2Visitor visitor = new Phase2.Phase2Visitor();
         visitor.traverse(node);
         Phase2.ObjectRepList unfilled = visitor.getObjectRepresentations();
@@ -90,20 +90,20 @@ public class Phase2Test {
 
         filled = Phase2.fill(filled, unfilled);
 
-        for(ObjectRep o: filled){
+        for(ObjectRep o: filled) {
             System.out.println("\n\n\nNew ObjectRepList");
             System.out.println("Constructors: ");
-            for(Constructor c: o.classRep.constructors){
+            for(Constructor c: o.classRep.constructors) {
                 System.out.println(c.name +" "+ c.accessModifier);
             }
 
             System.out.println("\nFields: ");
-            for(Field f: o.classRep.fields){
+            for(Field f: o.classRep.fields) {
                 System.out.println(f.fieldType +" "+ f.fieldName);
             }
 
             System.out.println("\nMethods: ");
-            for(Method m: o.classRep.methods){
+            for(Method m: o.classRep.methods) {
                 System.out.println(m.returnType +" "+ m.name);
             }
         }
@@ -117,7 +117,7 @@ public class Phase2Test {
     }
 
     @Test
-    public void testBuidCppAst(){
+    public void testBuidCppAst() {
 
         Phase2.Phase2Visitor visitor = new Phase2.Phase2Visitor();
         visitor.traverse(node);
@@ -136,7 +136,7 @@ public class Phase2Test {
     }
 
     @Test
-    public void testBuildFieldNode(){
+    public void testBuildFieldNode() {
         Field field = new Field("mod", false, "String", "dus", "d");
 
         Node fieldNode = Phase2.buildFieldNode(field);

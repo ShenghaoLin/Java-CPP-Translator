@@ -7,6 +7,7 @@ class A {
 public class Test018 {
 
     public static void main(String[] args) {
+    	A a = new A();
         {
             A.x = 3;
         }

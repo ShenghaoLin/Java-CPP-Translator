@@ -1,14 +1,18 @@
 package inputs.input;
 
 class A {
-    public int method() { return 12345;}
+    public int method() {
+        return 12345;
+    }
     public String toString() {
         return "A";
     }
 }
 
 class B extends A {
-    public String toString() { return "B"; }
+    public String toString() {
+        return "B";
+    }
 }
 
 public class Input {
