@@ -136,20 +136,43 @@ public class Boot extends Tool {
         }
 
         if (runtime.test("printPhase1")) {
-            List<GNode> set = Phase1.parse(n);
-            for (GNode node : set) {
+            List<GNode> javaAsts = Phase1.parse(n);
+            HashMap<String, ArrayList<Phase1.Initializer>> inits = new HashMap<String, ArrayList<Phase1.Initializer>>();
+            LinkedList<SymbolTable> tables = new LinkedList<SymbolTable>();
+
+            for (GNode unmangledAst : javaAsts) {
+                SymbolTable table = new SymbolTableBuilder(runtime).getTable(unmangledAst);
+                inits.putAll(Phase1.mangle(runtime, table, unmangledAst));
+                tables.add(table);
+            }
+
+            for (GNode node : javaAsts) {
                 runtime.console().format(node).pln().flush();
             }
         }
 
         if (runtime.test("printPhase2")) {
-            // phase 1
             List<GNode> javaAsts = Phase1.parse(n);
+            HashMap<String, ArrayList<Phase1.Initializer>> inits = new HashMap<String, ArrayList<Phase1.Initializer>>();
+            LinkedList<SymbolTable> tables = new LinkedList<SymbolTable>();
 
-            // phase 2
-            ArrayList<GNode> cppAsts = new ArrayList<GNode>();
-            for (GNode javaAst : javaAsts) {
-                Node cppAst = Phase2.runPhase2(javaAst);
+            for (GNode unmangledAst : javaAsts) {
+                SymbolTable table = new SymbolTableBuilder(runtime).getTable(unmangledAst);
+                inits.putAll(Phase1.mangle(runtime, table, unmangledAst));
+                tables.add(table);
+            }
+
+            ArrayList<Node> cppAsts = new ArrayList<Node>();
+            HashMap<String, String> childrenToParents = new HashMap<String, String>();
+
+            for (Node javaAst : javaAsts) {
+                Phase2 phase2 = new Phase2();
+                Node cppAst = phase2.runPhase2(javaAst);
+                cppAsts.add(cppAst);
+                childrenToParents.putAll(phase2.childrenToParents);
+            }
+
+            for (GNode cppAst : javaAsts) {
                 runtime.console().format(cppAst).pln().flush();
             }
         }
@@ -179,14 +202,36 @@ public class Boot extends Tool {
         }
 
         if (runtime.test("printPhase4")) {
-            List<GNode> list = Phase1.parse(n);
-            Phase4 p = new Phase4(runtime);
-            for (GNode unmangledAst : list) {
+
+            List<GNode> javaAsts = Phase1.parse(n);
+            HashMap<String, ArrayList<Phase1.Initializer>> inits = new HashMap<String, ArrayList<Phase1.Initializer>>();
+            LinkedList<SymbolTable> tables = new LinkedList<SymbolTable>();
+
+            for (GNode unmangledAst : javaAsts) {
                 SymbolTable table = new SymbolTableBuilder(runtime).getTable(unmangledAst);
-                Phase1.mangle(runtime, table, unmangledAst);
-                p.runNode(unmangledAst, table);
+                inits.putAll(Phase1.mangle(runtime, table, unmangledAst));
+                tables.add(table);
             }
-            for (GNode node : list) {
+
+            ArrayList<Node> cppAsts = new ArrayList<Node>();
+            HashMap<String, String> childrenToParents = new HashMap<String, String>();
+
+            for (Node javaAst : javaAsts) {
+                Phase2 phase2 = new Phase2();
+                Node cppAst = phase2.runPhase2(javaAst);
+                cppAsts.add(cppAst);
+                childrenToParents.putAll(phase2.childrenToParents);
+            }
+
+            Phase4 phase4 = new Phase4(runtime, childrenToParents, inits);
+            ArrayList<GNode> asts = new ArrayList<GNode>();
+
+            for (Node javaAst : javaAsts) {
+                SymbolTable table = tables.poll();
+                asts.add((GNode) phase4.runNode((GNode) javaAst, table));
+            }
+
+            for (GNode node : asts) {
                 runtime.console().format(node).pln().flush();
             }
         }
@@ -220,14 +265,12 @@ public class Boot extends Tool {
             // process all dependencies, name mangling for method overloading
 
             List<GNode> javaAsts = Phase1.parse(n);
-
-            HashMap<String, ArrayList<Phase1.Initializer>> inis = new HashMap<String, ArrayList<Phase1.Initializer>>();
-
+            HashMap<String, ArrayList<Phase1.Initializer>> inits = new HashMap<String, ArrayList<Phase1.Initializer>>();
             LinkedList<SymbolTable> tables = new LinkedList<SymbolTable>();
 
             for (GNode unmangledAst : javaAsts) {
                 SymbolTable table = new SymbolTableBuilder(runtime).getTable(unmangledAst);
-                inis.putAll(Phase1.mangle(runtime, table, unmangledAst));
+                inits.putAll(Phase1.mangle(runtime, table, unmangledAst));
                 tables.add(table);
             }
 
@@ -236,18 +279,13 @@ public class Boot extends Tool {
             // Node cppAst = Phase2.runPhase2(javaAsts.get(0));
 
             ArrayList<Node> cppAsts = new ArrayList<Node>();
-
-
-            HashMap<String, String> ctp = new HashMap<String, String>();
+            HashMap<String, String> childrenToParents = new HashMap<String, String>();
 
             for (Node javaAst : javaAsts) {
                 Phase2 phase2 = new Phase2();
                 Node cppAst = phase2.runPhase2(javaAst);
                 cppAsts.add(cppAst);
-
-                ctp.putAll(phase2.childrenToParents);
-
-                runtime.console().format(cppAst).pln().flush();
+                childrenToParents.putAll(phase2.childrenToParents);
             }
 
             Phase3 phase3 = new Phase3();
@@ -258,13 +296,12 @@ public class Boot extends Tool {
                 phase3.print((GNode) cppAst);
             }
 
-            Phase4 p = new Phase4(runtime, ctp, inis);
-
+            Phase4 phase4 = new Phase4(runtime, childrenToParents, inits);
             ArrayList<GNode> asts = new ArrayList<GNode>();
 
-            for (Node oo : javaAsts) {
+            for (Node javaAst : javaAsts) {
                 SymbolTable table = tables.poll();
-                asts.add((GNode) p.runNode((GNode) oo, table));
+                asts.add((GNode) phase4.runNode((GNode) javaAst, table));
             }
 
             Phase5 printer = new Phase5("output.cpp");

@@ -346,7 +346,7 @@ public class Phase5 extends Visitor {
 
             GNode nn = (GNode) call;
 
-            Object o = nn.getProperty("addOnSentence");
+            Object o = nn.getProperty("initStatements");
             if (o != null) {
                 printer.p((String) o).flush();
             }

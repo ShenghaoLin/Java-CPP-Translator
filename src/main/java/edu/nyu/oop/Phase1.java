@@ -112,26 +112,66 @@ public class Phase1 {
             this.isStatic = isStatic;
             this.initial = getInitial(typeName);
             this.value = value;
-            this.typeName = typeName;
+            this.typeName = getTypeName(typeName);
         }
 
         public static String getInitial(String typeName){
-            if(typeName.equals("boolean"))
-                return "false";
-            else if(typeName.equals("int"))
-                return "0";
-            else if(typeName.equals("double"))
-                return "0";
-            else if(typeName.equals("float"))
-                return "0";
-            else if(typeName.equals("char"))
-                return "0";
-            else if(typeName.equals("byte"))
-                return "0";
-            else if(typeName.equals("short"))
-                return "0";
-            else
-                return "__rt::null()";
+            String toReturn = "";
+            switch (typeName) {
+                case "boolean":
+                    toReturn = "false";
+                    break;
+                case "double":
+                    toReturn = "0";
+                    break;
+                case "float":
+                    toReturn = "0";
+                    break;
+                case "long":
+                    toReturn = "0";
+                    break;
+                case "int":
+                    toReturn = "0";
+                    break;
+                case "short":
+                    toReturn = "0";
+                    break;
+                case "byte":
+                    toReturn = "0";
+                    break;
+                case "char":
+                    toReturn = "0";
+                    break;
+                default:
+                    toReturn = "__rt::null()";
+                    break;
+            }
+            return toReturn;
+        }
+
+        public static String getTypeName(String typeName) {
+            String toReturn = "";
+            switch (typeName) {
+                case "boolean":
+                    toReturn = "bool";
+                    break;
+                case "long":
+                    toReturn = "int64_t";
+                    break;
+                case "int":
+                    toReturn = "int32_t";
+                    break;
+                case "short":
+                    toReturn = "int16_t";
+                    break;
+                case "byte":
+                    toReturn = "int8_t";
+                    break;
+                default:
+                    toReturn = typeName;
+                    break;
+            }
+            return toReturn;
         }
     }
 
@@ -371,9 +411,11 @@ public class Phase1 {
                     }
                     else if (receiver.getName().equals("CallExpression")) {
                         Type objectType = returnTypeFromCallExpression(receiver);
+                        System.out.println(objectType.toString());
                         List<Type> actuals = JavaEntities.typeList((List) dispatch(n.getNode(3)));
                         method =
                             JavaEntities.typeDotMethod(table, classpath(), objectType, true, methodName, actuals);
+                        if (method.isMethod()) System.out.println(method.toString());
                     }
 
                     else if (receiver.getName().equals("ThisExpression")) {
@@ -391,6 +433,7 @@ public class Phase1 {
                             JavaEntities.typeDotMethod(table, classpath(), superType, true, methodName, actuals);
                     }
                     if (method != null) {
+                        System.out.println(method.toString());
                         //Set mangled name
                         n.setProperty("mangledName", methodScopeToMangledName.get(method.getScope()));
                         //Set method type

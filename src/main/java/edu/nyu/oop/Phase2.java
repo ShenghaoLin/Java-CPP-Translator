@@ -178,7 +178,7 @@ public class Phase2 {
             if (methodName.equals("main")) mainFlag = true;
             methodName = methodName.replaceAll("\\s", "");
 
-            if (mainFlag) returnType = "int_32t";
+            if (mainFlag) returnType = "int32_t";
 
             // parameters
             ArrayList<Parameter> parameters = new ArrayList<Parameter>();
