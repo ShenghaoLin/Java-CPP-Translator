@@ -301,7 +301,7 @@ public class Phase1 {
 
                     String mangledName = methodName + "_ " + paramString;
 
-                    if (mangledName.equals("toString_ ") || mangledName.equals("hashCode_ ") || mangledName.equals("getClass_ ") || (mangledName.split("_ ").length == 2 && mangledName.split("_ ")[0].equals("equals") && mangledName.split("_ ")[1].equals("Object"))) { 
+                    if (mangledName.equals("toString_ ") || mangledName.equals("hashCode_ ") || mangledName.equals("getClass_ ") || (mangledName.split("_ ").length == 2 && mangledName.split("_ ")[0].equals("equals"))) { 
                         System.out.println("this happened");
                         mangledName = mangledName.split("_ ")[0];
                     }
