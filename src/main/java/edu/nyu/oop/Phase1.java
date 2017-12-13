@@ -434,6 +434,9 @@ public class Phase1 {
                         if(isPrivateType(method)) methodDispatchType = "private";
                         if(TypeUtil.isStaticType(method)) methodDispatchTypeType = "static";
                         n.setProperty("methodDispatchType", methodDispatchTypeType);
+                        //Set method return type
+                        String methodReturnType = method.getResult();
+                        n.setProperty("methodReturnType", methodReturnType);
                     }
                 }
             }
