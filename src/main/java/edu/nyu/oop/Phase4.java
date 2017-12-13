@@ -240,8 +240,17 @@ public class Phase4 {
             visit(n);
         }
 
-        public void visitFieldDeclaration(GNode n) {
-            for (int i = 0; i < n.size(); i++) n.set(i, null);
+        public void visitCastExpression(GNode n) {
+            if (!n.getNode(0).getName().equals("JavaCast")) {
+                System.out.println(n.toString());
+                String castStatement = "__rt::java_cast<";
+                String toCast = n.getNode(0).getNode(0).get(0).toString();
+                castStatement += toCast + ">";
+                System.out.println(castStatement);
+                GNode castNode = GNode.create("JavaCast", castStatement);
+                n.set(0, castNode);
+            }
+            visit(n);
         }
 
         /* Visitor for ClassDeclaration
@@ -573,23 +582,7 @@ public class Phase4 {
         */
 
         public void visitExpressionStatement(GNode n) {
-            Object smthn = NodeUtil.dfs(n, "SubscriptExpression");
-            if (smthn != null) {
-                System.out.println("Imma get you get you get you");
-            }
-            //System.out.println(n.toString());
-            GNode firstPINode = (GNode) n.getNode(0);
-            //System.out.println(firstPINode.toString());
-            /*
-            GNode firstPINode = (GNode) n.getNode(0).get(0);
-            GNode secondPINode = (GNode) n.getNode(0).get(1);
-            String checkNull = "__rt::checkNotNull(" + firstPINode.get(0).toString() + ")";
-            String indexCheck = "__rt::checkNotNull(" + firstPINode.get(0).toString() + ", " + secondPINode.get(0).toString() + ")";
-            GNode runTimeChecks = GNode.create("RunTimeChecks", checkNull, indexCheck);
-            if (n.get(1).toString().equals("=")) {
-                System.out.println(n.getNode(2).toString());
-            }
-            */
+            // TO-DO
             
             visit(n);
         }
