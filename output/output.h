@@ -7,37 +7,34 @@ using namespace java::lang;
 #include <stdint.h>
 #include <string>
 
-namespace inputs
-{
-namespace test021
-{
+namespace inputs { 
+namespace test024 { 
 
-struct __A;
-struct __A_VT;
+  struct __A;
+  struct __A_VT;
 
-struct __Test021;
-struct __Test021_VT;
+  struct __Test024;
+  struct __Test024_VT;
 
-typedef __rt::Ptr<__A> A;
-typedef __rt::Ptr<__Test021> Test021;
+  typedef __rt::Ptr<__A> A;
+  typedef __rt::Ptr<__Test024> Test024;
 
-struct __A
-{
+  struct __A {
 
     __A_VT* __vptr;
-    static int32_t x;
+    int32_t i;
 
     __A();
-    static A __init(A __this);
+    static A __init(A __this, int32_t i);
 
+    static int32_t get_(A __this);
 
     static Class __class();
 
     static __A_VT __vtable;
-};
+  };
 
-struct __A_VT
-{
+  struct __A_VT {
 
     Class __is_a;
 
@@ -46,54 +43,54 @@ struct __A_VT
     bool (*equals)(A, Object);
     Class (*getClass)(A);
     String (*toString)(A);
+    int32_t (*get_)(A);
 
     __A_VT()
-        :__is_a(__A::__class()),
-         __delete(&__rt::__delete<__A>),
-         hashCode((int32_t(*)(A)) &__Object::hashCode),
-         equals((bool(*)(A, Object)) &__Object::equals),
-         getClass((Class(*)(A)) &__Object::getClass),
-         toString((String(*)(A)) &__Object::toString)
+      :__is_a(__A::__class()),
+      __delete(&__rt::__delete<__A>),
+      hashCode((int32_t(*)(A)) &__Object::hashCode),
+      equals((bool(*)(A, Object)) &__Object::equals),
+      getClass((Class(*)(A)) &__Object::getClass),
+      toString((String(*)(A)) &__Object::toString),
+      get_(&__A::get_)
     {
     }
-};
+  };
 
-struct __Test021
-{
+  struct __Test024 {
 
-    __Test021_VT* __vptr;
+    __Test024_VT* __vptr;
 
-    __Test021();
-    static Test021 __init(Test021 __this);
+    __Test024();
+    static Test024 __init(Test024 __this);
 
-    static int_32t main(__rt::Array<String> args);
+    static int32_t main(__rt::Array<String> args);
 
     static Class __class();
 
-    static __Test021_VT __vtable;
-};
+    static __Test024_VT __vtable;
+  };
 
-struct __Test021_VT
-{
+  struct __Test024_VT {
 
     Class __is_a;
 
-    void (*__delete)(__Test021*);
-    int32_t (*hashCode)(Test021);
-    bool (*equals)(Test021, Object);
-    Class (*getClass)(Test021);
-    String (*toString)(Test021);
+    void (*__delete)(__Test024*);
+    int32_t (*hashCode)(Test024);
+    bool (*equals)(Test024, Object);
+    Class (*getClass)(Test024);
+    String (*toString)(Test024);
 
-    __Test021_VT()
-        :__is_a(__Test021::__class()),
-         __delete(&__rt::__delete<__Test021>),
-         hashCode((int32_t(*)(Test021)) &__Object::hashCode),
-         equals((bool(*)(Test021, Object)) &__Object::equals),
-         getClass((Class(*)(Test021)) &__Object::getClass),
-         toString((String(*)(Test021)) &__Object::toString)
+    __Test024_VT()
+      :__is_a(__Test024::__class()),
+      __delete(&__rt::__delete<__Test024>),
+      hashCode((int32_t(*)(Test024)) &__Object::hashCode),
+      equals((bool(*)(Test024, Object)) &__Object::equals),
+      getClass((Class(*)(Test024)) &__Object::getClass),
+      toString((String(*)(Test024)) &__Object::toString)
     {
     }
-};
+  };
 
 }
 }

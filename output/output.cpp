@@ -5,49 +5,56 @@ using namespace java::lang;
 
 namespace inputs
 {
-namespace test021
+namespace test024
 {
-__A::__A() : x(0), __vptr(&__vtable) {}
+__A::__A() : i(0), __vptr(&__vtable) {}
 
-A __A::__init(A __this)
-{
-    __Object::__init(__this);
-    return __this;
+A __A::__init (A __this , int32_t i ){
+__Object::__init(__this);
+  __this -> i = i ;
+return __this ;
 }
 
-Class __A::__class()
-{
-    static Class k = new __Class(__rt::literal("inputs.test021.A"), __Object::__class());
-    return k;
+int32_t __A::get_ (A __this ){
+return __this -> i ;
 }
 
-A::x = 4;
+Class __A::__class() {
+static Class k = new __Class(__rt::literal("inputs.test024.A"), __Object::__class());
+return k;
+}
 
 __A_VT __A::__vtable;
 
-__Test021::__Test021() : __vptr(&__vtable) {}
+__Test024::__Test024() : __vptr(&__vtable) {}
 
-Test021 __Test021::__init(Test021 __this)
-{
-    __Object::__init(__this);
-    return __this;
+Test024 __Test024::__init(Test024 __this) {
+__Object::__init(__this);
+return __this;
 }
 
-int32_t Test021::main (__rt::Array<String> args )
+int32_t __Test024::main (__rt::Array<String> args ){
+;
+for (int32_t i = 0 ; i < ({__rt::checkNotNull(as); as->length;}) ; i ++ )
 {
-    int x;
-    x = 3 ;
-    cout << A ::x << endl ;
-    return 0 ;
+as -> data[i ]= __A::__init (new __A() , i );
 }
 
-Class __Test021::__class()
-{
-    static Class k = new __Class(__rt::literal("inputs.test021.Test021"), __Object::__class());
-    return k;
+;
+while (k < 10 ){
+cout << (A ) as -> data[k ]-> __vptr -> get ((A ) as -> data[k ])<< endl ;
+k = k + 1 ;
 }
 
-__Test021_VT __Test021::__vtable;
+return 0 ;
+}
+
+Class __Test024::__class() {
+static Class k = new __Class(__rt::literal("inputs.test024.Test024"), __Object::__class());
+return k;
+}
+
+__Test024_VT __Test024::__vtable;
 
 }
 }

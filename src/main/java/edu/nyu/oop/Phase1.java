@@ -430,10 +430,10 @@ public class Phase1 {
                         //Set mangled name
                         n.setProperty("mangledName", methodScopeToMangledName.get(method.getScope()));
                         //Set method type
-                        String methodType = "dynamic";
-                        if(isPrivateType(method)) methodType = "private";
-                        if(TypeUtil.isStaticType(method)) methodType = "static";
-                        n.setProperty("methodType", methodType);
+                        String methodDispatchType = "virtual";
+                        if(isPrivateType(method)) methodDispatchType = "private";
+                        if(TypeUtil.isStaticType(method)) methodDispatchTypeType = "static";
+                        n.setProperty("methodDispatchType", methodDispatchTypeType);
                     }
                 }
             }
