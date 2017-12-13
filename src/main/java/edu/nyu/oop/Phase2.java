@@ -758,7 +758,7 @@ public class Phase2 {
             // loop over current methods to determine what has been overwritten and what hasn't, this will ensure preservation of order too
             for (Method currentMethod : currentMethods) {
                 // if method is overwritten by child, need extra processing, ignore class definition
-                if (parentField.fieldName.replaceFirst("\\*","").equals(currentMethod.name) && parentField.isStatic == false && !parentField.accessModifier.equals("private")) {
+                if (checkTwoNames(parentField.fieldName, currentMethod.name) && parentField.isStatic == false && !parentField.accessModifier.equals("private")) {
                     // process parameters correctly into field declaration
                     String parameters = "";
                     ArrayList<Parameter> params = currentMethod.parameters;
@@ -832,6 +832,11 @@ public class Phase2 {
         current.vtable.methods = updatedVMethods;
 
         return current;
+    }
+
+    public static boolean checkTwoNames(String name1, String name2) {
+        if (name1.replaceFirst("\\*","").equals(name2)) return true;
+        return false;
     }
 
     /**

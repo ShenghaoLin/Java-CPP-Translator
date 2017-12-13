@@ -180,7 +180,6 @@ public class Phase1 {
         protected SymbolTable table;
         protected Runtime runtime;
         protected HashMap<String, String> methodScopeToMangledName;
-        protected HashMap<String, Integer> mangleCounts;
         protected String className = "";
         protected String parentName = "";
         protected HashMap<String, ArrayList<Initializer>> initializers;
@@ -194,7 +193,6 @@ public class Phase1 {
             this.runtime = runtime;
             this.table = table;
             this.methodScopeToMangledName = new HashMap<String, String>();
-            this.mangleCounts = new HashMap<String, Integer>();
             this.initializers = new HashMap<String, ArrayList<Initializer>>();
         }
 
@@ -297,20 +295,15 @@ public class Phase1 {
                     String paramString = "";
                     GNode params = (GNode) n.get(4);
                     for (int i = 0; i < params.size(); i++) {
-                        paramString += "_" + params.getNode(i).getNode(1).getNode(0).getString(0);
+                        if (i == 0) paramString += params.getNode(i).getNode(1).getNode(0).getString(0);
+                        else paramString += "_" + params.getNode(i).getNode(1).getNode(0).getString(0);
                     }
 
-                    String mangledName = methodName + " " + paramString;
-                    if (mangledName.equals("toString ") || mangledName.equals("hashCode ") || mangledName.equals("getClass ") || (mangledName.split("_").length == 2 && mangledName.split("_")[0].equals("equals ") && mangledName.split("_")[1].equals("Object"))) {
-                        mangledName = mangledName.replaceAll("\\s", "").split("_")[0];
-                    }
-                    else if (mangleCounts.containsKey(mangledName)) {
-                        mangleCounts.put(mangledName, mangleCounts.get(mangledName) + 1);
-                        mangledName += mangleCounts.get(mangledName);
-                    }
-                    else {
-                        mangleCounts.put(mangledName, 0);
-                        mangledName += "_" + mangleCounts.get(mangledName);
+                    String mangledName = methodName + "_ " + paramString;
+
+                    if (mangledName.equals("toString_ ") || mangledName.equals("hashCode_ ") || mangledName.equals("getClass_ ") || (mangledName.split("_ ").length == 2 && mangledName.split("_ ")[0].equals("equals") && mangledName.split("_ ")[1].equals("Object"))) { 
+                        System.out.println("this happened");
+                        mangledName = mangledName.split("_ ")[0];
                     }
 
                     n.setProperty("mangledName", mangledName);
