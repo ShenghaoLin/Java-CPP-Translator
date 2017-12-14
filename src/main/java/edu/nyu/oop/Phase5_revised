@@ -1,0 +1,499 @@
+package edu.nyu.oop;
+
+import org.slf4j.Logger;
+import xtc.tree.GNode;
+import xtc.tree.Node;
+import xtc.tree.Printer;
+import xtc.tree.Visitor;
+
+import edu.nyu.oop.util.XtcProps;
+import edu.nyu.oop.util.NodeUtil;
+
+import java.io.BufferedWriter;
+import java.io.FileOutputStream;
+import java.io.OutputStreamWriter;
+import java.io.Writer;
+
+/* Print out the information in the AST in a concrete C++ syntax generated from Phase 4
+ * Under construction, working for most classes and methods
+ * currently working on the seperation of main function
+ * no indent
+ */
+
+public class Phase5 extends Visitor {
+
+    private Logger logger = org.slf4j.LoggerFactory.getLogger(this.getClass());
+
+    private Printer printer;
+    private Printer printer2;
+
+    private String outputLocation = XtcProps.get("output.location");
+
+    String packageInfo = "";
+
+    boolean inCout = false;
+
+    String headoffile;
+
+    /* Class constructor. Intializing the writer to the file. */
+    public Phase5(String outputcpp, String maincpp) {
+
+        //Writer for output.cpp file
+        Writer w = null;
+        try {
+            FileOutputStream fos = new FileOutputStream(outputLocation + outputcpp);
+            OutputStreamWriter ows = new OutputStreamWriter(fos, "utf-8");
+            w = new BufferedWriter(ows);
+            this.printer = new Printer(w);
+        } catch (Exception e) {
+            throw new RuntimeException("Output location not found. Create the /output directory.");
+        }
+
+        printer.register(this);
+
+        //Writer for main.cpp file
+        Writer w2 = null;
+        try {
+            FileOutputStream fos = new FileOutputStream(outputLocation + maincpp);
+            OutputStreamWriter ows = new OutputStreamWriter(fos, "utf-8");
+            w2 = new BufferedWriter(ows);
+            this.printer2 = new Printer(w);
+        } catch (Exception e) {
+            throw new RuntimeException("Output location not found. Create the /output directory.");
+        }
+
+        printer2.register(this);
+
+    }
+
+    public Printer printer() {
+        return this.printer;
+    }
+
+    public void setPrinter(Printer p) {
+        this.printer = p;
+    }
+
+    public String location() {
+        return this.outputLocation;
+    }
+
+
+    /* The actual print method */
+    public void print(GNode ast) {
+        dispatch(ast);
+        printer.flush();
+        printer2.flush();
+    }
+
+    /* The claim placed in the beginning of cpp files */
+    public void headOfFile() {
+        headoffile = "#include \"output.h\"\n#include <iostream>\n\nusing namespace java::lang;";
+        printer.pln("#include \"output.h\"");
+        printer.pln("#include <iostream>");
+        printer.pln();
+        printer.pln("using namespace java::lang;").pln();
+    }
+
+    /* Visitor for ClassDeclaration
+     * Generate code for default constructor, Class method(class identity and its parent)
+     * and vtable initialization.
+     */
+    public void visitClassDeclaration(GNode n) {
+
+        GNode mainfunction = (GNode) NodeUtil.dfs(n, "MethodDeclaration");
+        // if (mainfunction != null) {
+        //     if (mainfunction.get(3).toString().equals("main")) {
+        //         Phase5 mainPrint = new Phase5("main.cpp");
+        //         Printer mainPrinter = mainPrint.printer();
+        //         mainPrinter.register(mainPrint);
+        //         mainPrinter.pln("#include \"java_lang.h\"");
+        //         mainPrint.headOfFile();
+        //         mainPrinter.pln("using namespace std;");
+        //         mainPrinter.pln("using namespace " +
+        //                         packageInfo.substring(0, packageInfo.length() - 1).replace(".", "::") + ";").pln();
+        //         mainPrint.print(mainfunction);
+
+        //         return;
+        //     }
+        // }
+
+        //Obtaining information of class name of parent class name
+        String className = n.get(1).toString();
+        String parentName = "";
+        GNode extensionClass = (GNode) NodeUtil.dfs(n, "Extension");
+        if (extensionClass != null) {
+            GNode parentType = (GNode) extensionClass.get(0);
+            GNode parentTypeNode = (GNode) parentType.get(0);
+            parentName = parentTypeNode.get(0).toString();
+        } else  {
+            parentName = "Object";
+        }
+
+
+
+        //default constructor
+        printer.pln((String) n.getProperty("defaultConstructor"));
+        printer.pln();
+
+        //real default constructor
+        // Object o = NodeUtil.dfs(n, "ConstructorDelaration");
+        // if (o == null) {
+        //     printer.pln(n.get(1).toString() + " __"
+        //                 + n.get(1).toString() + "::__init("
+        //                 + n.get(1).toString() + " __this) {");
+        //     printer.pln("return __this;");
+        //     printer.pln("}");
+        // }
+        if (n.getProperty("realDefaultConstructor") != null) {
+            printer.pln((String) n.getProperty("realDefaultConstructor"));
+        }
+
+        //visit class body
+        GNode classBody = (GNode) NodeUtil.dfs(n, "ClassBody");
+        dispatch(classBody);
+
+        //class method
+        printer.pln((String) n.getProperty("classInfo"));
+
+        if (n.getProperty("staticInit") != null) {
+            printer.pln((String) n.getProperty("staticInit"));
+        }
+
+        //vtable initialization
+        printer.pln((String) n.getProperty("vtableInit"));
+
+    }
+
+    public void visitConditionalStatement(GNode n) {
+
+        printer.p("if (");
+        GNode condition = (GNode) n.get(0);
+        dispatch(condition);
+        printer.p(")");
+
+        for (int i = 1; i < n.size(); i++) {
+            if (n.get(0) instanceof Node) dispatch((Node) n.get(i));
+            if (n.get(0) instanceof String) {
+                printer.p((String) n.get(i) + " ");
+            }
+        }
+    }
+
+    public void visitInstanceOfExpression(GNode n) {
+        dispatch((Node) n.get(0));
+        printer.p("-> __vptr -> getClass(");
+        dispatch((Node) n.get(0));
+        printer.p(')');
+        printer.p("-> __vptr -> isInstance( ");
+        dispatch((Node) n.get(0));
+        printer.p("-> __vptr -> getClass(");
+        dispatch((Node) n.get(0));
+        printer.p(")");
+        printer.p(", (Object) new __");
+        dispatch((Node) n.get(1));
+        printer.p("())");
+
+    }
+
+    /* Visitor for CompilationUnit
+     * Generate information of the package and print namespace
+     */
+    public void visitCompilationUnit(GNode n) {
+
+        //print namespace and generate package info
+        GNode p = (GNode) n.getGeneric(0);
+        GNode packageName = (GNode) p.getGeneric(1);
+        for (int i = 0; i < packageName.size(); i ++) {
+            packageInfo += packageName.getString(i) + ".";
+            printer.pln("namespace " + packageName.getString(i));
+            printer.pln("{");
+        }
+
+        //visit children(except for the 0-index node -- which is package name)
+        for (int i = 1; i < n.size(); i++) {
+            Object o = n.get(i);
+            if (o instanceof Node) dispatch((Node) o);
+        }
+
+        //right brackets
+        for (int i = 0; i < packageName.size(); i ++) {
+            printer.pln("}");
+        }
+        printer.pln();
+    }
+
+    /* Visitor for FieldDeclaration
+     * Add ";" at the end of each statement
+     */
+    public void visitFieldDeclaration(GNode n) {
+        visit(n);
+        printer.pln(";");
+    }
+
+    /* Visitor for Block
+     * Add brackets "{}" at beginning and ending
+     */
+    public void visitBlock(GNode n) {
+        printer.pln("{");
+        visit(n);
+        printer.pln("}");
+        printer.pln();
+
+    }
+
+    /* Visitor for Arguments
+     * Add brackets "()" at beginning and ending
+     * add comma between elements
+     */
+    public void visitArguments(GNode n) {
+
+        printer.p("(");
+
+        //add comma
+        for (int i = 0; i < n.size() - 1; i++) {
+            try {
+                GNode child = (GNode) n.getGeneric(i);
+                dispatch(child);
+                printer.p(", ");
+            } catch (Exception e) {}
+        }
+
+        try {
+            Object child = n.getGeneric(n.size() - 1);
+            if (child instanceof GNode) {
+                dispatch((GNode) child);
+            } else if (child instanceof String) {
+                printer.p((String) child);
+            }
+        } catch (Exception e) {}
+        printer.p(")");
+    }
+
+    /* Visitor for FormalParameters
+     * Same as Arguments
+     */
+    public void visitFormalParameters(GNode n) {
+        visitArguments(n);
+    }
+
+    public void visitClassBody(GNode n) {
+        for (Object o : n) {
+            if (o instanceof GNode) {
+                GNode node = (GNode) o;
+                if (!node.hasName("FieldDeclaration")) {
+                    dispatch(node);
+                }
+            }
+        }
+    }
+
+    /* Skip extension since we already have its info */
+    public void visitExtension(GNode n) {}
+
+    /* Visitor for CastExpression
+     * Add "()" to the cast type
+     */
+    public void visitCastExpression(GNode n) {
+
+        printer.p("(");
+        GNode type = (GNode) n.getGeneric(0);
+
+        dispatch(type);
+
+        printer.p(") ");
+
+        dispatch((GNode) n.getGeneric(1));
+    }
+
+    /* Visitor for CallExpression
+     * For cout, arguments should be placed after "<<"" instead of inside "()"
+     * toString() should be tranformed to to toString() -> data
+     */
+    public void visitCallExpression(GNode n) {
+
+
+        //cout handling
+        if (n.get(2).toString().equals("cout")) {
+
+            inCout = true;
+
+            printer.p("cout ");
+            GNode arguments = (GNode) n.getGeneric(3);
+
+            //print arguments, starts with "<<"
+            for (Object o : arguments) {
+                printer.p("<< ");
+                if (o instanceof Node) {
+                    GNode gnode = (GNode) o;
+                    dispatch((Node) o);
+
+                    //toString handling
+                    // if (gnode.hasName("CallExpression")) {
+                    //     if (gnode.get(2).toString().endsWith("toString")) {
+                    //         printer.p("-> data ");
+                    //     }
+                    // }
+                }
+
+                if (o instanceof String) printer.p(((String) o) + " ");
+            }
+        }
+
+        //other calling will not be specialized.
+        else {
+
+            visit(n);
+        }
+
+        inCout = false;
+
+    }
+
+    /* Visitor for ExpressionStatement
+     * Add ";" at the end of statement
+     */
+    public void visitExpressionStatement(GNode n) {
+        visit(n);
+        printer.pln(";");
+
+        Object call = NodeUtil.dfs(n, "CallExpression");
+
+        if (call != null) {
+
+            GNode nn = (GNode) call;
+
+            Object o = nn.getProperty("initStatements");
+            if (o != null) {
+                printer.p((String) o);
+            }
+        }
+    }
+
+
+    /* Visitor for ReturnStatement
+     * print return, ending with ";"
+     */
+    public void visitReturnStatement(GNode n) {
+        printer.p("return ");
+        visit(n);
+        printer.pln(";");
+    }
+
+    /* Visitor for VoidType
+     * print "void"
+     */
+    public void visitVoidType(GNode n) {
+        printer.p("void ");
+    }
+
+    /* Visitor for Declarator
+     * adding "=" to the statement
+     */
+    public void visitDeclarator(GNode n) {
+        printer.p(n.get(0).toString());
+
+        boolean eq = false;
+        for (int i = 1; i < n.size(); i++) {
+            try {
+                GNode child = (GNode) n.getGeneric(i);
+
+                if (child != null) {
+                    if (!eq) {
+                        printer.p(" = ");
+                        eq = true;
+                    }
+                    dispatch(child);
+                }
+            } catch (Exception e) {}
+
+            if (n.get(i) instanceof String) {
+
+                if (!eq) {
+                    printer.p("= ");
+                    eq = true;
+                }
+                printer.p((String) n.get(i));
+            }
+        }
+
+    }
+
+
+    /* Visitor for ThisExpression
+     * print "__this"
+     */
+    public void visitThisExpression(GNode n) {
+        printer.p("__this ");
+        visit(n);
+    }
+
+    public void visitWhileStatement(GNode n) {
+        printer.p("while ");
+        visit(n);
+    }
+
+    public void visitRelationalExpression(GNode n) {
+        printer.p("(");
+        visit(n);
+        printer.p(")");
+    }
+
+    public void visitStringLiteral(GNode n) {
+        if (!inCout) {
+            printer.p("new __String(");
+            visit(n);
+            printer.p(")");
+        } else {
+            visit(n);
+        }
+    }
+
+    public void visitForStatement(GNode n) {
+        printer.p("for (");
+        dispatch(n.getNode(0).getNode(1));
+        dispatch(n.getNode(0).getNode(2));
+        printer.p("; ");
+        visit(n.getNode(0).getNode(3));
+        printer.p("; ");
+        dispatch(n.getNode(0).getNode(4));
+        printer.pln(")");
+        dispatch(n.getNode(1));
+    }
+
+    public void visitSubscriptExpression(GNode n) {
+        dispatch(n.getNode(0));
+        printer.p("-> data[");
+        dispatch(n.getNode(1));
+        printer.p("]");
+    }
+
+    public void visitConcreteDimensions(GNode n) {
+        printer.p("(");
+        visit(n);
+        printer.p(")");
+    }
+
+    public void visitNewArrayExpression(GNode n) {
+        printer.p("new ");
+        visit(n);
+    }
+
+    /* General visitor
+     * Besides dispatch, also print all String instances it meets
+     */
+    public void visit(Node node) {
+        for (Object o : node) {
+
+            //dispatch
+            if (o instanceof Node) dispatch((Node) o);
+
+            //print string
+            if (o instanceof String) {
+                String s = (String) o;
+                
+                printer.p(s + " ");
+            }
+        }
+    }
+}
