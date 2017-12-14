@@ -432,10 +432,10 @@ public class Phase1 {
                         //Set method type
                         String methodDispatchType = "virtual";
                         if(isPrivateType(method)) methodDispatchType = "private";
-                        if(TypeUtil.isStaticType(method)) methodDispatchTypeType = "static";
-                        n.setProperty("methodDispatchType", methodDispatchTypeType);
+                        if(TypeUtil.isStaticType(method)) methodDispatchType = "static";
+                        n.setProperty("methodDispatchType", methodDispatchType);
                         //Set method return type
-                        String methodReturnType = method.getResult();
+                        String methodReturnType = method.getResult().toString();
                         n.setProperty("methodReturnType", methodReturnType);
                     }
                 }
