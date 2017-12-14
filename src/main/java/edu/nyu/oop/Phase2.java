@@ -189,7 +189,7 @@ public class Phase2 {
             while (parameterIter.hasNext()) {
                 Node parameterNode = (Node) parameterIter.next();
                 String parameterType = convertType(parameterNode.getNode(1).getNode(0).getString(0));
-                if (parameterType.equals("String")) parameterType = "__rt::Array<String>";
+                if (parameterType.equals("String") && mainFlag) parameterType = "__rt::Array<String>";
                 String parameterName = parameterNode.getString(3);
                 parameters.add(new Parameter(parameterType, parameterName));
             }
