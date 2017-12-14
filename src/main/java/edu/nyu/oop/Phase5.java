@@ -429,10 +429,10 @@ public class Phase5 extends Visitor {
     /* Visitor for ThisExpression
      * print "__this"
      */
-    public void visitThisExpression(GNode n) {
-        printer.p("__this ").flush();
-        visit(n);
-    }
+    // public void visitThisExpression(GNode n) {
+    //     printer.p("__this ").flush();
+    //     visit(n);
+    // }
 
     public void visitWhileStatement(GNode n) {
         printer.p("while ").flush();

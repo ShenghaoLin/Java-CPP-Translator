@@ -5,72 +5,65 @@ using namespace java::lang;
 
 namespace inputs
 {
-namespace test005
+namespace test007
 {
-__A::__A() : __vptr(&__vtable) {}
+__A::__A() : a(__rt::null()), __vptr(&__vtable) {}
 
-A __A::__init(A __this) {
-__Object::__init(__this);
-return __this;
+A __A::__init (A __this )
+{
+    __Object::__init(__this);
+    __this -> a = __rt::literal("A" );
+    return __this ;
 }
 
-String __A::toString (A __this ){
-return __rt::literal("A" );
-}
-
-Class __A::__class() {
-static Class k = new __Class(__rt::literal("inputs.test005.A"), __Object::__class());
-return k;
+Class __A::__class()
+{
+    static Class k = new __Class(__rt::literal("inputs.test007.A"), __Object::__class());
+    return k;
 }
 
 __A_VT __A::__vtable;
 
-__B::__B() : __vptr(&__vtable) {}
+__B::__B() : a(__rt::null()), b(__rt::null()), __vptr(&__vtable) {}
 
-B __B::__init(B __this) {
-__Object::__init(__this);
-return __this;
+B __B::__init (B __this )
+{
+    __A::__init(__this);
+    __this -> b = __rt::literal("B" );
+    return __this ;
 }
 
-String __B::toString (B __this ){
-return __rt::literal("B" );
-}
-
-Class __B::__class() {
-static Class k = new __Class(__rt::literal("inputs.test005.B"), __A::__class());
-return k;
+Class __B::__class()
+{
+    static Class k = new __Class(__rt::literal("inputs.test007.B"), __A::__class());
+    return k;
 }
 
 __B_VT __B::__vtable;
 
-__Test005::__Test005() : __vptr(&__vtable) {}
+__Test007::__Test007() : __vptr(&__vtable) {}
 
-Test005 __Test005::__init(Test005 __this) {
-__Object::__init(__this);
-return __this;
+Test007 __Test007::__init(Test007 __this)
+{
+    __Object::__init(__this);
+    return __this;
 }
 
-int32_t __Test005::main (__rt::Array<String> args ){
-B b = __B::__init (new __B() );
-A a1 = __A::__init (new __A() );
-A a2 = b ;
-std::cout << ({A tmp  =  a1 ;
-__rt::checkNotNull(tmp );
-tmp -> __vptr -> toString (tmp );
-})<< std::endl ;
-std::cout << ({A tmp  =  a2 ;
-__rt::checkNotNull(tmp );
-tmp -> __vptr -> toString (tmp );
-})<< std::endl ;
-return 0 ;
+int32_t __Test007::main (__rt::Array<String> args )
+{
+    B b = __B::__init (new __B() );
+    std::cout << b -> a << std::endl ;
+    std::cout << b -> b << std::endl ;
+    return 0 ;
 }
 
-Class __Test005::__class() {
-static Class k = new __Class(__rt::literal("inputs.test005.Test005"), __Object::__class());
-return k;
+Class __Test007::__class()
+{
+    static Class k = new __Class(__rt::literal("inputs.test007.Test007"), __Object::__class());
+    return k;
 }
 
-__Test005_VT __Test005::__vtable;
+__Test007_VT __Test007::__vtable;
 
 }
 }

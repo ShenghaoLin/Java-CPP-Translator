@@ -12,7 +12,7 @@ int main(int argc, char* argv[])
         (*args)[i] = __rt::literal(argv[i]);
     }
 
-    inputs::test025::__Test025::main(args);
+    inputs::test023::__Test023::main(args);
 
     return 0;
 }
