@@ -279,14 +279,16 @@ public class Phase5 extends Visitor {
      */
     public void visitCastExpression(GNode n) {
 
-        printer.p("(").flush();
         GNode type = (GNode) n.getGeneric(0);
 
         dispatch(type);
 
-        printer.p(") ").flush();
+
+        printer.p("(");
 
         dispatch((GNode) n.getGeneric(1));
+
+        printer.p(") ").flush();
     }
 
     /* Visitor for CallExpression
@@ -295,13 +297,12 @@ public class Phase5 extends Visitor {
      */
     public void visitCallExpression(GNode n) {
 
-
         //cout handling
-        if (n.get(2).toString().equals("cout")) {
+        if (n.getProperty("cout") != null) {
 
             inCout = true;
 
-            printer.p("cout ").flush();
+            printer.p("std::cout ").flush();
             GNode arguments = (GNode) n.getGeneric(3);
 
             //print arguments, starts with "<<"
@@ -326,10 +327,32 @@ public class Phase5 extends Visitor {
         //other calling will not be specialized.
         else {
 
+        
             visit(n);
+         
+
         }
 
         inCout = false;
+
+    }
+
+    public void visitCallExpressionBlock(GNode n) {
+
+        printer.p("({");
+        visit(n);
+        printer.p("})").flush();
+    }
+
+    public void visitCheck(GNode n) {
+        printer.p(n.getString(0));
+        printer.p("(");
+        dispatch(n.getNode(1));
+        for (int i = 2; i < n.size(); i++) {
+            printer.p(", ");
+            dispatch(n.getNode(i));
+        }
+        printer.pln(");").flush();
 
     }
 
@@ -423,13 +446,11 @@ public class Phase5 extends Visitor {
     }
 
     public void visitStringLiteral(GNode n) {
-        if (!inCout) {
-            printer.p("new __String(").flush();
-            visit(n);
-            printer.p(")").flush();
-        } else {
-            visit(n);
-        }
+        
+        printer.p("__rt::literal(").flush();
+        visit(n);
+        printer.p(")").flush();
+    
     }
 
     public void visitForStatement(GNode n) {
@@ -445,10 +466,22 @@ public class Phase5 extends Visitor {
     }
 
     public void visitSubscriptExpression(GNode n) {
+
+        if (null != n.getProperty("AccessCheck")) {
+            printer.p("({");
+            printer.p(n.getProperty("AccessCheck").toString());
+        }
+
         dispatch(n.getNode(0));
-        printer.p("-> data[").flush();
+        printer.p("-> __data[").flush();
         dispatch(n.getNode(1));
         printer.p("]").flush();
+
+        if (null != n.getProperty("AccessCheck")) {
+            printer.p(";})");
+            
+        }
+
     }
 
     public void visitConcreteDimensions(GNode n) {

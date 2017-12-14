@@ -245,6 +245,7 @@ public class Phase4 {
                 System.out.println(n.toString());
                 String castStatement = "__rt::java_cast<";
                 String toCast = n.getNode(0).getNode(0).get(0).toString();
+                n.setProperty("CastType", toCast);
                 castStatement += toCast + ">";
                 System.out.println(castStatement);
                 GNode castNode = GNode.create("JavaCast", castStatement);
@@ -431,7 +432,7 @@ public class Phase4 {
                 }
             }
             /*
-            else if (n.getNode(0).get(0) != null) {
+            else ifs (n.getNode(0).get(0) != null) {
                 String typeName = n.getNode(0).get(0).toString();
                 if (isPrimitiveType(typeName)) {
                     typeName = toCppType(typeName);
@@ -514,6 +515,20 @@ public class Phase4 {
             visit(n);
         }
 
+        public void visitSubscriptExpression(GNode n) {
+            if (null == n.getProperty("Store")) {
+                n.setProperty("Store", "Access");
+
+                String check;
+
+                check = "__rt::arrayAccessCheck(" + n.getNode(0).getString(0) 
+                        + ", " + n.getNode(1).getString(0) + ");\n";
+                
+                n.setProperty("AccessCheck", check);
+
+            }
+        }
+
         /* Visitor for Selection Expression
          * C++ style "->" for selection
          */
@@ -558,31 +573,40 @@ public class Phase4 {
         public void visitRelationalExpression(GNode n) {
             visit(n);
         }
-
-        /*
-        public void visitSubscriptExpression(GNode n) {
-            GNode firstPINode = (GNode) n.get(0);
-            GNode secondPINode = (GNode) n.get(1);
-            String first = firstPINode.get(0).toString();
-            String second = secondPINode.get(0).toString();
-            System.out.println(first);
-            if (!first.contains("Check") && !second.contains("Check")) {
-                String checkNull = "__rt::checkNotNull(" + firstPINode.get(0).toString() + ")";
-                String checkIndex = "__rt::checkIndex(" + firstPINode.get(0).toString() + ", " + secondPINode.get(0).toString() + ")";
-                GNode nullCheck = GNode.create("NullCheck", checkNull);
-                GNode indexCheck = GNode.create("IndexCheck", checkIndex);
-                String arrayData = firstPINode.get(0).toString() + "->__data[" + secondPINode.get(0).toString() + "]";
-                GNode arrayAccess = GNode.create("ArrayAccess", arrayData);
-                GNode runTimeCheck = GNode.create("RunTimeCheck", nullCheck, indexCheck);
-                n.set(0, runTimeCheck);
-                n.set(1, arrayAccess);
-            }
-            visit(n);
-        }
-        */
+        
 
         public void visitExpressionStatement(GNode n) {
-            // TO-DO
+
+            Node nn = n.getNode(0);
+
+            if (nn.hasName("Expression")){
+
+                //System.out.println(nn.toString());
+
+                if (nn.getNode(0).hasName("SubscriptExpression")&&nn.getString(1).equals("=")) {
+                    
+                    nn.getNode(0).setProperty("Store", "Store");
+
+                    GNode newBlock = GNode.create("ExpressionBlock");
+
+                    GNode tmpDef = GNode.create("ExpressionStatement",
+                        GNode.create("DefExpression", "Object tmp", "=", nn.getNode(2)));
+                    
+                    GNode check = GNode.create("Check");
+                    check.add("__rt::arrayStoreCheck");
+                    check.add(nn.getNode(0).getNode(0));
+                    check.add(nn.getNode(0).getNode(1));
+                    check.add(GNode.create("PrimaryIdentifier", "tmp"));
+
+                    GNode realE = GNode.create("realExpression", nn.getNode(0), "=", GNode.create("PrimaryIdentifier", "tmp"));
+
+                    newBlock.add(tmpDef);
+                    newBlock.add(check);
+                    newBlock.add(realE);
+
+                    n.set(0, newBlock);
+                }
+            }
             
             visit(n);
         }
@@ -593,10 +617,15 @@ public class Phase4 {
          */
         public void visitCallExpression(GNode n) {
 
+            visit(n);
+
             //collect info
             Object obj = n.getNode(0);
             GNode selectionStatementNode = null;
             GNode primaryIdentifierNode = null;
+
+            boolean undone = true;
+
             if (obj != null) {
                 selectionStatementNode = (GNode) obj;
                 obj = NodeUtil.dfs(selectionStatementNode, "PrimaryIdentifier");
@@ -609,9 +638,16 @@ public class Phase4 {
 
             //method in current class
             if (!isMain) {
+
                 if (selectionStatementNode == null) {
+
+                    n.setProperty("noblock", "init");
+
+                    undone = false;
+
                     //call __init
                     if (n.get(2).toString().equals("this")) {
+
                         constructorFlag = true;
                         n.set(2, "__" + currentClass + "::__init");
 
@@ -623,9 +659,15 @@ public class Phase4 {
                         }
                         n.setProperty("initStatements", initStatements);
                     }
+
                     //call parent's __init
                     else if (n.get(2).toString().equals("super")) {
+
+                        undone = false;
+                        n.setProperty("noblock", "init");
+
                         constructorFlag = true;
+
                         String parentName = "";
                         if (extension == null) parentName = "Object";
                         else parentName = ((GNode) NodeUtil.dfs((Node) extension, "QualifiedIdentifier")).get(0).toString();
@@ -644,6 +686,7 @@ public class Phase4 {
                     else {
                         n.set(2, "__this -> __vptr -> " + n.get(2));
                     }
+
                     //change arguments
                     GNode newArgs = GNode.create("Arguments");
                     newArgs.add(GNode.create("PrimaryIdentifier", "__this"));
@@ -651,34 +694,43 @@ public class Phase4 {
                     n.set(3, newArgs);
                     if (oldArgs != null) {
                         for (Object arg: oldArgs) {
-                            if (!arg.equals(newArgs.get(0))) newArgs.add(obj);
+                            if ((!arg.equals(newArgs.get(0)))&&(arg != null)) newArgs.add(arg);
                         }
                     }
                 }
             }
 
             if (selectionStatementNode != null && primaryIdentifierNode != null) {
-                //System.out.println(select.toString());
-                //transform "System.out.print" to "cout"
+
                 if (primaryIdentifierNode.get(0).toString().equals("System")) {
 
                     //with endl
-                    if (selectionStatementNode.get(1).toString().equals("out") && n.get(2).toString().equals("println")) {
+                    if (selectionStatementNode.get(1).toString().equals("-> out") && n.get(2).toString().equals("println")) {
+
+                        undone = false;
+                        n.setProperty("noblock", "cout");
+                        n.setProperty("cout", "cout");
+
                         n.set(0, null);
-                        n.set(2, "cout");
+                        n.set(2, "std::cout");
                         GNode arguments = GNode.create("Arguments");
                         GNode oldArg = (GNode) n.get(3);
                         for (Object a : oldArg) {
                             arguments.add(a);
                         }
-                        arguments.add("endl");
+                        arguments.add("std::endl");
                         n.set(3, arguments);
                     }
 
                     //without endl
                     if (n.get(2).toString().equals("print")) {
+
+                        undone = false;
+                        n.setProperty("noblock", "cout");
+                        n.setProperty("cout", "cout");
+
                         n.set(0, null);
-                        n.set(2, "cout");
+                        n.set(2, "std::cout");
                     }
                 }
             }
@@ -704,13 +756,13 @@ public class Phase4 {
 
                     GNode arguments = GNode.create("Arguments");
 
-                        arguments.add(GNode.create("Argument", "(" + parentName + ") __this"));
+                        arguments.add(GNode.create("Argument", "__this"));
                         GNode oldArg = (GNode) NodeUtil.dfs(n, "Arguments");
                         n.set(3, arguments);
 
                         if (oldArg != null) {
                             for (Object oo : oldArg) {
-                                if (!oo.equals(arguments.get(0))) {
+                                if ((!oo.equals(arguments.get(0)))&&(oo != null)) {
                                     arguments.add(oo);
                                 }
                             }
@@ -719,7 +771,7 @@ public class Phase4 {
                 }
 
                 else if (child.hasName("ThisExpression")) {
-                    n.set(0, "__this");
+                    n.set(0, GNode.create("PrimaryIdentifier", "__this"));
                 }
 
                 if (n.get(0) != null) {
@@ -734,13 +786,13 @@ public class Phase4 {
                         //add the object to arguments
                         GNode arguments = GNode.create("Arguments");
 
-                        arguments.add(GNode.create("Argument", n.get(0)));
+                        arguments.add(GNode.create("PrimaryIdentifier", "tmp"));
                         GNode oldArg = (GNode) NodeUtil.dfs(n, "Arguments");
                         n.set(3, arguments);
 
                         if (oldArg != null) {
                             for (Object oo : oldArg) {
-                                if (!oo.equals(arguments.get(0))) {
+                                if (((!oo.equals(arguments.get(0)))&&(oo != null))) {
                                     arguments.add(oo);
                                 }
                             }
@@ -748,7 +800,62 @@ public class Phase4 {
                     }
                 }
             }
-            visit(n);
+
+
+
+            GNode callExpressionBlock = GNode.create("CallExpressionBlock");
+            String tmpDef = "";
+
+
+            if (undone){
+
+                if (n.getNode(0).hasName("CallExpression")) {
+                    tmpDef = n.getNode(0).getProperty("methodReturnType").toString();
+                }
+                if (n.getNode(0).hasName("PrimaryIdentifier")) {
+                    tmpDef = ((VariableT) table.current().lookup(n.getNode(0).get(0).toString())).getType().toString();
+                }
+                if (n.getNode(0).hasName("CastExpression")) {
+                    tmpDef = n.getNode(0).getProperty("CastType").toString();
+                }
+
+                tmpDef = tmpDef.replaceAll("\\(|\\)", "");
+
+                String[] tmpClass = tmpDef.split("\\.");
+
+                if (tmpClass.length > 0) {
+                    tmpDef = tmpClass[tmpClass.length - 1];
+                }
+                
+                System.out.println(tmpDef);
+
+                GNode def = GNode.create("ExpressionStatement", tmpDef + " tmp", " = ", n.getNode(0));
+   
+
+                GNode nullCheck = GNode.create("Check", "__rt::checkNotNull", GNode.create("PrimaryIdentifier", "tmp"));
+
+                callExpressionBlock.add(def);
+                callExpressionBlock.add(nullCheck);
+
+
+                GNode realExpression = GNode.create("ExpressionStatement");
+                GNode realCallExpression = GNode.create("RealCallExpression");
+                realCallExpression.add(GNode.create("PrimaryIdentifier", "tmp"));
+                
+                for (int i = 1; i < n.size(); i++) {
+                    realCallExpression.add(n.get(i));
+                }
+
+                realExpression.add(realCallExpression);
+
+                callExpressionBlock.add(realExpression);
+
+                n.set(0, callExpressionBlock);
+
+                for (int i = 1; i < n.size(); i++) {
+                    n.set(i, null);
+                }
+            }
         }
 
         public void traverse(Node n) {
