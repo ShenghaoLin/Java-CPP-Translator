@@ -244,7 +244,12 @@ public class Phase1 {
                 else isStatic = false;
                 String typeName = n.getNode(1).getNode(0).getString(0);
                 String value;
-                if(n.getNode(2).getNode(0).getNode(2) != null) value = n.getNode(2).getNode(0).getNode(2).get(0).toString();
+                if(n.getNode(2).getNode(0).getNode(2) != null) {
+                    if(typeName.equals("String"))
+                        value = "__rt::literal(" + n.getNode(2).getNode(0).getNode(2).get(0).toString() + ")";
+                    else
+                        value = n.getNode(2).getNode(0).getNode(2).get(0).toString();
+                }
                 else value = "";
                 Initializer initializer = new Initializer(fieldName, isStatic, typeName, value);
                 ArrayList<Initializer> currentInitializers = initializers.get(JavaEntities.currentType(table).getName());
@@ -370,63 +375,45 @@ public class Phase1 {
             String methodName = n.getString(2);
             if (methodName.equals("this")) return;
             if (n.getProperty("mangledName") == null) {
+                Type typeDot = null;
+                List<Type> actuals;
+                MethodT method;
+
                 if ((receiver == null) &&
                         (!"super".equals(methodName)) &&
                         (!"this".equals(methodName))) {
-                    Type typeToSearch = JavaEntities.currentType(table);
-
-                    List<Type> actuals = JavaEntities.typeList((List) dispatch(n.getNode(3)));
-                    MethodT method =
-                            JavaEntities.typeDotMethod(table, classpath(), typeToSearch, true, methodName, actuals);
-
+                    typeDot = JavaEntities.currentType(table);
+                    actuals = JavaEntities.typeList((List) dispatch(n.getNode(3)));
+                    method = JavaEntities.typeDotMethod(table, classpath(), typeDot, true, methodName, actuals);
                     if (method == null) return;
-
-                    // EXPLICIT THIS ACCESS (if method name isn't defined locally and method is not static, add "this.")
-                    if (!TypeUtil.isStaticType(method)) {
-                        n.set(0, makeThisExpression());
-                    }
-                } else if (receiver != null) {
-                    //GET METHOD
-                    MethodT method = null;
+                    if (!TypeUtil.isStaticType(method)) n.set(0, makeThisExpression());
+                }
+                else if (receiver != null) {
                     if(receiver.getName().equals("PrimaryIdentifier")) {
-                        Type typeToSearch = null;
-                        //STATIC
-                        if (JavaEntities.simpleNameToType(table, classpath(), table.current().getQualifiedName(), receiver.get(0).toString()) != null)
-                            typeToSearch = JavaEntities.simpleNameToType(table, classpath(), table.current().getQualifiedName(), receiver.get(0).toString());
-                            //OBJECTS
-                        else {
-                            VariableT objectLookup = (VariableT) table.lookup(receiver.get(0).toString());
-                            typeToSearch = objectLookup.getType();
-                        }
-                        List<Type> actuals = JavaEntities.typeList((List) dispatch(n.getNode(3)));
-                        method =
-                            JavaEntities.typeDotMethod(table, classpath(), typeToSearch, true, methodName, actuals);
+                        String identifierName = receiver.get(0).toString();
+                        String currentScope = table.current().getQualifiedName();
+                        //Check if identifier is a type (Static methods)
+                        Type potentialStaticType = JavaEntities.simpleNameToType(table, classpath(), currentScope, identifierName);
+                        if (potentialStaticType != null) typeDot = potentialStaticType;
+                        //Otherwise, identifier is a variable (must find type)
+                        else typeDot = ((VariableT) table.lookup(identifierName)).getType();
                     }
-                    else if (receiver.getName().equals("CallExpression")) {
-                        Type objectType = returnTypeFromCallExpression(receiver);
-                        System.out.println(objectType.toString());
-                        List<Type> actuals = JavaEntities.typeList((List) dispatch(n.getNode(3)));
-                        method =
-                            JavaEntities.typeDotMethod(table, classpath(), objectType, true, methodName, actuals);
-                        if (method.isMethod()) System.out.println(method.toString());
-                    }
+                    else if (receiver.getName().equals("CallExpression"))
+                        typeDot = returnTypeFromCallExpression(receiver);
+                    else if (receiver.getName().equals("CastExpression"))
+                        typeDot = JavaEntities.simpleNameToType(table, classpath(), table.current().getQualifiedName(), receiver.getNode(0).getNode(0).get(0).toString());
+                    else if (receiver.getName().equals("ThisExpression"))
+                        typeDot = JavaEntities.currentType(table);
+                    else if (receiver.getName().equals("SuperExpression"))
+                        typeDot = JavaEntities.directSuperTypes(table, classpath(), JavaEntities.currentType(table)).get(0);
 
-                    else if (receiver.getName().equals("ThisExpression")) {
-                        Type currentType = JavaEntities.currentType(table);
-                        List<Type> actuals = JavaEntities.typeList((List) dispatch(n.getNode(3)));
-                        method =
-                            JavaEntities.typeDotMethod(table, classpath(), currentType, true, methodName, actuals);
-                    }
+                    //Find method
+                    if(typeDot == null) return;
+                    actuals = JavaEntities.typeList((List) dispatch(n.getNode(3)));
+                    method = JavaEntities.typeDotMethod(table, classpath(), typeDot, true, methodName, actuals);
 
-                    else if (receiver.getName().equals("SuperExpression")) {
-                        Type currentType = JavaEntities.currentType(table);
-                        Type superType = JavaEntities.directSuperTypes(table, classpath(), currentType).get(0);
-                        List<Type> actuals = JavaEntities.typeList((List) dispatch(n.getNode(3)));
-                        method =
-                            JavaEntities.typeDotMethod(table, classpath(), superType, true, methodName, actuals);
-                    }
+                    //Set properties
                     if (method != null) {
-                        System.out.println(method.toString());
                         //Set mangled name
                         n.setProperty("mangledName", methodScopeToMangledName.get(method.getScope()));
                         //Set method type
@@ -446,6 +433,13 @@ public class Phase1 {
 
         public Node visitPrimaryIdentifier(GNode n) {
             String fieldName = n.getString(0);
+
+            //staticType property
+            Object check = table.lookup(fieldName);
+            if(check != null) {
+                String typeName = ((VariableT) check).getType().getName();
+                n.setProperty("staticType", typeName);
+            }
 
             ClassOrInterfaceT typeToSearch = JavaEntities.currentType(table);
             if (typeToSearch == null) return n;
