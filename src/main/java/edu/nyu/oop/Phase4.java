@@ -29,10 +29,10 @@ public class Phase4 {
     private Runtime runtime;
     private HashMap<String, String> childrenToParents = new HashMap<String, String>();
     private HashMap<String, ArrayList<Phase1.Initializer>> inits = new HashMap<String, ArrayList<Phase1.Initializer>>();
+    private HashMap<String, ArrayList<Phase1.Initializer>> formerInits = new HashMap<String, ArrayList<Phase1.Initializer>>();
 
     public ArrayList<BigArray> bigArrays = new ArrayList<BigArray>();
     public ArrayList<PrimitiveArray> primitiveArrays = new ArrayList<PrimitiveArray>();
-
 
     public Phase4(Runtime runtime) {
         this.runtime = runtime;
@@ -58,6 +58,15 @@ public class Phase4 {
         //         }
         //     }
         // }
+
+        for (String s : this.inits.keySet()) {
+            ArrayList<Phase1.Initializer> tmpInitAL = new ArrayList<Phase1.Initializer>();
+            ArrayList<Phase1.Initializer> initAL = this.inits.get(s);
+            for (int i = 0; i < initAL.size(); i ++) {
+                tmpInitAL.add(initAL.get(i));
+            }
+            this.formerInits.put(s, tmpInitAL);
+        }
 
         resolveInitializers();
 
@@ -130,7 +139,7 @@ public class Phase4 {
             if (o instanceof Node) {
 
                 SymbolTable table = new SymbolTableBuilder(runtime).getTable((GNode) o);
-                Phase4Visitor visitor = new Phase4Visitor(table, runtime, childrenToParents, inits);
+                Phase4Visitor visitor = new Phase4Visitor(table, runtime, formerInits, childrenToParents, inits);
                 visitor.traverse((Node) o);
             }
         }
@@ -140,7 +149,7 @@ public class Phase4 {
 
     /* process a single node */
     public Node runNode(Node n, SymbolTable table) {
-        Phase4Visitor visitor = new Phase4Visitor(table, runtime, childrenToParents, inits);
+        Phase4Visitor visitor = new Phase4Visitor(table, runtime, formerInits, childrenToParents, inits);
         visitor.traverse(n);
         //bigArrays.addAll(visitor.bigArrays);
         //primitiveArrays.addAll(visitor.primitiveArrays);
@@ -162,6 +171,7 @@ public class Phase4 {
         private boolean constructorFlag = false;
         private HashMap<String, String> ctp;
         private HashMap<String, ArrayList<Phase1.Initializer>> completedInits;
+        private HashMap<String, ArrayList<Phase1.Initializer>> formerInits;        
         private boolean defaultConstructorNeeded = false;
 
         private SymbolTable table;
@@ -169,12 +179,13 @@ public class Phase4 {
         public ArrayList<BigArray> bigArrays = new ArrayList<BigArray>();
         public ArrayList<PrimitiveArray> primitiveArrays = new ArrayList<PrimitiveArray>();
 
-        public Phase4Visitor(SymbolTable table, Runtime runtime, 
+        public Phase4Visitor(SymbolTable table, Runtime runtime, HashMap<String, ArrayList<Phase1.Initializer>> formerInits,
             HashMap<String, String> ctp, HashMap<String, ArrayList<Phase1.Initializer>> completedInits) {
             this.table = table;
             this.runtime = runtime;
             this.ctp = ctp;
             this.completedInits = completedInits;
+            this.formerInits = formerInits;
         }
 
         public String toCppType(String type) {
@@ -252,12 +263,10 @@ public class Phase4 {
 
         public void visitCastExpression(GNode n) {
             if (!n.getNode(0).getName().equals("JavaCast")) {
-                System.out.println(n.toString());
                 String castStatement = "__rt::java_cast<";
                 String toCast = n.getNode(0).getNode(0).get(0).toString();
                 n.setProperty("CastType", toCast);
                 castStatement += toCast + ">";
-                System.out.println(castStatement);
                 GNode castNode = GNode.create("JavaCast", castStatement);
                 n.set(0, castNode);
             }
@@ -325,7 +334,7 @@ public class Phase4 {
 
                 initCall += "__" + parentName + "::__init(__this);\n";
 
-                initializers = completedInits.get(currentClass);
+                initializers = formerInits.get(currentClass);
                 for (Phase1.Initializer init: initializers) {
                     if (!init.value.equals("") && !init.isStatic)
                         initCall += "__this -> " + init.name + " = " + init.value + ";\n";
@@ -404,8 +413,12 @@ public class Phase4 {
 
 
                         newBlock.add(GNode.create("Statement", "__" + parentName + "::__init(__this);\n"));
+                        
+                        System.out.println("dd ");
+
+
                         String initStatements = "";
-                        ArrayList<Phase1.Initializer> initializers = completedInits.get(currentClass);
+                        ArrayList<Phase1.Initializer> initializers = formerInits.get(currentClass);
                         for (Phase1.Initializer init: initializers) {
                             if (!init.value.equals("") && !init.isStatic)
                                 initStatements += "__this -> " + init.name + " = " + init.value + ";\n";
@@ -426,7 +439,6 @@ public class Phase4 {
 
                 Object staticCheck = NodeUtil.dfs(n, "StaticModifer");
                 if (null == staticCheck) {
-                    System.out.println("in" + n.getString(3));
                     //Arguments modify, add __this
                     GNode thisType = GNode.create("Type", GNode.create("QualifiedIdentifier", currentClass), null);
                     GNode thisParameter = GNode.create("FormalParameter",  GNode.create("Modifier"), thisType, null, "__this", null);
@@ -618,8 +630,6 @@ public class Phase4 {
 
             if (nn.hasName("Expression")){
 
-                //System.out.println(nn.toString());
-
                 if (nn.getNode(0).hasName("SubscriptExpression")&&nn.getString(1).equals("=")) {
                     
                     nn.getNode(0).setProperty("Store", "Store");
@@ -688,13 +698,13 @@ public class Phase4 {
                         constructorFlag = true;
                         n.set(2, "__" + currentClass + "::__init");
 
-                        String initStatements= "";
-                        ArrayList<Phase1.Initializer> initializers = completedInits.get(currentClass);
-                        for (Phase1.Initializer init: initializers) {
-                            if (!init.value.equals("") && !init.isStatic)
-                                initStatements += "__this -> " + init.name + " + " + init.value + ";\n";
-                        }
-                        n.setProperty("initStatements", initStatements);
+                        // String initStatements= "";
+                        // ArrayList<Phase1.Initializer> initializers = completedInits.get(currentClass);
+                        // for (Phase1.Initializer init: initializers) {
+                        //     if (!init.value.equals("") && !init.isStatic)
+                        //         initStatements += "__this -> " + init.name + " + " + init.value + ";\n";
+                        // }
+                        // n.setProperty("initStatements", initStatements);
                     }
 
                     //call parent's __init
@@ -713,12 +723,13 @@ public class Phase4 {
                         n.set(2, "__" + parentName + "::__init");
                         
                         String initStatements = "";
-                        ArrayList<Phase1.Initializer> initializers = completedInits.get(currentClass);
+                        ArrayList<Phase1.Initializer> initializers = formerInits.get(currentClass);
                         for (Phase1.Initializer init: initializers) {
+                            System.out.println(init.name);
                             if (!init.value.equals("") && !init.isStatic)
                                 initStatements += "__this -> " + init.name + " = " + init.value + ";\n";
                         }
-                        n.setProperty("initStaements", initStatements);
+                        n.setProperty("initStatements", initStatements);
                     }
                     else {
                         n.set(2, "__this -> __vptr -> " + n.get(2));
@@ -726,7 +737,7 @@ public class Phase4 {
 
                     //change arguments
                     GNode newArgs = GNode.create("Arguments");
-                    newArgs.add(GNode.create("PrimaryIdentifier", "__this"));
+                    newArgs.add(GNode.create("ThisExpression", "__this"));
                     GNode oldArgs = (GNode) n.get(3);;
                     n.set(3, newArgs);
                     if (oldArgs != null) {
@@ -740,8 +751,6 @@ public class Phase4 {
             if (selectionStatementNode != null && primaryIdentifierNode != null) {
 
                 if (primaryIdentifierNode.get(0).toString().equals("System")) {
-
-                    System.out.println("System.out");
 
                     //with endl
                     if (selectionStatementNode.get(1).toString().equals("-> out") && n.get(2).toString().equals("println")) {
@@ -809,18 +818,11 @@ public class Phase4 {
                     return;
                 }
 
-                else if (child.hasName("ThisExpression")) {
-                    n.set(0, GNode.create("PrimaryIdentifier", "__this"));
-                }
-
                 if (n.get(0) != null) {
 
-                    //System.out.println(n.toString());
 
                     //start the method from vtable
                     String methodName = (String) n.get(2);
-
-                    System.out.println(n.toString());
 
                     if (n.getProperty("methodDispatchType").toString().equals("virtual")) {
                         n.set(2, "-> __vptr -> " + methodName);
@@ -895,8 +897,6 @@ public class Phase4 {
                     String secondaryKey = n.getNode(0).getString(1).replaceAll("->", "").replaceAll(" ", "");
                     String classIn = "";
 
-                    System.out.println("class:" + currentClass + " " + n.toString());
-
                     if (primaryKey.equals("__this")) {
                         classIn = currentClass;
                     }
@@ -908,8 +908,6 @@ public class Phase4 {
                     }
 
                     ArrayList<Phase1.Initializer> classFields = completedInits.get(classIn);
-
-                    System.out.println(secondaryKey);
 
                     for (int i = 0; i < classFields.size(); i++) {
                         if (classFields.get(i).name.equals(secondaryKey)) {
@@ -927,8 +925,6 @@ public class Phase4 {
                     tmpDef = tmpClass[tmpClass.length - 1];
                 }
                 
-                System.out.println(tmpDef);
-
                 if (n.getProperty("methodDispatchType").toString().equals("static")) {
                     n.set(0, GNode.create("PrimaryIdentifier", "__" + tmpDef));
                     return;

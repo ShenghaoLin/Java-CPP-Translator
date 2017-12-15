@@ -326,14 +326,13 @@ public class Phase5 extends Visitor {
 
         //other calling will not be specialized.
         else {
-
-        
             visit(n);
-         
 
         }
 
         inCout = false;
+
+
 
     }
 
@@ -370,8 +369,9 @@ public class Phase5 extends Visitor {
             GNode nn = (GNode) call;
 
             Object o = nn.getProperty("initStatements");
+
             if (o != null) {
-                printer.p((String) o).flush();
+                printer.p(o.toString()).flush();
             }
         }
     }
