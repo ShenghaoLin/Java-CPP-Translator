@@ -179,13 +179,8 @@ public class Phase4 {
         public ArrayList<BigArray> bigArrays = new ArrayList<BigArray>();
         public ArrayList<PrimitiveArray> primitiveArrays = new ArrayList<PrimitiveArray>();
 
-<<<<<<< HEAD
-        public Phase4Visitor(SymbolTable table, Runtime runtime,
-                             HashMap<String, String> ctp, HashMap<String, ArrayList<Phase1.Initializer>> completedInits) {
-=======
         public Phase4Visitor(SymbolTable table, Runtime runtime, HashMap<String, ArrayList<Phase1.Initializer>> formerInits,
             HashMap<String, String> ctp, HashMap<String, ArrayList<Phase1.Initializer>> completedInits) {
->>>>>>> 0a7c44affff300dd935a713d138a10f179a5e9bb
             this.table = table;
             this.runtime = runtime;
             this.ctp = ctp;
@@ -327,14 +322,11 @@ public class Phase4 {
             if (defaultConstructorNeeded) {
                 String initCall = "";
                 initCall += currentClass + " __"
-<<<<<<< HEAD
                             + currentClass + "::__init("
                             + currentClass + " __this) {\n";
-                initCall += "__Object::__init(__this);\n";
-=======
+                initCall += "__" + parentName + "::__init(__this);\n";
                         + currentClass + "::__init("
                         + currentClass + " __this) {\n";
->>>>>>> 0a7c44affff300dd935a713d138a10f179a5e9bb
 
                 // String parentName = "";
                 // if (extension == null) parentName = "Object";
@@ -422,9 +414,6 @@ public class Phase4 {
 
                         newBlock.add(GNode.create("Statement", "__" + parentName + "::__init(__this);\n"));
                         
-                        System.out.println("dd ");
-
-
                         String initStatements = "";
                         ArrayList<Phase1.Initializer> initializers = formerInits.get(currentClass);
                         for (Phase1.Initializer init: initializers) {
@@ -477,7 +466,6 @@ public class Phase4 {
                     if (!typeName.equals("int")) primitiveArrays.add(new PrimitiveArray(typeName));
                     // else bigArrays.add(new BigArray(typeName, packageInfo)); // big array no longer needed
                 }
-                System.out.println(typeName);
                 for (int i = dimensions.size() - 1; i > -1; i--) {
                     if (i == dimensions.size() - 1) declaration = "__rt::Array<" + typeName + ">";
                     else declaration = "__rt::Array<" + declaration + ">";
@@ -806,14 +794,8 @@ public class Phase4 {
                             if (!init.value.equals("") && !init.isStatic)
                                 initStatements += "__this -> " + init.name + " = " + init.value + ";\n";
                         }
-<<<<<<< HEAD
-                        n.setProperty("initStaements", initStatements);
-                    } else {
-=======
                         n.setProperty("initStatements", initStatements);
-                    }
-                    else {
->>>>>>> 0a7c44affff300dd935a713d138a10f179a5e9bb
+                    } else {
                         n.set(2, "__this -> __vptr -> " + n.get(2));
                     }
 
