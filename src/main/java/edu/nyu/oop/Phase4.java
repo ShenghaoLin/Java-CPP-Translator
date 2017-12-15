@@ -324,9 +324,6 @@ public class Phase4 {
                 initCall += currentClass + " __"
                             + currentClass + "::__init("
                             + currentClass + " __this) {\n";
-                initCall += "__" + parentName + "::__init(__this);\n";
-                        + currentClass + "::__init("
-                        + currentClass + " __this) {\n";
 
                 // String parentName = "";
                 // if (extension == null) parentName = "Object";
@@ -686,18 +683,10 @@ public class Phase4 {
 
             Node expressionNode = n.getNode(0);
 
-            System.out.println("before the error");
-
-<<<<<<< HEAD
             if (expressionNode.hasName("Expression")) {
                 if (expressionNode.getNode(0).hasName("SubscriptExpression") && expressionNode.getString(1).equals("=")) {
 
                     expressionNode.getNode(0).setProperty("Store", "Store");
-=======
-                if (nn.getNode(0).hasName("SubscriptExpression")&&nn.getString(1).equals("=")) {
-                    
-                    nn.getNode(0).setProperty("Store", "Store");
->>>>>>> 0a7c44affff300dd935a713d138a10f179a5e9bb
 
                     GNode newBlock = GNode.create("ExpressionBlock");
 
@@ -795,7 +784,9 @@ public class Phase4 {
                                 initStatements += "__this -> " + init.name + " = " + init.value + ";\n";
                         }
                         n.setProperty("initStatements", initStatements);
-                    } else {
+                    } 
+
+                    else {
                         n.set(2, "__this -> __vptr -> " + n.get(2));
                     }
 
@@ -820,18 +811,18 @@ public class Phase4 {
                     if (selectionStatementNode.get(1).toString().equals("-> out") && n.get(2).toString().equals("println")) {
 
                         undone = false;
+
                         n.setProperty("noblock", "cout");
                         n.setProperty("cout", "cout");
 
                         n.set(0, null);
                         n.set(2, "std::cout");
-                        GNode arguments = GNode.create("Arguments");
-                        GNode oldArg = (GNode) n.get(3);
-                        for (Object a : oldArg) {
-                            arguments.add(a);
-                        }
-                        arguments.add("std::endl");
-                        n.set(3, arguments);
+
+                        GNode newArgs = GNode.create("Arguments");
+                        GNode oldArgs = (GNode) n.get(3);
+                        for (GNode oldArg : oldArgs) newArgs.add(oldArg);
+                        newArgs.add("std::endl");
+                        n.set(3, newArgs);
                     }
 
                     //without endl
@@ -895,7 +886,8 @@ public class Phase4 {
                         GNode arguments = GNode.create("Arguments");
 
                         arguments.add(GNode.create("PrimaryIdentifier", "tmp"));
-                        GNode oldArg = (GNode) NodeUtil.dfs(n, "Arguments");
+                        //GNode oldArg = (GNode) NodeUtil.dfs(n, "Arguments");
+                        GNode oldArg = (GNode) n.getNode(3);
                         n.set(3, arguments);
 
                         if (oldArg != null) {
@@ -914,7 +906,10 @@ public class Phase4 {
                         GNode arguments = GNode.create("Arguments");
 
                         arguments.add(GNode.create("PrimaryIdentifier", "tmp"));
-                        GNode oldArg = (GNode) NodeUtil.dfs(n, "Arguments");
+                        //GNode oldArg = (GNode) NodeUtil.dfs(n, "Arguments");
+                        GNode oldArg = (GNode) n.getNode(3);
+                        System.out.println("i did this");
+                        System.out.println(oldArg.toString());
                         n.set(3, arguments);
 
                         if (oldArg != null) {
@@ -986,13 +981,7 @@ public class Phase4 {
                 if (tmpClass.length > 0) {
                     tmpDef = tmpClass[tmpClass.length - 1];
                 }
-<<<<<<< HEAD
-                System.out.println("============");
-                System.out.println(tmpDef);
 
-=======
-                
->>>>>>> 0a7c44affff300dd935a713d138a10f179a5e9bb
                 if (n.getProperty("methodDispatchType").toString().equals("static")) {
                     n.set(0, GNode.create("PrimaryIdentifier", "__" + tmpDef));
                     return;

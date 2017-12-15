@@ -326,14 +326,7 @@ public class Phase5 extends Visitor {
 
         //other calling will not be specialized.
         else {
-<<<<<<< HEAD
-
-
             visit(n);
-
-=======
-            visit(n);
->>>>>>> 0a7c44affff300dd935a713d138a10f179a5e9bb
 
         }
 
