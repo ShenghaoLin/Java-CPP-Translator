@@ -371,6 +371,7 @@ public class Phase2 {
 
         // process reps
         for (ObjectRep rep : filled) {
+
             /* main goes here so ignore this, see below for new implementation
             if (!rep.name.equals("Object") && !rep.name.equals("String") && !rep.name.equals("Class")) {
                 // check if main is in the rep
@@ -833,6 +834,16 @@ public class Phase2 {
         return current;
     }
 
+    /**
+     * Helper method for determineVTable, checks if two string are equals
+     * Preprocessing step of removes pointer (*) operator from name of name1
+     *
+     * @param name1 first name to be compared
+     * @param name2 second name to be compared
+     *
+     * @return true if name1 == name2, false o/w
+     *
+     */
     public static boolean checkTwoNames(String name1, String name2) {
         if (name1.replaceFirst("\\*","").equals(name2)) return true;
         return false;
