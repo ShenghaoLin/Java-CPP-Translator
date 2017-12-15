@@ -1,8 +1,8 @@
 /**
- * Phase 5 printer that uses the Xtc's pretty printer to print the updated C++ ast from Phase 4 
+ * Phase 5 printer that uses the Xtc's pretty printer to print the updated C++ ast from Phase 4
  * to output.cpp and main.cpp implementation files in C++ format.
  * Note: use sbt's format command to format the final code for indentation
- * 
+ *
  * @author Shenghao Lin
  * @author Sai Akhil
  */
@@ -486,6 +486,10 @@ public class Phase5 extends Visitor {
     public void visitNewArrayExpression(GNode n) {
         printer.p("new ").flush();
         visit(n);
+    }
+    
+    public void visitRuntimeNode(GNode n){
+        printer.pln(n.getProperty("RuntimeInfo").toString());
     }
 
     //Prints main implementation seperately to main.cpp
