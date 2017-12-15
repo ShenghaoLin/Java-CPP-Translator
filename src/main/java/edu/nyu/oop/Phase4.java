@@ -317,7 +317,13 @@ public class Phase4 {
                 initCall += currentClass + " __"
                         + currentClass + "::__init("
                         + currentClass + " __this) {\n";
-                initCall += "__Object::__init(__this);\n";
+
+                // String parentName = "";
+                // if (extension == null) parentName = "Object";
+                // else parentName = ((GNode) NodeUtil.dfs((Node) extension, "QualifiedIdentifier")).get(0).toString();
+
+
+                initCall += "__" + parentName + "::__init(__this);\n";
 
                 initializers = completedInits.get(currentClass);
                 for (Phase1.Initializer init: initializers) {
