@@ -1,21 +1,30 @@
+/**
+ * Phase 4, traverses Java AST obtained from Phase 1 and muates the AST
+ * to obtain a C++ AST, there are multiple cases of conditional logic
+ * in a single visit, this is necessary since we check for certain conditions
+ * before mutation happens, please check each method to get more details
+ *
+ * @author Sai Akhil
+ * @author Goktug Saatcioglu
+ *
+ * @version 2.0
+ */
+
 package edu.nyu.oop;
 
 import org.slf4j.Logger;
-import xtc.tree.GNode;
-import xtc.tree.Node;
-import xtc.tree.Visitor;
-import xtc.util.SymbolTable;
-import edu.nyu.oop.util.SymbolTableUtil;
-import xtc.util.Runtime;
 
 import xtc.lang.JavaEntities;
-
+import xtc.tree.Node;
+import xtc.tree.GNode;
+import xtc.tree.Visitor;
 import xtc.type.*;
+import xtc.util.SymbolTable;
+import xtc.util.Runtime;
 
 import edu.nyu.oop.util.NodeUtil;
 import edu.nyu.oop.util.SymbolTableBuilder;
-//import edu.nyu.oop.BigArray;
-//import edu.nyu.oop.PrimitiveArray;
+import edu.nyu.oop.util.SymbolTableUtil;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -31,7 +40,7 @@ public class Phase4 {
     private HashMap<String, ArrayList<Phase1.Initializer>> inits = new HashMap<String, ArrayList<Phase1.Initializer>>();
     private HashMap<String, ArrayList<Phase1.Initializer>> formerInits = new HashMap<String, ArrayList<Phase1.Initializer>>();
 
-    public ArrayList<BigArray> bigArrays = new ArrayList<BigArray>();
+    // public ArrayList<BigArray> bigArrays = new ArrayList<BigArray>();  // no longer needed
     public ArrayList<PrimitiveArray> primitiveArrays = new ArrayList<PrimitiveArray>();
 
     public Phase4(Runtime runtime) {
@@ -43,69 +52,53 @@ public class Phase4 {
         this.childrenToParents = childrenToParents;
         this.inits = inits;
 
-        // Set<String> set = this.inits.keySet();
-        // for (Object key : set) {
-
-        //     ArrayList<Phase1.Initializer> list = this.inits.get((String) key);
-
-        //     System.out.println((String) key);
-
-        //     for (Object o : list) {
-        //         if (o instanceof Phase1.Initializer) {
-
-        //             Phase1.Initializer init = (Phase1.Initializer) o;
-        //             System.out.println(init.name + " " + init.initial + " " + init.value);
-        //         }
-        //     }
-        // }
-
+        // copy current inits into former inits
         for (String s : this.inits.keySet()) {
-            ArrayList<Phase1.Initializer> tmpInitAL = new ArrayList<Phase1.Initializer>();
-            ArrayList<Phase1.Initializer> initAL = this.inits.get(s);
-            for (int i = 0; i < initAL.size(); i ++) {
-                tmpInitAL.add(initAL.get(i));
-            }
-            this.formerInits.put(s, tmpInitAL);
+            ArrayList<Phase1.Initializer> tmpInit = new ArrayList<Phase1.Initializer>();
+            ArrayList<Phase1.Initializer> init = this.inits.get(s);
+            for (int i = 0; i < init.size(); i ++) tmpInit.add(init.get(i));
+            this.formerInits.put(s, tmpInit);
         }
 
+        // we need to resolve all initializers
         resolveInitializers();
-
-        // set = this.inits.keySet();
-        // for (Object key : set) {
-
-        //     ArrayList<Phase1.Initializer> list = this.inits.get((String) key);
-
-        //     System.out.println((String) key);
-
-        //     for (Object o : list) {
-        //         if (o instanceof Phase1.Initializer) {
-
-        //             Phase1.Initializer init = (Phase1.Initializer) o;
-        //             System.out.println(init.name + " " + init.initial + " " + init.value);
-        //         }
-        //     }
-        // }
     }
 
+    /** 
+     * Helper method: resolveInitializers
+     * resolves all inheritance issue with all fields
+     * determines if field is initialized to a different value
+     * uses childrenToParents to accomplish this
+     *
+     */
     public void resolveInitializers() {
+
         for (String key : childrenToParents.keySet()) {
+
+            // use a stack to resolve all initializations
             String toUpdate = key;
             Stack<String> stack = new Stack<String>();
             stack.push(key);
             String temp = key;
+
+            // find all parents, push to stack
             while (!childrenToParents.get(temp).equals("")) {
                 stack.push(childrenToParents.get(temp));
                 temp = childrenToParents.get(temp);
             }
-            ArrayList<Phase1.Initializer> tmpAL = inits.get(stack.pop());
-            ArrayList<Phase1.Initializer> start = new ArrayList<Phase1.Initializer>();
-            if (tmpAL != null) {
 
-                for (int i = 0; i < tmpAL.size(); i ++) {
-                    start.add(tmpAL.get(i));
-                }
+            ArrayList<Phase1.Initializer> tmpInit = inits.get(stack.pop());
+            ArrayList<Phase1.Initializer> start = new ArrayList<Phase1.Initializer>();
+
+            if (tmpInit != null) {
+
+                for (int i = 0; i < tmpAL.size(); i ++) start.add(tmpInit.get(i));
             }
+
+            // empty the stack
             while (!stack.empty()) {
+
+                // resolve initializations
                 ArrayList<Phase1.Initializer> tempList = inits.get(stack.pop());
                 for (Phase1.Initializer elem : tempList) {
                     if (!elem.isStatic) {
@@ -120,6 +113,7 @@ public class Phase4 {
                     }
                 }
             }
+
             inits.put(toUpdate, start);
         }
     }
@@ -188,6 +182,13 @@ public class Phase4 {
             this.formerInits = formerInits;
         }
 
+       /** 
+         * Helper method: toCppType
+         * 
+         * @param  type a String that describes a Java type
+         * 
+         * @return the conversion from Java type to C++ type
+         */
         public String toCppType(String type) {
             String cppType;
             switch (type) {
@@ -213,6 +214,13 @@ public class Phase4 {
             return cppType;
         }
 
+        /** 
+         * Helper method: isPrimitiveType
+         * 
+         * @param  type a String that describes a Java type
+         * 
+         * @return true if its a Java primitive, false otherwise
+         */
         public boolean isPrimitiveType(String type) {
             if (type.equals("boolean") || type.equals("byte") || type.equals("char") ||
                     type.equals("short") || type.equals("int") || type.equals("long") ||
@@ -222,6 +230,12 @@ public class Phase4 {
             return false;
         }
 
+        /** 
+         * Visitor for CompilationUnit
+         * process package information and use symboltable
+         * visit nodes for mutation
+         *
+         */
         public void visitCompilationUnit(GNode n) {
 
             String packageInfo = "";
@@ -245,8 +259,10 @@ public class Phase4 {
             table.setScope(table.root());
         }
 
-        /* Visitor for Modifiers
-         * Modifiers are not considered in our translator
+        /** 
+         * Visitor for Modifiers
+         * simply remove them as they are not part of the translation schema
+         *
          */
         public void visitModifiers(GNode n) {
             for (int i = 0; i < n.size(); i ++) {
@@ -260,8 +276,15 @@ public class Phase4 {
             visit(n);
         }
 
+        /** 
+         * Visitor for Cast Expression
+         * performs correct run-time casting check, therefore correct casts
+         *
+         */
         public void visitCastExpression(GNode n) {
+
             if (!n.getNode(0).getName().equals("JavaCast")) {
+
                 String castStatement = "__rt::java_cast<";
                 String toCast = n.getNode(0).getNode(0).get(0).toString();
                 n.setProperty("CastType", toCast);
@@ -269,10 +292,12 @@ public class Phase4 {
                 GNode castNode = GNode.create("JavaCast", castStatement);
                 n.set(0, castNode);
             }
+
             visit(n);
         }
 
-        /* Visitor for ClassDeclaration
+        /** DO THIS!
+         * Visitor for ClassDeclaration
          * Modified method name to "__class::method"
          * Adding __this argument to each method
          * Transform this() and super() called in constructors to the
@@ -360,7 +385,8 @@ public class Phase4 {
             SymbolTableUtil.exitScope(table, n);
         }
 
-        /* Visitor for MethodDeclaration
+        /** 
+         * Visitor for Method Declaration
          * Checking whether variables inside this scope are defined in
          * the class field or inside the method
          * (actually the main work is done in visitBlock(), where block will
@@ -374,40 +400,54 @@ public class Phase4 {
             table.mark(n);
 
             methodName = table.current().getName();
+            // process the mangled name correctly
             if (n.getProperty("mangledName") != null) n.set(3, n.getProperty("mangledName").toString().replace(" ", ""));
 
-            //main function has no field method
+            // process main function
             if (n.get(3).toString().equals("main")) {
+
                 isMain = true;
+
                 n.set(2, "int32_t");
                 //cannot handling array now
                 //n.set(4, GNode.create("Arguments", GNode.create("VoidType")));
                 n.set(3, "__" + currentClass + "::" + n.get(3).toString());
                 visit(n);
+
                 GNode blockContent = (GNode) NodeUtil.dfs(n, "Block");
                 GNode newBlock = GNode.create("Block");
                 for (Object o: blockContent) newBlock.add(o);
                 newBlock.add(GNode.create("ReturnStatement", "0"));
                 n.set(7, newBlock);
+
+                // not in main anymore
                 isMain = false;
-            } else {
+            }
+
+            // process anything else
+            else {
+
+                // set constructorFlag to false
                 constructorFlag = false;
                 visit(n);
-                //constructor
+
+                // process constructor
                 if (n.get(3).toString().equals(currentClass)) {
+
+                    // default constructor is not needed anymore
                     defaultConstructorNeeded = false;
                     //n.set(0, GNode.create("Modifiers"));
                     n.set(2, currentClass);
                     n.set(3, "__" + currentClass + "::" + "__init");
                     GNode blockContent = (GNode) NodeUtil.dfs(n, "Block");
                     GNode newBlock = GNode.create("Block");
+
+                    // if not constructor flag, process initialization statements (if any)
                     if (!constructorFlag) {
 
                         String parentName = "";
                         if (extension == null) parentName = "Object";
                         else parentName = ((GNode) NodeUtil.dfs((Node) extension, "QualifiedIdentifier")).get(0).toString();
-
-
 
                         newBlock.add(GNode.create("Statement", "__" + parentName + "::__init(__this);\n"));
                         
@@ -419,20 +459,27 @@ public class Phase4 {
                         }
                         newBlock.add(GNode.create("Statement", initStatements));
                     }
+
+                    // if block isn't null, dump block into newBlock
                     if (blockContent != null) {
                         for (Object o : blockContent) newBlock.add(o);
                     }
+
                     newBlock.add(GNode.create("ReturnStatement", "__this"));
                     n.set(7, newBlock);
                 }
+
                 //normal methods
                 else {
                     //n.set(0, GNode.create("Modifiers"));
+                    // method declaration
                     n.set(3, "__" + currentClass + "::" + n.get(3).toString());
                 }
 
+                // check if method is static
                 Object staticCheck = NodeUtil.dfs(n, "StaticModifer");
-                if (null == staticCheck) {
+                if (staticCheck == null) {
+
                     //Arguments modify, add __this
                     GNode thisType = GNode.create("Type", GNode.create("QualifiedIdentifier", currentClass), null);
                     GNode thisParameter = GNode.create("FormalParameter",  GNode.create("Modifier"), thisType, null, "__this", null);
@@ -444,42 +491,74 @@ public class Phase4 {
                     n.set(4, newParams);
                 }
             }
+
+            // reset the method name and exit scope
             methodName = "";
             SymbolTableUtil.exitScope(table, n);
         }
 
+        /**
+         * Visitor for ThisExpression
+         * Explicates "this" when "this" is used
+         *
+         */
         public void visitThisExpression(GNode n) {
             n.set(0, "__this");
             visit(n);
         }
 
+        /**
+         * Visitor for Type
+         * Visits Java types and converts them to c++ types
+         * if type if primitive it gets converted
+         * if type is type array 
+         *
+         */
         public void visitType(GNode n) {
+
             GNode dimensions = (GNode) NodeUtil.dfs(n, "Dimensions");
             String declaration = "";
+
+            // if type array
             if (dimensions != null) {
                 String typeName = n.getNode(0).get(0).toString();
                 if (isPrimitiveType(typeName)) {
                     typeName = toCppType(typeName);
-                    if (!typeName.equals("int")) primitiveArrays.add(new PrimitiveArray(typeName));
+                    // if its not a primitive array we should create a run time node for it
+                    if (!typeName.equals("int32_t")) primitiveArrays.add(new PrimitiveArray(typeName));
                     // else bigArrays.add(new BigArray(typeName, packageInfo)); // big array no longer needed
                 }
+
+                // process declaration using expansion
                 for (int i = dimensions.size() - 1; i > -1; i--) {
                     if (i == dimensions.size() - 1) declaration = "__rt::Array<" + typeName + ">";
                     else declaration = "__rt::Array<" + declaration + ">";
                 }
                 GNode arrNode = GNode.create("QualifiedIdentifier", declaration);
                 n.set(0, arrNode);
-                n.set(1, null);  // maybe??
+                n.set(1, null);
             }
+
             visit(n);
         }
 
+        /**
+         * Visitor for PrimitiveType
+         * Visits Java primitives and converts them to c++ primitives
+         *
+         */
         public void visitPrimitiveType(GNode n) {
             String typeName = toCppType(n.get(0).toString());
             n.set(0, typeName);
             visit(n);
         }
 
+        /**
+         * Visitor for NewArrayExpression
+         * When a new array is created, it visits that node and processes the creation
+         * Supports nested array declarations
+         *
+         */
         public void visitNewArrayExpression(GNode n) {
 
             GNode dimensions = (GNode) n.getNode(2);
@@ -487,16 +566,20 @@ public class Phase4 {
             String typeDef = "";
             String length = "";
 
+            // if dimensions are not null, then the array has been defined for its length
             if (dimensions == null) {
+
+                // conversion of java primitive to cpp primitive
                 String typeName = n.getNode(0).get(0).toString();
                 if (isPrimitiveType(typeName)) typeName = toCppType(typeName);
 
+                // get the concreteDimensions
                 GNode concreteDimensions = (GNode) n.getNode(0);
 
                 length = n.getNode(1).getNode(0).get(0).toString();
 
+                // supports nested definition via expansion of typeDef
                 for (int i = concreteDimensions.size() - 1; i > -1; i--) {
-                    //String length = n.getNode(1).getNode(i).get(0).toString();
                     if (i == concreteDimensions.size() - 1) typeDef = typeName;
                     else typeDef = "__rt::Array<" + typeDef + ">";
                 }
@@ -504,62 +587,16 @@ public class Phase4 {
                 declaration = "__rt::__Array<" + typeDef + ">::__init(new __rt::__Array<" + typeDef + ">(__rt::checkNegativeIndex(" + length + ")))";
             }
 
+            // create an ArrayExpression node
             n.set(3, GNode.create("ArrayExpression", declaration));
             visit(n);
         }
 
-        /* this is an old visitNewArrayExpression, DO NOT DELETE! I REPEAT! DO NOT DELETE!
-        public void visitNewArrayExpression(GNode n) {
-
-            GNode dimensions = (GNode) n.getNode(2);
-
-            String declaration = "";
-            String left = "";
-            String right = "";
-
-            if (dimensions == null) {
-                String typeName = n.getNode(0).get(0).toString();
-                if (isPrimitiveType(typeName)) typeName = toCppType(typeName);
-
-                GNode concreteDimensions = (GNode) n.getNode(0);
-                if (concreteDimensions.size() == 1) {
-                    String length = n.getNode(1).getNode(0).get(0).toString();
-                    left = "({ __rt::Array<" + typeName + "> tmp";
-                    right = "new __rt::__Array<" + typeName + ">(" + length + ")>; tmp; })";
-                    //declaration += "({ __rt::Array<" + typeName + "> tmp = new __rt::__Array<" + typeName + ">(" + length + ")>; tmp; })";
-                }
-                else {
-                    for (int i = concreteDimensions.size() - 1; i > -1; i--) {
-                        if (i == concreteDimensions.size() - 1) {
-                            String length = n.getNode(1).getNode(i).get(0).toString();
-                            left = "({ __rt::Array<" + left + "> tmp";
-                            right = "new __rt::__Array<" + typeName + ">(" + length + ")>; tmp; })";
-                            declaration = left + "=" + right;
-                        }
-                        else {
-                            String length = n.getNode(1).getNode(i).get(0).toString();
-                            left = "({ __rt::Array<" + left + "> tmp";
-                            right = "new __rt::__Array<" + declaration + ">(" + length + ")>; tmp; })";
-                            declaration = left + " = " + right;
-                        }
-                    }
-                }
-                declaration = left + "=" + right;
-            }
-            else {
-                // nothing for now
-            }
-
-            //String typeName = n.getNode(0).get(0).toString();
-            //if (isPrimitiveType(typeName)) typeName = toCppType(typeName);
-            //String length = n.getNode(1).getNode(0).get(0).toString();
-            //String declaration = "({ __rt::Array<" + typeName + "> tmp = new __rt::__Array<" + typeName + ">(" + length + ")>; tmp; })";
-            n.set(3, GNode.create("ArrayExpression", declaration));
-            //__rt::Array<Object> a = ({ __rt::Array<String> tmp = new __rt::__Array<String>(3); tmp; });
-            visit(n);
-        }
-        */
-
+        /**
+         * Visitor for BlockDeclaration
+         * Marks a scope in the symbol table and then continues visiting
+         *
+         */
         public void visitBlockDeclaration(GNode n) {
 
             SymbolTableUtil.enterScope(table, n);
@@ -568,11 +605,15 @@ public class Phase4 {
             SymbolTableUtil.exitScope(table, n);
         }
 
-        /* Visitor for NewClassExpression
+        /**
+         * Visitor for NewClassExpression
          * Class name should start with "__"
+         * Processes a new class creation accordingly and initializes the class
+         *
          */
         public void visitNewClassExpression(GNode n) {
 
+            System.out.println(n.toString());
             GNode id = (GNode) NodeUtil.dfs(n, "QualifiedIdentifier");
             if (!id.get(0).toString().startsWith("__")) {
                 Node oldArgs = n.getNode(3);
@@ -585,34 +626,30 @@ public class Phase4 {
             visit(n);
         }
 
-        /* Visitor for Block
-         * Check whether the variables inside the scope are defined
-         * Can also be done using symble table (similar idea here)
+        /**
+         * Visitor for Block
+         * Marks a scope in the symbol table and then continues visiting
+         *
          */
         public void visitBlock(GNode n) {
 
             SymbolTableUtil.enterScope(table, n);
             table.mark(n);
-
             visit(n);
-
             SymbolTableUtil.exitScope(table, n);
         }
 
+        /**
+         * Check whether the variables inside the scope are defined
+         * Marks a scope in the symbol table and then continues visiting
+         *
+         */
         public void visitPrimaryIdentifier(GNode n) {
-            if (n.get(0).toString().contains("__this")) {
-                return;
-            }
 
-            if (n.getString(0).equals("System")) {
-                return;
-            }
+            if (n.get(0).toString().contains("__this") || n.getString(0).equals("System")) return;
 
             //add this to field data
             if (!isMain) {
-
-
-                //TODO: this is not working for nested scopes
                 if (!table.current().getParent().isDefinedLocally(n.get(0).toString())) {
                     n.set(0, "__this -> " + n.get(0).toString());
                 }
@@ -621,41 +658,59 @@ public class Phase4 {
             visit(n);
         }
 
+        /** 
+         * Visitor for Subscript Expression
+         *
+         * Implies there is some array processing happening
+         * Do arrayAccessCheck before accessing happens
+         *
+         */
         public void visitSubscriptExpression(GNode n) {
+
+            // if there is an array store
             if (null == n.getProperty("Store")) {
                 n.setProperty("Store", "Access");
-
-                String check;
-
-                check = "__rt::arrayAccessCheck(" + n.getNode(0).getString(0)
-                        + ", " + n.getNode(1).getString(0) + ");\n";
-
+                String check = "__rt::arrayAccessCheck(" + n.getNode(0).getString(0) + ", " + n.getNode(1).getString(0) + ");\n";
                 n.setProperty("AccessCheck", check);
-
             }
         }
 
-        /* Visitor for Selection Expression
-         * C++ style "->" for selection
+        /** 
+         * Visitor for Selection Expression
+         *
+         * This method visits an Selection Expression and translates dynamic accesses
+         * correctly, for array it will check not null, if it finds a static variable
+         * call it will translate it correctly, and finally it will add -> operators 
+         * for anything else
+         *
          */
         public void visitSelectionExpression(GNode n) {
 
+            // retrieve primary identifier
             String primaryIdentifier = "";
             Object primaryIdentifierObj = NodeUtil.dfs(n, "PrimaryIdentifier");
 
+            // if no primary identifier was found using dfs
             if (primaryIdentifierObj != null) primaryIdentifier = ((GNode) primaryIdentifierObj).get(0).toString();
 
+            // check if its a statement in the completedInits hashmap, process static variable
             if (completedInits.keySet().contains(primaryIdentifier)) {
                 GNode primaryIdentifierNode = (GNode) n.get(0);
                 primaryIdentifierNode.set(0, "__" + primaryIdentifierNode.get(0).toString());
                 n.set(1, "::" + n.get(1).toString());
-            } else if (n.get(1).toString().equals("length") && primaryIdentifierObj != null) {
+            } 
+
+            // check if length of array is being called, process with null check
+            else if (n.get(1).toString().equals("length") && primaryIdentifierObj != null) {
                 GNode primaryIdentifierNode = (GNode) n.get(0);
                 String newPrimaryIdentifier = "({__rt::checkNotNull(" + primaryIdentifier + ");";
                 primaryIdentifierNode.set(0, newPrimaryIdentifier);
                 String length = primaryIdentifier + "->length;})" ;
                 n.set(1, length);
-            } else {
+            } 
+
+            // convert all string accesses 
+            else {
                 for (int i = 1; i < n.size(); i++) {
                     if (n.get(i) instanceof String) {
                         if (!n.get(i).toString().startsWith("-> ")) {
@@ -664,9 +719,16 @@ public class Phase4 {
                     }
                 }
             }
+
             visit(n);
         }
 
+        /**
+         * Visitor for For Statement
+         *
+         * Mark it in the symbol table
+         *
+         */
         public void visitForStatement(GNode n) {
             SymbolTableUtil.enterScope(table, n);
             table.mark(n);
@@ -674,35 +736,42 @@ public class Phase4 {
             SymbolTableUtil.exitScope(table, n);
         }
 
-        public void visitRelationalExpression(GNode n) {
-            visit(n);
-        }
-
-
+        /**
+         * Visitor for Expression Statement
+         *
+         * This method visits an Expression Statement and checks if a store on an array is being made
+         * If this is the case we need to check whether an array assignment is taking place and do
+         * the necessary checks
+         *
+         */
         public void visitExpressionStatement(GNode n) {
 
+            // retreieve the expressionNode from the expression statement
             Node expressionNode = n.getNode(0);
 
-            System.out.println("before the error");
-
+            // if the node is an expression
             if (expressionNode.hasName("Expression")) {
+                // if the node has a subscript expression and has an assignment operator (aka =), translate array stores properly
                 if (expressionNode.getNode(0).hasName("SubscriptExpression") && expressionNode.getString(1).equals("=")) {
 
                     expressionNode.getNode(0).setProperty("Store", "Store");
 
+                    // new block along with tmp node for processing
                     GNode newBlock = GNode.create("ExpressionBlock");
-
                     GNode tmpDef = GNode.create("ExpressionStatement",
                                                 GNode.create("DefExpression", "Object tmp", "=", expressionNode.getNode(2)));
 
+                    // add run-time checks for arrays
                     GNode check = GNode.create("Check");
                     check.add("__rt::arrayStoreCheck");
                     check.add(expressionNode.getNode(0).getNode(0));
                     check.add(expressionNode.getNode(0).getNode(1));
                     check.add(GNode.create("PrimaryIdentifier", "tmp"));
 
+                    // create real expression
                     GNode realExpression = GNode.create("realExpression", expressionNode.getNode(0), "=", GNode.create("PrimaryIdentifier", "tmp"));
 
+                    // add everything to new block
                     newBlock.add(tmpDef);
                     newBlock.add(check);
                     newBlock.add(realExpression);
@@ -715,31 +784,39 @@ public class Phase4 {
         }
 
 
-        /* Visitor for Selection Expression
-         * C++ style "->" for calling class methods
+        /**
+         * Visitor for Call Expression
+         *
+         * Performs the bulk of the translation
+         * Translates print statements
+         * Translates method calls
+         * Translates calls to super and init
+         * Adds run-time checks if necessary
+         * 
          */
         public void visitCallExpression(GNode n) {
 
             visit(n);
 
-            //collect info
+            //collect information to see if SelectionStatement and PrimaryIdentifier nodes exist
             Object obj = n.getNode(0);
             GNode selectionStatementNode = null;
             GNode primaryIdentifierNode = null;
 
+            // flag that checks if translation for a specific callExpression is done or not
             boolean undone = true;
 
+            // make sure obj is not null, if it isn't then SS is obj and PI is found using dfs
             if (obj != null) {
                 selectionStatementNode = (GNode) obj;
                 obj = NodeUtil.dfs(selectionStatementNode, "PrimaryIdentifier");
                 if (obj != null) primaryIdentifierNode = (GNode) obj;
             }
 
-            if (n.getProperty("mangledName") != null) {
-                n.set(2, n.getProperty("mangledName").toString().replace(" ", ""));
-            }
+            // fix mangled name removing placeholder
+            if (n.getProperty("mangledName") != null) n.set(2, n.getProperty("mangledName").toString().replace(" ", ""));
 
-            //method in current class
+            // if method is not in main, no run time checks plus different conditionals
             if (!isMain) {
 
                 if (selectionStatementNode == null) {
@@ -748,7 +825,7 @@ public class Phase4 {
 
                     undone = false;
 
-                    //call __init
+                    // this call, nothing to change other than specificying which init is being called, set constructor flag
                     if (n.get(2).toString().equals("this")) {
 
                         constructorFlag = true;
@@ -763,75 +840,73 @@ public class Phase4 {
                         // n.setProperty("initStatements", initStatements);
                     }
 
-                    //call parent's __init
+                    // super call, call expression is done, also set constructor flag
                     else if (n.get(2).toString().equals("super")) {
 
-                        undone = false;
                         n.setProperty("noblock", "init");
-
                         constructorFlag = true;
 
+                        // find parent, if it does have one
                         String parentName = "";
                         if (extension == null) parentName = "Object";
                         else parentName = ((GNode) NodeUtil.dfs((Node) extension, "QualifiedIdentifier")).get(0).toString();
 
-                        GNode arguments = GNode.create("Arguments");
+                        // rename the node appropriatly
                         n.set(2, "__" + parentName + "::__init");
 
+                        // determine any other initialization that are necessary
                         String initStatements = "";
                         ArrayList<Phase1.Initializer> initializers = formerInits.get(currentClass);
                         for (Phase1.Initializer init: initializers) {
-                            System.out.println(init.name);
-                            if (!init.value.equals("") && !init.isStatic)
-                                initStatements += "__this -> " + init.name + " = " + init.value + ";\n";
+                            if (!init.value.equals("") && !init.isStatic) initStatements += "__this -> " + init.name + " = " + init.value + ";\n";
                         }
-                        n.setProperty("initStatements", initStatements);
-                    } else {
-                        n.set(2, "__this -> __vptr -> " + n.get(2));
-                    }
 
-                    //change arguments
+                        // add initStatements in as a property
+                        n.setProperty("initStatements", initStatements);
+                    } 
+
+                    else n.set(2, "__this -> __vptr -> " + n.get(2));
+
+                    // update arguments accordingly
                     GNode newArgs = GNode.create("Arguments");
                     newArgs.add(GNode.create("ThisExpression", "__this"));
                     GNode oldArgs = (GNode) n.get(3);;
                     n.set(3, newArgs);
                     if (oldArgs != null) {
-                        for (Object arg: oldArgs) {
-                            if ((!arg.equals(newArgs.get(0)))&&(arg != null)) newArgs.add(arg);
+                        for (Object oldArg: oldArgs) {
+                            if (!oldArg.equals(newArgs.get(0)) && oldArg != null ) newArgs.add(oldArg);
                         }
                     }
                 }
             }
 
+            // make sure both nodes are not null since they are needed for translation below
             if (selectionStatementNode != null && primaryIdentifierNode != null) {
 
+                // translate System.out.(print/println) if it happens
                 if (primaryIdentifierNode.get(0).toString().equals("System")) {
 
-                    //with endl
+                    // print statement with println, aka endl
                     if (selectionStatementNode.get(1).toString().equals("-> out") && n.get(2).toString().equals("println")) {
 
                         undone = false;
                         n.setProperty("noblock", "cout");
                         n.setProperty("cout", "cout");
-
                         n.set(0, null);
                         n.set(2, "std::cout");
-                        GNode arguments = GNode.create("Arguments");
-                        GNode oldArg = (GNode) n.get(3);
-                        for (Object a : oldArg) {
-                            arguments.add(a);
-                        }
-                        arguments.add("std::endl");
-                        n.set(3, arguments);
+                        GNode newArgs = GNode.create("Arguments");
+                        GNode oldArgs = (GNode) n.get(3);
+                        for (Object oldArg : oldArgs) newArgs.add(oldArg);
+                        newArgs.add("std::endl");
+                        n.set(3, newArgs);
                     }
 
-                    //without endl
+                    // print statement with print, aka just cout without endl
                     if (selectionStatementNode.get(1).toString().equals("-> out") && n.get(2).toString().equals("print")) {
 
                         undone = false;
                         n.setProperty("noblock", "cout");
                         n.setProperty("cout", "cout");
-
                         n.set(0, null);
                         n.set(2, "std::cout");
                     }
@@ -841,120 +916,114 @@ public class Phase4 {
             //calling a method defined in a class
             obj = n.get(0);
 
+            // making sure it is still a GNode
             if (obj instanceof GNode) {
 
+                // cast to child
                 GNode child = (GNode) obj;
 
+                // if call to super
                 if (child.hasName("SuperExpression")) {
+
                     String parentName = "";
-                    if (extension == null) {
-                        parentName = "Object";
-                    } else {
-                        parentName = ((GNode) NodeUtil.dfs((Node) extension, "QualifiedIdentifier")).get(0).toString();
-                    }
+                    if (extension == null) parentName = "Object";
+                    else parentName = ((GNode) NodeUtil.dfs((Node) extension, "QualifiedIdentifier")).get(0).toString();
 
                     n.set(0, "(new __" + parentName + "())");
-
                     n.set(2, "-> __vptr -> " + n.get(2).toString());
 
-                    GNode arguments = GNode.create("Arguments");
+                    // add this to arguments, update arguments
+                    GNode newArgs = GNode.create("Arguments");
+                    newArgs.add(GNode.create("Argument", "__this"));
+                    GNode oldArgs = (GNode) NodeUtil.dfs(n, "Arguments");
+                    n.set(3, newArgs);
 
-                    arguments.add(GNode.create("Argument", "__this"));
-                    GNode oldArg = (GNode) NodeUtil.dfs(n, "Arguments");
-                    n.set(3, arguments);
-
-                    if (oldArg != null) {
-                        for (Object oo : oldArg) {
-                            if ((!oo.equals(arguments.get(0)))&&(oo != null)) {
-                                arguments.add(oo);
-                            }
+                    if (oldArgs != null) {
+                        for (Object oldArg : oldArgs) {
+                            if (oldArg.equals(newArgs.get(0)) && oldArg != null) newArgs.add(oldArg);
                         }
                     }
+                    
                     return;
                 }
 
+                // neccessary null check
                 if (n.get(0) != null) {
-
 
                     //start the method from vtable
                     String methodName = (String) n.get(2);
 
+                    // dispatch type is virtual, therefore use dynamic dispath
                     if (n.getProperty("methodDispatchType").toString().equals("virtual")) {
+
                         n.set(2, "-> __vptr -> " + methodName);
 
-                        //add the object to arguments
-                        GNode arguments = GNode.create("Arguments");
-
-                        arguments.add(GNode.create("PrimaryIdentifier", "tmp"));
-                        GNode oldArg = (GNode) NodeUtil.dfs(n, "Arguments");
-                        n.set(3, arguments);
-
-                        if (oldArg != null) {
-                            for (Object oo : oldArg) {
-                                if (((!oo.equals(arguments.get(0)))&&(oo != null))) {
-                                    arguments.add(oo);
-                                }
+                        // create new argument but also add this (which is tmp)
+                        GNode newArgs = GNode.create("Arguments");
+                        newArgs.add(GNode.create("PrimaryIdentifier", "tmp"));
+                        GNode oldArgs = (GNode) n.getNode(3);
+                        n.set(3, newArgs);
+                        if (oldArgs != null) {
+                            for (Object oldArg : oldArgs) {
+                                if (!oldArg.equals(newArgs.get(0)) && oldArg != null) newArgs.add(oldArg);
                             }
                         }
                     }
 
-                    if (n.getProperty("methodDispatchType").toString().equals("private")) {
+                    // dispatch type is private, therefore use . method to access method
+                    else if (n.getProperty("methodDispatchType").toString().equals("private")) {
+
                         n.set(2, "." + methodName);
 
-                        //add the object to arguments
-                        GNode arguments = GNode.create("Arguments");
-
-                        arguments.add(GNode.create("PrimaryIdentifier", "tmp"));
-                        GNode oldArg = (GNode) NodeUtil.dfs(n, "Arguments");
-                        n.set(3, arguments);
-
-                        if (oldArg != null) {
-                            for (Object oo : oldArg) {
-                                if (((!oo.equals(arguments.get(0)))&&(oo != null))) {
-                                    arguments.add(oo);
-                                }
+                        // create new argument but also add this (which is tmp)
+                        GNode newArgs = GNode.create("Arguments");
+                        newArgs.add(GNode.create("PrimaryIdentifier", "tmp"));
+                        GNode oldArgs = (GNode) n.getNode(3);
+                        n.set(3, newArgs);
+                        if (oldArgs != null) {
+                            for (Object oldArg : oldArgs) {
+                                if (!oldArg.equals(newArgs.get(0)) && oldArg != null) newArgs.add(oldArg);
                             }
                         }
                     }
 
-                    if (n.getProperty("methodDispatchType").toString().equals("static")) {
+                    // dispatch type is static, no need to pass this
+                    else if (n.getProperty("methodDispatchType").toString().equals("static")) {
                         n.set(2, "::" + methodName);
                     }
                 }
             }
 
-
-
+            // there may be nested call expressions which require translation too
             GNode callExpressionBlock = GNode.create("CallExpressionBlock");
+
+            // temp variable
             String tmpDef = "";
 
-
+            // if there is still work to do, aka nexted call expressions
             if (undone) {
 
-                if (n.getNode(0).hasName("CallExpression")) {
-                    tmpDef = n.getNode(0).getProperty("methodReturnType").toString();
-                }
-                if (n.getNode(0).hasName("PrimaryIdentifier")) {
-                    String primaryKey = n.getNode(0).getString(0);
-                    if (completedInits.keySet().contains(primaryKey)) {
-                        tmpDef = primaryKey;
-                    } else {
-                        tmpDef = ((VariableT) table.current().lookup(n.getNode(0).get(0).toString())).getType().toString();
-                    }
+                // there is another call expression, receive methods return type
+                if (n.getNode(0).hasName("CallExpression"))  tmpDef = n.getNode(0).getProperty("methodReturnType").toString();
 
+                // there is a primary identifier (aka symbol), update tmp accordingly
+                else if (n.getNode(0).hasName("PrimaryIdentifier")) {
+                    String primaryKey = n.getNode(0).getString(0);
+                    if (completedInits.keySet().contains(primaryKey)) tmpDef = primaryKey;
+                    else tmpDef = ((VariableT) table.current().lookup(n.getNode(0).get(0).toString())).getType().toString();
                 }
-                if (n.getNode(0).hasName("CastExpression")) {
-                    tmpDef = n.getNode(0).getProperty("CastType").toString();
-                }
-                if (n.getNode(0).hasName("SelectionExpression")) {
+
+                // there is a cast expression, update tmp accordignly
+                else if (n.getNode(0).hasName("CastExpression")) tmpDef = n.getNode(0).getProperty("CastType").toString();
+
+                // there is a selection expression, update tmp accordingly
+                else if (n.getNode(0).hasName("SelectionExpression")) {
                     String primaryKey = n.getNode(0).getNode(0).getString(0);
                     String secondaryKey = n.getNode(0).getString(1).replaceAll("->", "").replaceAll(" ", "");
                     String classIn = "";
 
-                    if (primaryKey.equals("__this")) {
-                        classIn = currentClass;
-                    } else {
-
+                    if (primaryKey.equals("__this")) classIn = currentClass;
+                    else {
                         classIn = (((VariableT)table.current().lookup(primaryKey)).getType().toString()).replaceAll("\\(|\\)", "");
                         String[] classInDetail = classIn.split("\\.");
                         classIn = classInDetail[classInDetail.length - 1];
@@ -970,52 +1039,45 @@ public class Phase4 {
                     }
                 }
 
+                // clean tmp before processing
                 tmpDef = tmpDef.replaceAll("\\(|\\)", "");
 
+                // process the number of tmp classes needed to be declared
                 String[] tmpClass = tmpDef.split("\\.");
 
-                if (tmpClass.length > 0) {
-                    tmpDef = tmpClass[tmpClass.length - 1];
-                }
+                if (tmpClass.length > 0) tmpDef = tmpClass[tmpClass.length - 1];
 
+                // if dispatch is static, don't do anything
                 if (n.getProperty("methodDispatchType").toString().equals("static")) {
                     n.set(0, GNode.create("PrimaryIdentifier", "__" + tmpDef));
                     return;
                 }
 
+                // create the tmp node, start adding null checks and process the expression correctly
                 GNode def = GNode.create("ExpressionStatement", tmpDef + " tmp", " = ", n.getNode(0));
-
-
                 GNode nullCheck = GNode.create("Check", "__rt::checkNotNull", GNode.create("PrimaryIdentifier", "tmp"));
-
                 callExpressionBlock.add(def);
                 callExpressionBlock.add(nullCheck);
 
-
+                // process contents of the current call expression and store in a reacl call expression node
                 GNode realExpression = GNode.create("ExpressionStatement");
                 GNode realCallExpression = GNode.create("RealCallExpression");
                 realCallExpression.add(GNode.create("PrimaryIdentifier", "tmp"));
 
-                for (int i = 1; i < n.size(); i++) {
-                    realCallExpression.add(n.get(i));
-                }
-
+                for (int i = 1; i < n.size(); i++) realCallExpression.add(n.get(i));
                 realExpression.add(realCallExpression);
-
                 callExpressionBlock.add(realExpression);
-
                 n.set(0, callExpressionBlock);
 
-                for (int i = 1; i < n.size(); i++) {
-                    n.set(i, null);
-                }
+                // clear out information we don't need anymore
+                for (int i = 1; i < n.size(); i++) n.set(i, null);
+
             }
         }
 
         public void traverse(Node n) {
             super.dispatch(n);
         }
-
 
         public void visit(Node n) {
             for (int i = 0; i < n.size(); ++i) {
