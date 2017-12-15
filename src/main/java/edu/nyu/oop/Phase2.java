@@ -208,8 +208,8 @@ public class Phase2 {
                     if (other.equals(constructor)) toAdd = false;
                 }
                 if (toAdd) objectRepresentations.getCurrent().classRep.constructors.add(constructor);
-                
-                
+
+
             }
 
             visit(node);
@@ -782,8 +782,7 @@ public class Phase2 {
                 if (parentField.fieldName.equals("*__delete")) {
                     updatedFields.add(new Field("public", false, "void", "*__delete", "__" + current.name + "*"));
                     updatedVMethods.add(new VMethod("public", false, "__delete", "(&__rt::__delete<__" + current.name + ">)"));
-                }
-                else {
+                } else {
                     String inheritedFrom = "";
                     if (parentField.inheritedFrom.equals("")) inheritedFrom = "Object";
                     else inheritedFrom = parentField.inheritedFrom;

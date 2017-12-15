@@ -115,36 +115,36 @@ public class Phase1 {
             this.typeName = getTypeName(typeName);
         }
 
-        public static String getInitial(String typeName){
+        public static String getInitial(String typeName) {
             String toReturn = "";
             switch (typeName) {
-                case "boolean":
-                    toReturn = "false";
-                    break;
-                case "double":
-                    toReturn = "0";
-                    break;
-                case "float":
-                    toReturn = "0";
-                    break;
-                case "long":
-                    toReturn = "0";
-                    break;
-                case "int":
-                    toReturn = "0";
-                    break;
-                case "short":
-                    toReturn = "0";
-                    break;
-                case "byte":
-                    toReturn = "0";
-                    break;
-                case "char":
-                    toReturn = "0";
-                    break;
-                default:
-                    toReturn = "__rt::null()";
-                    break;
+            case "boolean":
+                toReturn = "false";
+                break;
+            case "double":
+                toReturn = "0";
+                break;
+            case "float":
+                toReturn = "0";
+                break;
+            case "long":
+                toReturn = "0";
+                break;
+            case "int":
+                toReturn = "0";
+                break;
+            case "short":
+                toReturn = "0";
+                break;
+            case "byte":
+                toReturn = "0";
+                break;
+            case "char":
+                toReturn = "0";
+                break;
+            default:
+                toReturn = "__rt::null()";
+                break;
             }
             return toReturn;
         }
@@ -152,24 +152,24 @@ public class Phase1 {
         public static String getTypeName(String typeName) {
             String toReturn = "";
             switch (typeName) {
-                case "boolean":
-                    toReturn = "bool";
-                    break;
-                case "long":
-                    toReturn = "int64_t";
-                    break;
-                case "int":
-                    toReturn = "int32_t";
-                    break;
-                case "short":
-                    toReturn = "int16_t";
-                    break;
-                case "byte":
-                    toReturn = "int8_t";
-                    break;
-                default:
-                    toReturn = typeName;
-                    break;
+            case "boolean":
+                toReturn = "bool";
+                break;
+            case "long":
+                toReturn = "int64_t";
+                break;
+            case "int":
+                toReturn = "int32_t";
+                break;
+            case "short":
+                toReturn = "int16_t";
+                break;
+            case "byte":
+                toReturn = "int8_t";
+                break;
+            default:
+                toReturn = typeName;
+                break;
             }
             return toReturn;
         }
@@ -207,7 +207,7 @@ public class Phase1 {
             Type callExpObjectType = callExpObjectLookup.getType();
             List<Type> callExpActuals = JavaEntities.typeList((List) dispatch(n.getNode(3)));
             MethodT callExpMethod =
-                    JavaEntities.typeDotMethod(table, classpath(), callExpObjectType, true, callExpMethodName, callExpActuals);
+                JavaEntities.typeDotMethod(table, classpath(), callExpObjectType, true, callExpMethodName, callExpActuals);
             return callExpMethod.getResult();
         }
 
@@ -249,8 +249,7 @@ public class Phase1 {
                         value = "__rt::literal(" + n.getNode(2).getNode(0).getNode(2).get(0).toString() + ")";
                     else
                         value = n.getNode(2).getNode(0).getNode(2).get(0).toString();
-                }
-                else value = "";
+                } else value = "";
                 Initializer initializer = new Initializer(fieldName, isStatic, typeName, value);
                 ArrayList<Initializer> currentInitializers = initializers.get(JavaEntities.currentType(table).getName());
                 for(Initializer currentInitializer : currentInitializers)
@@ -387,18 +386,16 @@ public class Phase1 {
                     method = JavaEntities.typeDotMethod(table, classpath(), typeDot, true, methodName, actuals);
                     if (method == null) return;
                     if (!TypeUtil.isStaticType(method)) n.set(0, makeThisExpression());
-                }
-                else if (receiver != null) {
+                } else if (receiver != null) {
                     if(receiver.getName().equals("PrimaryIdentifier")) {
                         String identifierName = receiver.get(0).toString();
                         String currentScope = table.current().getQualifiedName();
                         //Check if identifier is a type (Static methods)
                         Type potentialStaticType = JavaEntities.simpleNameToType(table, classpath(), currentScope, identifierName);
                         if (potentialStaticType != null) typeDot = potentialStaticType;
-                            //Otherwise, identifier is a variable (must find type)
+                        //Otherwise, identifier is a variable (must find type)
                         else typeDot = ((VariableT) table.lookup(identifierName)).getType();
-                    }
-                    else if (receiver.getName().equals("CallExpression"))
+                    } else if (receiver.getName().equals("CallExpression"))
                         typeDot = returnTypeFromCallExpression(receiver);
                     else if (receiver.getName().equals("CastExpression"))
                         typeDot = JavaEntities.simpleNameToType(table, classpath(), table.current().getQualifiedName(), receiver.getNode(0).getNode(0).get(0).toString());

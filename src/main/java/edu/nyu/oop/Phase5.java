@@ -327,9 +327,9 @@ public class Phase5 extends Visitor {
         //other calling will not be specialized.
         else {
 
-        
+
             visit(n);
-         
+
 
         }
 
@@ -446,11 +446,11 @@ public class Phase5 extends Visitor {
     }
 
     public void visitStringLiteral(GNode n) {
-        
+
         printer.p("__rt::literal(").flush();
         visit(n);
         printer.p(")").flush();
-    
+
     }
 
     public void visitForStatement(GNode n) {
@@ -479,7 +479,7 @@ public class Phase5 extends Visitor {
 
         if (null != n.getProperty("AccessCheck")) {
             printer.p(";})");
-            
+
         }
 
     }
@@ -507,7 +507,7 @@ public class Phase5 extends Visitor {
             //print string
             if (o instanceof String) {
                 String s = (String) o;
-                
+
                 printer.p(s + " ").flush();
             }
         }

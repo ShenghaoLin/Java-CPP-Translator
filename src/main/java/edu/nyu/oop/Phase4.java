@@ -78,7 +78,7 @@ public class Phase4 {
         // }
     }
 
-    public void resolveInitializers() { 
+    public void resolveInitializers() {
         for (String key : childrenToParents.keySet()) {
             String toUpdate = key;
             Stack<String> stack = new Stack<String>();
@@ -91,7 +91,7 @@ public class Phase4 {
             ArrayList<Phase1.Initializer> tmpAL = inits.get(stack.pop());
             ArrayList<Phase1.Initializer> start = new ArrayList<Phase1.Initializer>();
             if (tmpAL != null) {
-                
+
                 for (int i = 0; i < tmpAL.size(); i ++) {
                     start.add(tmpAL.get(i));
                 }
@@ -169,8 +169,8 @@ public class Phase4 {
         public ArrayList<BigArray> bigArrays = new ArrayList<BigArray>();
         public ArrayList<PrimitiveArray> primitiveArrays = new ArrayList<PrimitiveArray>();
 
-        public Phase4Visitor(SymbolTable table, Runtime runtime, 
-            HashMap<String, String> ctp, HashMap<String, ArrayList<Phase1.Initializer>> completedInits) {
+        public Phase4Visitor(SymbolTable table, Runtime runtime,
+                             HashMap<String, String> ctp, HashMap<String, ArrayList<Phase1.Initializer>> completedInits) {
             this.table = table;
             this.runtime = runtime;
             this.ctp = ctp;
@@ -180,32 +180,32 @@ public class Phase4 {
         public String toCppType(String type) {
             String cppType;
             switch (type) {
-                case "long":
-                    cppType = "int64_t";
-                    break;
-                case "int":
-                    cppType = "int32_t";
-                    break;
-                case "short":
-                    cppType = "int16_t";
-                    break;
-                case "byte":
-                    cppType = "int8_t";
-                    break;
-                case "boolean":
-                    cppType = "bool";
-                    break;
-                default:
-                    cppType = type;
-                    break;
+            case "long":
+                cppType = "int64_t";
+                break;
+            case "int":
+                cppType = "int32_t";
+                break;
+            case "short":
+                cppType = "int16_t";
+                break;
+            case "byte":
+                cppType = "int8_t";
+                break;
+            case "boolean":
+                cppType = "bool";
+                break;
+            default:
+                cppType = type;
+                break;
             }
             return cppType;
         }
 
         public boolean isPrimitiveType(String type) {
             if (type.equals("boolean") || type.equals("byte") || type.equals("char") ||
-                type.equals("short") || type.equals("int") || type.equals("long") ||
-                type.equals("float") || type.equals("double")) {
+                    type.equals("short") || type.equals("int") || type.equals("long") ||
+                    type.equals("float") || type.equals("double")) {
                 return true;
             }
             return false;
@@ -239,13 +239,12 @@ public class Phase4 {
          */
         public void visitModifiers(GNode n) {
             for (int i = 0; i < n.size(); i ++) {
-                if (n.getNode(i).getString(0).equals("static")){
+                if (n.getNode(i).getString(0).equals("static")) {
                     n.set(i, GNode.create("StaticModifer", null));
-                }
-                else {
+                } else {
                     n.set(i, null);
                 }
-                
+
             }
             visit(n);
         }
@@ -286,8 +285,7 @@ public class Phase4 {
                 GNode parentType = (GNode) ((GNode) extension).getNode(0);
                 GNode parentTypeNode = (GNode) parentType.getNode(0);
                 parentName = parentTypeNode.get(0).toString();
-            } 
-            else parentName = "Object";
+            } else parentName = "Object";
 
             String defaultConstructor = "__" + currentClass + "::__" + currentClass + "() : ";
             ArrayList<Phase1.Initializer> initializers = completedInits.get(currentClass);
@@ -315,8 +313,8 @@ public class Phase4 {
             if (defaultConstructorNeeded) {
                 String initCall = "";
                 initCall += currentClass + " __"
-                        + currentClass + "::__init("
-                        + currentClass + " __this) {\n";
+                            + currentClass + "::__init("
+                            + currentClass + " __this) {\n";
                 initCall += "__Object::__init(__this);\n";
 
                 initializers = completedInits.get(currentClass);
@@ -377,8 +375,7 @@ public class Phase4 {
                 newBlock.add(GNode.create("ReturnStatement", "0"));
                 n.set(7, newBlock);
                 isMain = false;
-            }
-            else {
+            } else {
                 constructorFlag = false;
                 visit(n);
                 //constructor
@@ -429,7 +426,7 @@ public class Phase4 {
                     newParams.add(thisParameter);
                     //fill old arguments
                     for (int j = 0; j < oldParams.size(); j++) newParams.add(oldParams.get(j));
-                    n.set(4, newParams);    
+                    n.set(4, newParams);
                 }
             }
             methodName = "";
@@ -441,33 +438,25 @@ public class Phase4 {
             visit(n);
         }
 
-
-
         public void visitType(GNode n) {
-            Object dimensions = NodeUtil.dfs(n, "Dimensions");
+            GNode dimensions = (GNode) NodeUtil.dfs(n, "Dimensions");
+            String declaration = "";
             if (dimensions != null) {
-                String typeName = n.getNode(0).get(0).toString();
-                if (!typeName.equals("int")) {
-                    if (isPrimitiveType(typeName)) {
-                        typeName = toCppType(typeName);
-                        primitiveArrays.add(new PrimitiveArray(typeName));
-                    }
-                    else bigArrays.add(new BigArray(typeName, packageInfo));
-
-                    n.set(0, GNode.create("QualifiedIdentifier", "__rt::Array<" + typeName + ">"));
-                    n.set(1, null);
-                }
-            }
-            /*
-            else ifs (n.getNode(0).get(0) != null) {
                 String typeName = n.getNode(0).get(0).toString();
                 if (isPrimitiveType(typeName)) {
                     typeName = toCppType(typeName);
-                    GNode toSet = (GNode) n.getNode(0);
-                    toSet.set(0, GNode.create("PrimitiveType", typeName));
+                    if (!typeName.equals("int")) primitiveArrays.add(new PrimitiveArray(typeName));
+                    // else bigArrays.add(new BigArray(typeName, packageInfo)); // big array no longer needed
                 }
+                System.out.println(typeName);
+                for (int i = dimensions.size() - 1; i > -1; i--) {
+                    if (i == dimensions.size() - 1) declaration = "__rt::Array<" + typeName + ">";
+                    else declaration = "__rt::Array<" + declaration + ">";
+                }
+                GNode arrNode = GNode.create("QualifiedIdentifier", declaration);
+                n.set(0, arrNode);
+                n.set(1, null);  // maybe??
             }
-            */
             visit(n);
         }
 
@@ -479,11 +468,83 @@ public class Phase4 {
 
         public void visitNewArrayExpression(GNode n) {
 
-            String typeName = n.getNode(0).get(0).toString();
-            if (isPrimitiveType(typeName)) typeName = toCppType(typeName);
-            n.set(0, GNode.create("QualifiedIdentifier", "__rt::Array<" + typeName + ">"));
+            GNode dimensions = (GNode) n.getNode(2);
+            String declaration = "";
+            String typeDef = "";
+            String length = "";
+
+            if (dimensions == null) {
+                String typeName = n.getNode(0).get(0).toString();
+                if (isPrimitiveType(typeName)) typeName = toCppType(typeName);
+
+                GNode concreteDimensions = (GNode) n.getNode(0);
+
+                length = n.getNode(1).getNode(0).get(0).toString();
+
+                for (int i = concreteDimensions.size() - 1; i > -1; i--) {
+                    //String length = n.getNode(1).getNode(i).get(0).toString();
+                    if (i == concreteDimensions.size() - 1) typeDef = typeName;
+                    else typeDef = "__rt::Array<" + typeDef + ">";
+                }
+                // declaration = "__rt::__Array<" + typeName + ">::__init(new __rt::__Array<" + typeName + ">(__rt::checkNegativeIndex(" + length + ")))"; // temporarily here
+                declaration = "__rt::__Array<" + typeDef + ">::__init(new __rt::__Array<" + typeDef + ">(__rt::checkNegativeIndex(" + length + ")))";
+            }
+
+            n.set(3, GNode.create("ArrayExpression", declaration));
             visit(n);
         }
+
+        /* this is an old visitNewArrayExpression, DO NOT DELETE! I REPEAT! DO NOT DELETE!
+        public void visitNewArrayExpression(GNode n) {
+
+            GNode dimensions = (GNode) n.getNode(2);
+
+            String declaration = "";
+            String left = "";
+            String right = "";
+
+            if (dimensions == null) {
+                String typeName = n.getNode(0).get(0).toString();
+                if (isPrimitiveType(typeName)) typeName = toCppType(typeName);
+
+                GNode concreteDimensions = (GNode) n.getNode(0);
+                if (concreteDimensions.size() == 1) {
+                    String length = n.getNode(1).getNode(0).get(0).toString();
+                    left = "({ __rt::Array<" + typeName + "> tmp";
+                    right = "new __rt::__Array<" + typeName + ">(" + length + ")>; tmp; })";
+                    //declaration += "({ __rt::Array<" + typeName + "> tmp = new __rt::__Array<" + typeName + ">(" + length + ")>; tmp; })";
+                }
+                else {
+                    for (int i = concreteDimensions.size() - 1; i > -1; i--) {
+                        if (i == concreteDimensions.size() - 1) {
+                            String length = n.getNode(1).getNode(i).get(0).toString();
+                            left = "({ __rt::Array<" + left + "> tmp";
+                            right = "new __rt::__Array<" + typeName + ">(" + length + ")>; tmp; })";
+                            declaration = left + "=" + right;
+                        }
+                        else {
+                            String length = n.getNode(1).getNode(i).get(0).toString();
+                            left = "({ __rt::Array<" + left + "> tmp";
+                            right = "new __rt::__Array<" + declaration + ">(" + length + ")>; tmp; })";
+                            declaration = left + " = " + right;
+                        }
+                    }
+                }
+                declaration = left + "=" + right;
+            }
+            else {
+                // nothing for now
+            }
+
+            //String typeName = n.getNode(0).get(0).toString();
+            //if (isPrimitiveType(typeName)) typeName = toCppType(typeName);
+            //String length = n.getNode(1).getNode(0).get(0).toString();
+            //String declaration = "({ __rt::Array<" + typeName + "> tmp = new __rt::__Array<" + typeName + ">(" + length + ")>; tmp; })";
+            n.set(3, GNode.create("ArrayExpression", declaration));
+            //__rt::Array<Object> a = ({ __rt::Array<String> tmp = new __rt::__Array<String>(3); tmp; });
+            visit(n);
+        }
+        */
 
         public void visitBlockDeclaration(GNode n) {
 
@@ -552,9 +613,9 @@ public class Phase4 {
 
                 String check;
 
-                check = "__rt::arrayAccessCheck(" + n.getNode(0).getString(0) 
+                check = "__rt::arrayAccessCheck(" + n.getNode(0).getString(0)
                         + ", " + n.getNode(1).getString(0) + ");\n";
-                
+
                 n.setProperty("AccessCheck", check);
 
             }
@@ -574,15 +635,13 @@ public class Phase4 {
                 GNode primaryIdentifierNode = (GNode) n.get(0);
                 primaryIdentifierNode.set(0, "__" + primaryIdentifierNode.get(0).toString());
                 n.set(1, "::" + n.get(1).toString());
-            }
-            else if (n.get(1).toString().equals("length") && primaryIdentifierObj != null) {
+            } else if (n.get(1).toString().equals("length") && primaryIdentifierObj != null) {
                 GNode primaryIdentifierNode = (GNode) n.get(0);
                 String newPrimaryIdentifier = "({__rt::checkNotNull(" + primaryIdentifier + ");";
                 primaryIdentifierNode.set(0, newPrimaryIdentifier);
                 String length = primaryIdentifier + "->length;})" ;
                 n.set(1, length);
-            }
-            else {
+            } else {
                 for (int i = 1; i < n.size(); i++) {
                     if (n.get(i) instanceof String) {
                         if (!n.get(i).toString().startsWith("-> ")) {
@@ -604,41 +663,40 @@ public class Phase4 {
         public void visitRelationalExpression(GNode n) {
             visit(n);
         }
-        
+
 
         public void visitExpressionStatement(GNode n) {
 
-            Node nn = n.getNode(0);
+            Node expressionNode = n.getNode(0);
 
-            if (nn.hasName("Expression")){
+            System.out.println("before the error");
 
-                //System.out.println(nn.toString());
+            if (expressionNode.hasName("Expression")) {
+                if (expressionNode.getNode(0).hasName("SubscriptExpression") && expressionNode.getString(1).equals("=")) {
 
-                if (nn.getNode(0).hasName("SubscriptExpression")&&nn.getString(1).equals("=")) {
-                    
-                    nn.getNode(0).setProperty("Store", "Store");
+                    expressionNode.getNode(0).setProperty("Store", "Store");
 
                     GNode newBlock = GNode.create("ExpressionBlock");
 
                     GNode tmpDef = GNode.create("ExpressionStatement",
-                        GNode.create("DefExpression", "Object tmp", "=", nn.getNode(2)));
-                    
+                                                GNode.create("DefExpression", "Object tmp", "=", expressionNode.getNode(2)));
+
                     GNode check = GNode.create("Check");
                     check.add("__rt::arrayStoreCheck");
-                    check.add(nn.getNode(0).getNode(0));
-                    check.add(nn.getNode(0).getNode(1));
+                    check.add(expressionNode.getNode(0).getNode(0));
+                    check.add(expressionNode.getNode(0).getNode(1));
                     check.add(GNode.create("PrimaryIdentifier", "tmp"));
 
-                    GNode realE = GNode.create("realExpression", nn.getNode(0), "=", GNode.create("PrimaryIdentifier", "tmp"));
+                    GNode realExpression = GNode.create("realExpression", expressionNode.getNode(0), "=", GNode.create("PrimaryIdentifier", "tmp"));
 
                     newBlock.add(tmpDef);
                     newBlock.add(check);
-                    newBlock.add(realE);
+                    newBlock.add(realExpression);
 
                     n.set(0, newBlock);
                 }
             }
-            
+
             visit(n);
         }
 
@@ -705,7 +763,7 @@ public class Phase4 {
 
                         GNode arguments = GNode.create("Arguments");
                         n.set(2, "__" + parentName + "::__init");
-                        
+
                         String initStatements = "";
                         ArrayList<Phase1.Initializer> initializers = completedInits.get(currentClass);
                         for (Phase1.Initializer init: initializers) {
@@ -713,8 +771,7 @@ public class Phase4 {
                                 initStatements += "__this -> " + init.name + " = " + init.value + ";\n";
                         }
                         n.setProperty("initStaements", initStatements);
-                    }
-                    else {
+                    } else {
                         n.set(2, "__this -> __vptr -> " + n.get(2));
                     }
 
@@ -789,17 +846,17 @@ public class Phase4 {
 
                     GNode arguments = GNode.create("Arguments");
 
-                        arguments.add(GNode.create("Argument", "__this"));
-                        GNode oldArg = (GNode) NodeUtil.dfs(n, "Arguments");
-                        n.set(3, arguments);
+                    arguments.add(GNode.create("Argument", "__this"));
+                    GNode oldArg = (GNode) NodeUtil.dfs(n, "Arguments");
+                    n.set(3, arguments);
 
-                        if (oldArg != null) {
-                            for (Object oo : oldArg) {
-                                if ((!oo.equals(arguments.get(0)))&&(oo != null)) {
-                                    arguments.add(oo);
-                                }
+                    if (oldArg != null) {
+                        for (Object oo : oldArg) {
+                            if ((!oo.equals(arguments.get(0)))&&(oo != null)) {
+                                arguments.add(oo);
                             }
                         }
+                    }
                     return;
                 }
 
@@ -866,7 +923,7 @@ public class Phase4 {
             String tmpDef = "";
 
 
-            if (undone){
+            if (undone) {
 
                 if (n.getNode(0).hasName("CallExpression")) {
                     tmpDef = n.getNode(0).getProperty("methodReturnType").toString();
@@ -875,11 +932,10 @@ public class Phase4 {
                     String primaryKey = n.getNode(0).getString(0);
                     if (completedInits.keySet().contains(primaryKey)) {
                         tmpDef = primaryKey;
-                    }
-                    else {
+                    } else {
                         tmpDef = ((VariableT) table.current().lookup(n.getNode(0).get(0).toString())).getType().toString();
                     }
-                    
+
                 }
                 if (n.getNode(0).hasName("CastExpression")) {
                     tmpDef = n.getNode(0).getProperty("CastType").toString();
@@ -893,8 +949,7 @@ public class Phase4 {
 
                     if (primaryKey.equals("__this")) {
                         classIn = currentClass;
-                    }
-                    else {
+                    } else {
 
                         classIn = (((VariableT)table.current().lookup(primaryKey)).getType().toString()).replaceAll("\\(|\\)", "");
                         String[] classInDetail = classIn.split("\\.");
@@ -920,7 +975,7 @@ public class Phase4 {
                 if (tmpClass.length > 0) {
                     tmpDef = tmpClass[tmpClass.length - 1];
                 }
-                
+                System.out.println("============");
                 System.out.println(tmpDef);
 
                 if (n.getProperty("methodDispatchType").toString().equals("static")) {
@@ -929,7 +984,7 @@ public class Phase4 {
                 }
 
                 GNode def = GNode.create("ExpressionStatement", tmpDef + " tmp", " = ", n.getNode(0));
-   
+
 
                 GNode nullCheck = GNode.create("Check", "__rt::checkNotNull", GNode.create("PrimaryIdentifier", "tmp"));
 
@@ -940,7 +995,7 @@ public class Phase4 {
                 GNode realExpression = GNode.create("ExpressionStatement");
                 GNode realCallExpression = GNode.create("RealCallExpression");
                 realCallExpression.add(GNode.create("PrimaryIdentifier", "tmp"));
-                
+
                 for (int i = 1; i < n.size(); i++) {
                     realCallExpression.add(n.get(i));
                 }
