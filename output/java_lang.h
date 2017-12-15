@@ -348,7 +348,8 @@ inline java::lang::String literal(const char * s)
     return new java::lang::__String(s);
 }
 
-inline int32_t checkNegativeIndex(int32_t index) {
+inline int32_t checkNegativeIndex(int32_t index)
+{
     if (0 > index)
     {
         throw new java::lang::NegativeArraySizeException();
