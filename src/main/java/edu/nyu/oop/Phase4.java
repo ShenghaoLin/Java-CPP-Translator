@@ -324,9 +324,6 @@ public class Phase4 {
                 initCall += currentClass + " __"
                             + currentClass + "::__init("
                             + currentClass + " __this) {\n";
-                initCall += "__" + parentName + "::__init(__this);\n";
-                        + currentClass + "::__init("
-                        + currentClass + " __this) {\n";
 
                 // String parentName = "";
                 // if (extension == null) parentName = "Object";
@@ -688,16 +685,10 @@ public class Phase4 {
 
             System.out.println("before the error");
 
-<<<<<<< HEAD
             if (expressionNode.hasName("Expression")) {
                 if (expressionNode.getNode(0).hasName("SubscriptExpression") && expressionNode.getString(1).equals("=")) {
 
                     expressionNode.getNode(0).setProperty("Store", "Store");
-=======
-                if (nn.getNode(0).hasName("SubscriptExpression")&&nn.getString(1).equals("=")) {
-                    
-                    nn.getNode(0).setProperty("Store", "Store");
->>>>>>> 0a7c44affff300dd935a713d138a10f179a5e9bb
 
                     GNode newBlock = GNode.create("ExpressionBlock");
 
@@ -986,13 +977,7 @@ public class Phase4 {
                 if (tmpClass.length > 0) {
                     tmpDef = tmpClass[tmpClass.length - 1];
                 }
-<<<<<<< HEAD
-                System.out.println("============");
-                System.out.println(tmpDef);
 
-=======
-                
->>>>>>> 0a7c44affff300dd935a713d138a10f179a5e9bb
                 if (n.getProperty("methodDispatchType").toString().equals("static")) {
                     n.set(0, GNode.create("PrimaryIdentifier", "__" + tmpDef));
                     return;
