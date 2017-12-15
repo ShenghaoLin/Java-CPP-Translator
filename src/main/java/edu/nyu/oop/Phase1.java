@@ -7,9 +7,9 @@
  * other useful properties in certain nodes, required later in the translator.
  *
  * @author Sam Holloway
+ * @author Goktug Saatcioglu
  * @author Shenghao Lin
  * @author Sai Akhil
- * @author Goktug Saatcioglu
  *
  * @verion 2.0
  */
