@@ -1,3 +1,12 @@
+/**
+ * Phase 5 printer that uses the Xtc's pretty printer to print the updated C++ ast from Phase 4
+ * to output.cpp and main.cpp implementation files in C++ format.
+ * Note: use sbt's format command to format the final code for indentation
+ *
+ * @author Shenghao Lin
+ * @author Sai Akhil
+ */
+
 package edu.nyu.oop;
 
 import org.slf4j.Logger;
@@ -103,6 +112,15 @@ public class Phase5 extends Visitor {
         //real default constructor
         if (n.getProperty("realDefaultConstructor") != null) {
             printer.pln((String) n.getProperty("realDefaultConstructor"));
+        }
+
+        //print main.cpp
+        GNode node = (GNode) NodeUtil.dfs(n, "MethodDeclaration");
+        if (null != node) {
+            if(node.getString(3).contains("main")){
+                printer.flush();
+                printmain(node);
+            }
         }
 
         //visit class body
@@ -496,6 +514,53 @@ public class Phase5 extends Visitor {
             printer.p("})");
         }
     }
+
+    public void visitNewArrayExpression(GNode n) {
+
+        if (!n.getProperty("InitSubArray").toString().equals("")) {
+
+            printer.p("({" + n.getProperty("ArrayType") + " tmp = " );
+            visit(n);
+            printer.p(";\n" + n.getProperty("InitSubArray"));
+            printer.pln("tmp;})").flush();
+        }
+        else {
+            visit(n);
+        }
+    }
+
+    public void visitNullLiteral(GNode n) {
+        printer.p("__rt::null() ").flush();
+    }
+
+
+    //Prints main implementation seperately to main.cpp
+    public void printmain(GNode n){
+        Phase5 mainPrint = new Phase5("main.cpp");
+        Printer mainPrinter = mainPrint.printer();
+        mainPrinter.register(mainPrint);
+        mainPrinter.pln("#include \"java_lang.h\"").flush();
+        mainPrint.headOfFile();
+        mainPrinter.pln("using namespace std;");
+        mainPrinter.pln("using namespace " +
+        packageInfo.substring(0, packageInfo.length() - 1).replace(".", "::") + ";").pln().flush();
+        String info = packageInfo.substring(0, packageInfo.length() - 1).replace(".", "::");
+        mainPrinter.pln("int main(int argc, char* argv[]) {\n" +
+                "  // Implement generic interface between C++'s main function and Java's main function\n" +
+                "  __rt::Array<String> args = new __rt::__Array<String>(argc - 1);\n" +
+                "\n" +
+                "  for (int32_t i = 1; i < argc; i++) {\n" +
+                "    (*args)[i] = __rt::literal(argv[i]);\n" +
+                "  }\n" +
+                "  \n" +
+                "  " + info + "::__Test" + info.substring(12,15) + "::main(args);\n" +
+                "  \n" +
+                "  return 0;\n" +
+                "}");
+        mainPrinter.flush();
+    }
+
+
     /* General visitor
      * Besides dispatch, also print all String instances it meets
      */

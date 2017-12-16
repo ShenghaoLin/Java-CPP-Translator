@@ -582,19 +582,37 @@ public class Phase4 {
                 if (isPrimitiveType(typeName)) typeName = toCppType(typeName);
 
                 // get the concreteDimensions
-                GNode concreteDimensions = (GNode) n.getNode(0);
-
-                System.out.println(concreteDimensions.size());
+                GNode concreteDimensions = (GNode) n.getNode(1);
 
                 length = n.getNode(1).getNode(0).get(0).toString();
+
+                String innerDef = "";
 
                 // supports nested definition via expansion of typeDef
                 for (int i = concreteDimensions.size() - 1; i > -1; i--) {
                     if (i == concreteDimensions.size() - 1) typeDef = typeName;
-                    else typeDef = "__rt::Array<" + typeDef + ">";
+                    else
+                    { 
+                        typeDef = "__rt::Array<" + typeDef + ">";
+                        String forDef = "for (int32_t i" + i + " = 0; i" + i + " < " + 
+                            concreteDimensions.getNode(i).getString(0) + "; i" + i + "++) {\n";
+                        String initStatement = "tmp";
+
+                        for (int j = 0; j < i + 1; j ++) {
+                            initStatement += " -> __data[i" + j + "]";
+                        } 
+                        initStatement += " = __rt::__Array<" + typeDef + ">::__init(new __rt::__Array<" 
+                            + typeDef + ">(__rt::checkNegativeIndex(" + concreteDimensions.getNode(i + 1).getString(0) + ")));\n";
+                        innerDef = forDef + initStatement + innerDef + "}\n";
+                    }
                 }
+
+                n.setProperty("InitSubArray", innerDef);
+                n.setProperty("ArrayType", "__rt::Array<" + typeDef + ">");
+
                 // declaration = "__rt::__Array<" + typeName + ">::__init(new __rt::__Array<" + typeName + ">(__rt::checkNegativeIndex(" + length + ")))"; // temporarily here
                 declaration = "__rt::__Array<" + typeDef + ">::__init(new __rt::__Array<" + typeDef + ">(__rt::checkNegativeIndex(" + length + ")))";
+            
             }
 
             // create an ArrayExpression node
@@ -626,7 +644,6 @@ public class Phase4 {
          */
         public void visitNewClassExpression(GNode n) {
 
-            System.out.println(n.toString());
             GNode id = (GNode) NodeUtil.dfs(n, "QualifiedIdentifier");
             if (!id.get(0).toString().startsWith("__")) {
                 Node oldArgs = n.getNode(3);
@@ -769,29 +786,81 @@ public class Phase4 {
                 // if the node has a subscript expression and has an assignment operator (aka =), translate array stores properly
                 if (expressionNode.getNode(0).hasName("SubscriptExpression") && expressionNode.getString(1).equals("=")) {
 
-                    expressionNode.getNode(0).setProperty("Store", "Store");
+                    //get the setTo value
+                    Node setTo = expressionNode.getNode(2);
+                    boolean isPrimitive = true;
 
-                    // new block along with tmp node for processing
-                    GNode newBlock = GNode.create("ExpressionBlock");
-                    GNode tmpDef = GNode.create("ExpressionStatement",
-                                                GNode.create("DefExpression", "Object tmp", "=", expressionNode.getNode(2)));
+                    //find if the setTo is of primitive types
+                    if (setTo.hasName("PrimaryIdentifier")) {
+                        Type toType = ((VariableT) table.current().lookup(setTo.get(0).toString())).getType();
+                        if (toType.tag().equals("CLASS")) {
+                            isPrimitive = false;
+                        }
+                    }
 
-                    // add run-time checks for arrays
-                    GNode check = GNode.create("Check");
-                    check.add("__rt::arrayStoreCheck");
-                    check.add(expressionNode.getNode(0).getNode(0));
-                    check.add(expressionNode.getNode(0).getNode(1));
-                    check.add(GNode.create("PrimaryIdentifier", "tmp"));
+                    if (setTo.hasName("CallExpression")) {
+                        if (((Type) setTo.getProperty("methodReturnType")).tag().equals("CLASS")) {
+                            isPrimitive = false;
+                        }
+                    }
 
-                    // create real expression
-                    GNode realExpression = GNode.create("realExpression", expressionNode.getNode(0), "=", GNode.create("PrimaryIdentifier", "tmp"));
+                    if (setTo.hasName("NewClassExpression")) {
+                        isPrimitive = false;
+                    }
 
-                    // add everything to new block
-                    newBlock.add(tmpDef);
-                    newBlock.add(check);
-                    newBlock.add(realExpression);
+                    if (setTo.hasName("NewArrayExpression")) {
+                        isPrimitive = false;
+                    }
 
-                    n.set(0, newBlock);
+                    //__rt::checkNotNull does not apply for primitive types
+                    //so arrayAccessCheck is used here
+                    if (isPrimitive) {
+                        expressionNode.getNode(0).setProperty("Store", "Store");
+                        GNode newBlock = GNode.create("ExpressionBlock");
+
+                        // add run-time checks for arrays
+                        GNode check = GNode.create("Check");
+                        check.add("__rt::arrayAccessCheck");
+                        check.add(expressionNode.getNode(0).getNode(0));
+                        check.add(expressionNode.getNode(0).getNode(1));
+
+                        // create real expression
+                        GNode realExpression = GNode.create("realExpression", expressionNode.getNode(0), "=", GNode.create("PrimaryIdentifier", "tmp"));
+
+                        // add everything to new block
+                        newBlock.add(check);
+                        newBlock.add(realExpression);
+
+                        n.set(0, newBlock);
+                    }
+
+                    //use wrapped checkStore for class types
+                    else
+                    {
+                        expressionNode.getNode(0).setProperty("Store", "Store");
+
+                        // new block along with tmp node for processing
+                        GNode newBlock = GNode.create("ExpressionBlock");
+                        GNode tmpDef = GNode.create("ExpressionStatement",
+                                                    GNode.create("DefExpression", "Object tmp", "=", expressionNode.getNode(2)));
+
+                        // add run-time checks for arrays
+                        GNode check = GNode.create("Check");
+                        check.add("__rt::arrayStoreCheck");
+                        check.add(expressionNode.getNode(0).getNode(0));
+                        check.add(expressionNode.getNode(0).getNode(1));
+                        check.add(GNode.create("PrimaryIdentifier", "tmp"));
+
+                        // create real expression
+                        GNode realExpression = GNode.create("realExpression", expressionNode.getNode(0), "=", GNode.create("PrimaryIdentifier", "tmp"));
+
+                        // add everything to new block
+                        newBlock.add(tmpDef);
+                        newBlock.add(check);
+                        newBlock.add(realExpression);
+
+                        n.set(0, newBlock);
+                    }
                 }
             }
 
@@ -968,44 +1037,63 @@ public class Phase4 {
                     //start the method from vtable
                     String methodName = (String) n.get(2);
 
-                    // dispatch type is virtual, therefore use dynamic dispath
-                    if (n.getProperty("methodDispatchType").toString().equals("virtual")) {
+                    if (null != n.getProperty("methodDispatchType")) {
 
-                        n.set(2, "-> __vptr -> " + methodName);
+                        // dispatch type is virtual, therefore use dynamic dispath
+                        if (n.getProperty("methodDispatchType").toString().equals("virtual")) {
 
-                        // create new argument but also add this (which is tmp)
-                        GNode newArgs = GNode.create("Arguments");
-                        newArgs.add(GNode.create("PrimaryIdentifier", "tmp"));
-                        GNode oldArgs = (GNode) n.getNode(3);
-                        n.set(3, newArgs);
-                        if (oldArgs != null) {
-                            for (Object oldArg : oldArgs) {
-                                if (!oldArg.equals(newArgs.get(0)) && oldArg != null) newArgs.add(oldArg);
+                            n.set(2, "-> __vptr -> " + methodName);
+
+                            // create new argument but also add this (which is tmp)
+                            GNode newArgs = GNode.create("Arguments");
+                            newArgs.add(GNode.create("PrimaryIdentifier", "tmp"));
+                            GNode oldArgs = (GNode) n.getNode(3);
+                            n.set(3, newArgs);
+                            if (oldArgs != null) {
+                                for (Object oldArg : oldArgs) {
+                                    if (!oldArg.equals(newArgs.get(0)) && oldArg != null) newArgs.add(oldArg);
+                                }
                             }
+                        }
+
+                        // dispatch type is private, therefore use . method to access method
+                        else if (n.getProperty("methodDispatchType").toString().equals("private")) {
+
+                            n.set(2, "." + methodName);
+
+                            // create new argument but also add this (which is tmp)
+                            GNode newArgs = GNode.create("Arguments");
+                            newArgs.add(GNode.create("PrimaryIdentifier", "tmp"));
+                            GNode oldArgs = (GNode) n.getNode(3);
+                            n.set(3, newArgs);
+                            if (oldArgs != null) {
+                                for (Object oldArg : oldArgs) {
+                                    if (!oldArg.equals(newArgs.get(0)) && oldArg != null) newArgs.add(oldArg);
+                                }
+                            }
+                        }
+
+                        // dispatch type is static, no need to pass this
+                        else if (n.getProperty("methodDispatchType").toString().equals("static")) {
+                            n.set(2, "::" + methodName);
                         }
                     }
 
-                    // dispatch type is private, therefore use . method to access method
-                    else if (n.getProperty("methodDispatchType").toString().equals("private")) {
+                    else {
 
-                        n.set(2, "." + methodName);
+                    n.set(2, "-> __vptr -> " + methodName);
 
-                        // create new argument but also add this (which is tmp)
-                        GNode newArgs = GNode.create("Arguments");
-                        newArgs.add(GNode.create("PrimaryIdentifier", "tmp"));
-                        GNode oldArgs = (GNode) n.getNode(3);
-                        n.set(3, newArgs);
-                        if (oldArgs != null) {
-                            for (Object oldArg : oldArgs) {
-                                if (!oldArg.equals(newArgs.get(0)) && oldArg != null) newArgs.add(oldArg);
-                            }
+                    // create new argument but also add this (which is tmp)
+                    GNode newArgs = GNode.create("Arguments");
+                    newArgs.add(GNode.create("PrimaryIdentifier", "tmp"));
+                    GNode oldArgs = (GNode) n.getNode(3);
+                    n.set(3, newArgs);
+                    if (oldArgs != null) {
+                        for (Object oldArg : oldArgs) {
+                            if (!oldArg.equals(newArgs.get(0)) && oldArg != null) newArgs.add(oldArg);
                         }
                     }
-
-                    // dispatch type is static, no need to pass this
-                    else if (n.getProperty("methodDispatchType").toString().equals("static")) {
-                        n.set(2, "::" + methodName);
-                    }
+                }
                 }
             }
 
@@ -1025,7 +1113,12 @@ public class Phase4 {
                     if (tmpType.isAnnotated()){
                         tmpType = tmpType.deannotate();
                     }
-                    tmpDef = tmpType.toAlias().getName().toString();
+                    if (tmpType.isAlias()) {
+                        tmpDef = tmpType.toAlias().getName().toString();
+                    }
+                    else {
+                        tmpDef = tmpType.toString();
+                    }
                 }
 
                 // there is a primary identifier (aka symbol), update tmp accordingly
@@ -1049,7 +1142,13 @@ public class Phase4 {
                         if (tmpType.isAnnotated()){
                             tmpType = tmpType.deannotate();
                         }
-                        tmpDef = tmpType.toAlias().getName().toString();
+
+                        if (tmpType.isAlias()) {
+                            tmpDef = tmpType.toAlias().getName().toString();
+                        }
+                        else {
+                            tmpDef = tmpType.toString();
+                        }
                         
                         //Set up proper wrapper
                         for (int i = 0; i < counter; i++) {
@@ -1088,9 +1187,11 @@ public class Phase4 {
                 tmpDef = tmpDefs[tmpDefs.length - 1];
 
                 // if dispatch is static, don't do anything
-                if (n.getProperty("methodDispatchType").toString().equals("static")) {
-                    n.set(0, GNode.create("PrimaryIdentifier", "__" + tmpDef));
-                    return;
+                if (null != n.getProperty("methodDispatchType")) {
+                    if (n.getProperty("methodDispatchType").toString().equals("static")) {
+                        n.set(0, GNode.create("PrimaryIdentifier", "__" + tmpDef));
+                        return;
+                    }
                 }
 
                 // create the tmp node, start adding null checks and process the expression correctly
