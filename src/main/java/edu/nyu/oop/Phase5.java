@@ -84,23 +84,6 @@ public class Phase5 extends Visitor {
      */
     public void visitClassDeclaration(GNode n) {
 
-        GNode mainfunction = (GNode) NodeUtil.dfs(n, "MethodDeclaration");
-        // if (mainfunction != null) {
-        //     if (mainfunction.get(3).toString().equals("main")) {
-        //         Phase5 mainPrint = new Phase5("main.cpp");
-        //         Printer mainPrinter = mainPrint.printer();
-        //         mainPrinter.register(mainPrint);
-        //         mainPrinter.pln("#include \"java_lang.h\"").flush();
-        //         mainPrint.headOfFile();
-        //         mainPrinter.pln("using namespace std;");
-        //         mainPrinter.pln("using namespace " +
-        //                         packageInfo.substring(0, packageInfo.length() - 1).replace(".", "::") + ";").pln().flush();
-        //         mainPrint.print(mainfunction);
-
-        //         return;
-        //     }
-        // }
-
         //Obtaining information of class name of parent class name
         String className = n.get(1).toString();
         String parentName = "";
@@ -113,21 +96,11 @@ public class Phase5 extends Visitor {
             parentName = "Object";
         }
 
-
-
         //default constructor
         printer.pln((String) n.getProperty("defaultConstructor"));
         printer.pln().flush();
 
         //real default constructor
-        // Object o = NodeUtil.dfs(n, "ConstructorDelaration");
-        // if (o == null) {
-        //     printer.pln(n.get(1).toString() + " __"
-        //                 + n.get(1).toString() + "::__init("
-        //                 + n.get(1).toString() + " __this) {");
-        //     printer.pln("return __this;");
-        //     printer.pln("}");
-        // }
         if (n.getProperty("realDefaultConstructor") != null) {
             printer.pln((String) n.getProperty("realDefaultConstructor"));
         }
@@ -425,15 +398,6 @@ public class Phase5 extends Visitor {
 
     }
 
-
-    /* Visitor for ThisExpression
-     * print "__this"
-     */
-    // public void visitThisExpression(GNode n) {
-    //     printer.p("__this ").flush();
-    //     visit(n);
-    // }
-
     public void visitWhileStatement(GNode n) {
         printer.p("while ").flush();
         visit(n);
@@ -470,11 +434,43 @@ public class Phase5 extends Visitor {
         if (null != n.getProperty("AccessCheck")) {
             printer.p("({");
             printer.p(n.getProperty("AccessCheck").toString());
+            printer.p("(");
+
+            if (n.get(0) instanceof Node) {
+                dispatch(n.getNode(0));
+            }
+            else if (n.get(0) instanceof String) {
+                printer.p(((String) n.get(0)) + " ");
+            }
+            
+            printer.p(",");
+            
+            if (n.get(1) instanceof Node) {
+                dispatch(n.getNode(1));
+            }
+            else if (n.get(1) instanceof String) {
+                printer.p(((String) n.get(1)) + " ");
+            }
+
+            printer.p(");\n");
         }
 
-        dispatch(n.getNode(0));
+        if (n.get(0) instanceof Node) {
+            dispatch(n.getNode(0));
+        }
+        else if (n.get(0) instanceof String) {
+            printer.p(((String) n.get(0)) + " ");
+        }
+
         printer.p("-> __data[").flush();
-        dispatch(n.getNode(1));
+
+        if (n.get(1) instanceof Node) {
+            dispatch(n.getNode(1));
+        }
+        else if (n.get(1) instanceof String) {
+            printer.p(((String) n.get(1)) + " ");
+        }
+
         printer.p("]").flush();
 
         if (null != n.getProperty("AccessCheck")) {
@@ -484,17 +480,22 @@ public class Phase5 extends Visitor {
 
     }
 
-    public void visitConcreteDimensions(GNode n) {
-        printer.p("(").flush();
-        visit(n);
-        printer.p(")").flush();
-    }
+    public void visitSelectionExpression(GNode n) {
+        if (null != n.getProperty("Block")) {
+            printer.p("({");
+            if (null != n.getProperty("Check")) {
+                printer.p(n.getProperty("Check") + "(");
+                dispatch(n.getNode(0));
+                printer.p(");\n");
+            }
+        }
 
-    public void visitNewArrayExpression(GNode n) {
-        printer.p("new ").flush();
         visit(n);
-    }
 
+        if (null != n.getProperty("Block")) {
+            printer.p("})");
+        }
+    }
     /* General visitor
      * Besides dispatch, also print all String instances it meets
      */

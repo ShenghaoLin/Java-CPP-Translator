@@ -4,6 +4,7 @@
  * in a single visit, this is necessary since we check for certain conditions
  * before mutation happens, please check each method to get more details
  *
+ * @author Shenghao Lin
  * @author Sai Akhil
  * @author Goktug Saatcioglu
  *
@@ -92,7 +93,7 @@ public class Phase4 {
 
             if (tmpInit != null) {
 
-                for (int i = 0; i < tmpAL.size(); i ++) start.add(tmpInit.get(i));
+                for (int i = 0; i < tmpInit.size(); i ++) start.add(tmpInit.get(i));
             }
 
             // empty the stack
@@ -583,6 +584,8 @@ public class Phase4 {
                 // get the concreteDimensions
                 GNode concreteDimensions = (GNode) n.getNode(0);
 
+                System.out.println(concreteDimensions.size());
+
                 length = n.getNode(1).getNode(0).get(0).toString();
 
                 // supports nested definition via expansion of typeDef
@@ -596,6 +599,9 @@ public class Phase4 {
 
             // create an ArrayExpression node
             n.set(3, GNode.create("ArrayExpression", declaration));
+
+            n.set(0, null);
+            n.set(1, null);
             visit(n);
         }
 
@@ -674,10 +680,12 @@ public class Phase4 {
          */
         public void visitSubscriptExpression(GNode n) {
 
+            visit(n);
+
             // if there is an array store
             if (null == n.getProperty("Store")) {
                 n.setProperty("Store", "Access");
-                String check = "__rt::arrayAccessCheck(" + n.getNode(0).getString(0) + ", " + n.getNode(1).getString(0) + ");\n";
+                String check = "__rt::arrayAccessCheck";
                 n.setProperty("AccessCheck", check);
             }
         }
@@ -709,10 +717,10 @@ public class Phase4 {
 
             // check if length of array is being called, process with null check
             else if (n.get(1).toString().equals("length") && primaryIdentifierObj != null) {
+                n.setProperty("Block", "Array length");
                 GNode primaryIdentifierNode = (GNode) n.get(0);
-                String newPrimaryIdentifier = "({__rt::checkNotNull(" + primaryIdentifier + ");";
-                primaryIdentifierNode.set(0, newPrimaryIdentifier);
-                String length = primaryIdentifier + "->length;})" ;
+                n.setProperty("Check", "__rt::checkNotNull");
+                String length = "-> length;" ;
                 n.set(1, length);
             } 
 
@@ -1007,17 +1015,47 @@ public class Phase4 {
             // temp variable
             String tmpDef = "";
 
-            // if there is still work to do, aka nexted call expressions
+            // if there is still work to do, aka nested call expressions
             if (undone) {
 
                 // there is another call expression, receive methods return type
-                if (n.getNode(0).hasName("CallExpression"))  tmpDef = n.getNode(0).getProperty("methodReturnType").toString();
+                if (n.getNode(0).hasName("CallExpression")) { 
+                    Type tmpType = (Type) n.getNode(0).getProperty("methodReturnType");
+                    //Get the corret class name from the Type object
+                    if (tmpType.isAnnotated()){
+                        tmpType = tmpType.deannotate();
+                    }
+                    tmpDef = tmpType.toAlias().getName().toString();
+                }
 
                 // there is a primary identifier (aka symbol), update tmp accordingly
                 else if (n.getNode(0).hasName("PrimaryIdentifier")) {
                     String primaryKey = n.getNode(0).getString(0);
                     if (completedInits.keySet().contains(primaryKey)) tmpDef = primaryKey;
-                    else tmpDef = ((VariableT) table.current().lookup(n.getNode(0).get(0).toString())).getType().toString();
+                    else {
+                        Type tmpType = ((VariableT) table.current().lookup(n.getNode(0).get(0).toString())).getType();
+                        int counter = 0;
+
+                        //unpack the type information from array Type
+                        while (tmpType.tag().toString().equals("ARRAY")) {
+                            counter ++;
+                            tmpType = tmpType.toArray().getType();
+                            if (tmpType.isAnnotated()) {
+                                tmpType = tmpType.deannotate();
+                            }
+                        }
+
+                        //Get the corret class name from the Type object
+                        if (tmpType.isAnnotated()){
+                            tmpType = tmpType.deannotate();
+                        }
+                        tmpDef = tmpType.toAlias().getName().toString();
+                        
+                        //Set up proper wrapper
+                        for (int i = 0; i < counter; i++) {
+                            tmpDef = "__rt::Array<" + tmpDef + ">";
+                        }
+                    }
                 }
 
                 // there is a cast expression, update tmp accordignly
@@ -1046,13 +1084,8 @@ public class Phase4 {
                     }
                 }
 
-                // clean tmp before processing
-                tmpDef = tmpDef.replaceAll("\\(|\\)", "");
-
-                // process the number of tmp classes needed to be declared
-                String[] tmpClass = tmpDef.split("\\.");
-
-                if (tmpClass.length > 0) tmpDef = tmpClass[tmpClass.length - 1];
+                String[] tmpDefs = tmpDef.split("\\.");
+                tmpDef = tmpDefs[tmpDefs.length - 1];
 
                 // if dispatch is static, don't do anything
                 if (n.getProperty("methodDispatchType").toString().equals("static")) {
