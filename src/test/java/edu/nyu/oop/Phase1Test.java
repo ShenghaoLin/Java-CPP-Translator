@@ -1,58 +1,54 @@
 package edu.nyu.oop;
 
-import java.io.*;
-import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.slf4j.Logger;
 import xtc.tree.GNode;
 import xtc.tree.Node;
-import xtc.util.Runtime;
 
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
+import java.nio.file.Path;
+import java.util.*;
 
 import static org.junit.Assert.*;
 
 public class Phase1Test {
     private static Logger logger = org.slf4j.LoggerFactory.getLogger(Phase1Test.class);
-
-    protected final Runtime runtime = new Runtime();
-
     private static Node node;// = null;
+    // Specify file to be tested in format NNN
+    private static String testFile = "050";
 
     @BeforeClass
     public static void beforeClass() {
         logger.debug("Executing Phase1Test");
-        node = XtcTestUtils.loadTestFile("src/test/java/inputs/test050/Test050.java");
+        node = XtcTestUtils.loadTestFile("src/test/java/inputs/test"+testFile+"/Test"+testFile+".java");
     }
 
-//    @Before
-//    public void before(){
-//        System.out.println("RIGHT HERE!"+node.toString());
-//
-//    }
-
+    // Testing if same node with different instances will result in the same AST
     @Test
-    public void testParse() { //throws xtc.tree.VisitingException{
+    public void testParse1(){
+        GNode n = (GNode) node;
+        Set<Path> paths = new HashSet<Path>();
+        // After making parse public, uncomment code below
+        List<GNode> ast = Phase1.parse(n);
+        List<GNode> astComp = Phase1.parse(node);
+        assertTrue("ASTrees are not the same", ast.equals(astComp));
+    }
+
+    // Testing if nodes hold the right info
+    @Test
+    public void testParse2() { //throws xtc.tree.VisitingException{
+        logger.debug("Executing Parse");
         List<GNode> ast = Phase1.parse(node);
-//        for(GNode nd: Phase1.parse(node.getNode(1))){
-//            ast.add(nd);
-//        }
-
-        for (GNode k : ast) {
-            //System.out.println("NODE ADDED:\n"+k.getName());
-            runtime.console().format(k).pln().flush();
-        }
-
-        System.out.println(ast.get(0).get(3).toString().substring(0, 16));
 
         assertTrue("Compilation Unit is", ast.get(0).hasName("CompilationUnit"));
-        assertTrue("PACKAGE DECLARATION IS", ast.get(0).get(0).toString().equals("PackageDeclaration(null, QualifiedIdentifier(\"inputs\", \"test050\"))"));
-        assertTrue("CLASS DECLARATION A", ast.get(0).get(1).toString().substring(0, 16).equals("ClassDeclaration"));
-        assertTrue("CLASS DECLARATION B", ast.get(0).get(2).toString().substring(0, 16).equals("ClassDeclaration"));
-        assertTrue("CLASS DECLARATION C", ast.get(0).get(3).toString().substring(0, 16).equals("ClassDeclaration"));
-
+        assertTrue("PACKAGE DECLARATION IS", ast.get(0).get(0).toString().substring(0, 61).equals("PackageDeclaration(null, QualifiedIdentifier(\"inputs\", \"test0"));
+        assertTrue("FIRST CLASS DECLARATION", ast.get(0).get(1).toString().substring(0, 16).equals("ClassDeclaration"));
+        //Uncomment in case a second class is expected
+        if(ast.get(0).size() > 2) {
+            assertTrue("SECOND CLASS DECLARATION", ast.get(0).get(2).toString().substring(0, 16).equals("ClassDeclaration"));
+            if(ast.get(0).size() > 3) {
+                assertTrue("THIRD CLASS DECLARATION", ast.get(0).get(3).toString().substring(0, 16).equals("ClassDeclaration"));
+            }
+        }
     }
 }
