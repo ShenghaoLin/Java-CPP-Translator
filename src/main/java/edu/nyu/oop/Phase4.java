@@ -296,31 +296,34 @@ public class Phase4 {
             visit(n);
         }
 
-        /** DO THIS!
+        /**
          * Visitor for ClassDeclaration
-         * Modified method name to "__class::method"
-         * Adding __this argument to each method
-         * Transform this() and super() called in constructors to the
-         * form by calling __init();
+         * processes constructor declarations including defaults constructor,
+         * field initializations, getClass, and static initializations
+         *
          */
         public void visitClassDeclaration(GNode n) {
 
             SymbolTableUtil.enterScope(table, n);
             table.mark(n);
 
+            // at this point a default constructor is needed
             defaultConstructorNeeded = true;
 
             //collect class info
             currentClass = (String) n.get(1).toString();
             extension = NodeUtil.dfs(n, "Extension");
 
+            // get parent information, if no parent then parent i Object
             String parentName = "";
             if (extension != null) {
                 GNode parentType = (GNode) ((GNode) extension).getNode(0);
                 GNode parentTypeNode = (GNode) parentType.getNode(0);
                 parentName = parentTypeNode.get(0).toString();
-            } else parentName = "Object";
+            }
+            else parentName = "Object";
 
+            // create a default constructor, add default initializations into it
             String defaultConstructor = "__" + currentClass + "::__" + currentClass + "() : ";
             ArrayList<Phase1.Initializer> initializers = completedInits.get(currentClass);
             for (Phase1.Initializer init: initializers) {
@@ -329,6 +332,7 @@ public class Phase4 {
             defaultConstructor += "__vptr(&__vtable) {}";
             n.setProperty("defaultConstructor", defaultConstructor);
 
+            // also determine information for getClass
             String classInfo = "";
             classInfo += "Class __" + n.get(1).toString() + "::__class() {\n";
             classInfo += "static Class k = new __Class(__rt::literal(\""
@@ -338,12 +342,14 @@ public class Phase4 {
             classInfo += "}\n";
             n.setProperty("classInfo", classInfo);
 
+            // determine v-table initilazation, this is just default implementation
             String vtableInit = "__" + currentClass + "_VT __" + currentClass
                                 + "::__vtable;\n";
             n.setProperty("vtableInit", vtableInit);
 
             visit(n);
 
+            // if we need a default constructor
             if (defaultConstructorNeeded) {
                 String initCall = "";
                 initCall += currentClass + " __"
@@ -353,7 +359,6 @@ public class Phase4 {
                 // String parentName = "";
                 // if (extension == null) parentName = "Object";
                 // else parentName = ((GNode) NodeUtil.dfs((Node) extension, "QualifiedIdentifier")).get(0).toString();
-
 
                 initCall += "__" + parentName + "::__init(__this);\n";
 
@@ -367,6 +372,7 @@ public class Phase4 {
                 n.setProperty("realDefaultConstructor", initCall);
             }
 
+            // process static initialazations
             String staticInit = "";
             initializers = completedInits.get(currentClass);
             for (Phase1.Initializer init : initializers) {
@@ -377,8 +383,10 @@ public class Phase4 {
                         staticInit += init.typeName + " __" + currentClass + "::" + init.name + " = " + init.value + ";\n";
                 }
             }
+            // if there are static initialzations add them in
             if (!staticInit.equals("")) n.setProperty("staticInit", staticInit);
 
+            // reset extension and currentClass
             extension = null;
             currentClass = null;
 
@@ -388,11 +396,10 @@ public class Phase4 {
         /** 
          * Visitor for Method Declaration
          * Checking whether variables inside this scope are defined in
-         * the class field or inside the method
-         * (actually the main work is done in visitBlock(), where block will
-         * examine whether variable used inside their scopes are defined inside
-         * here we check if those which are set to not be defined in the inner scope
-         * have been defined as parameters)
+         * the class field or inside the method and then translates method 
+         * declarations to correct C++ declarations along with its mangled
+         * name
+         *
          */
         public void visitMethodDeclaration(GNode n) {
 
