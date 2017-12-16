@@ -136,6 +136,14 @@ public class Phase4 {
                 SymbolTable table = new SymbolTableBuilder(runtime).getTable((GNode) o);
                 Phase4Visitor visitor = new Phase4Visitor(table, runtime, formerInits, childrenToParents, inits);
                 visitor.traverse((Node) o);
+
+                String info = "";
+                for (PrimitiveArray p : visitor.primitiveArrays) {
+                    info += p.dump();
+                }
+                if (!info.equals("")) {
+                    ((Node) o).setProperty("RuntimeInfo", info);
+                }
             }
         }
 
@@ -146,6 +154,14 @@ public class Phase4 {
     public Node runNode(Node n, SymbolTable table) {
         Phase4Visitor visitor = new Phase4Visitor(table, runtime, formerInits, childrenToParents, inits);
         visitor.traverse(n);
+
+        String info = "";
+        for (PrimitiveArray p : visitor.primitiveArrays) {
+            info += p.dump();
+        }
+        if (!info.equals("")) {
+            n.setProperty("RuntimeInfo", info);
+        }
         //bigArrays.addAll(visitor.bigArrays);
         //primitiveArrays.addAll(visitor.primitiveArrays);
         return n;
@@ -579,7 +595,10 @@ public class Phase4 {
 
                 // conversion of java primitive to cpp primitive
                 String typeName = n.getNode(0).get(0).toString();
-                if (isPrimitiveType(typeName)) typeName = toCppType(typeName);
+                if (isPrimitiveType(typeName)) {
+                    typeName = toCppType(typeName);
+                    primitiveArrays.add(new PrimitiveArray(typeName));
+                }
 
                 // get the concreteDimensions
                 GNode concreteDimensions = (GNode) n.getNode(1);
@@ -825,7 +844,7 @@ public class Phase4 {
                         check.add(expressionNode.getNode(0).getNode(1));
 
                         // create real expression
-                        GNode realExpression = GNode.create("realExpression", expressionNode.getNode(0), "=", GNode.create("PrimaryIdentifier", "tmp"));
+                        GNode realExpression = GNode.create("realExpression", expressionNode.getNode(0), "=", expressionNode.getNode(2));
 
                         // add everything to new block
                         newBlock.add(check);

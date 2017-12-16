@@ -13,10 +13,10 @@ public class PrimitiveArray {
     }
 
     public String dump() {
-        String startDeclaration = "template<>\njava::lang::Class __Array<";
+        String startDeclaration = "template<>\njava::lang::Class __rt::__Array<";
         StringBuilder temp = new StringBuilder(startDeclaration);
         temp.append(cppType);
-        temp.append("::__class()\n");
+        temp.append(">::__class()\n");
         temp.append("{\n");
         temp.append("  static java::lang::Class tk =\n");
         temp.append("\tnew java::lang::__Class(__rt::literal(\"");
