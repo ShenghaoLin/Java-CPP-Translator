@@ -91,7 +91,6 @@ public class Phase4 {
             ArrayList<Phase1.Initializer> start = new ArrayList<Phase1.Initializer>();
 
             if (tmpInit != null) {
-
                 for (int i = 0; i < tmpInit.size(); i ++) start.add(tmpInit.get(i));
             }
 
@@ -393,7 +392,7 @@ public class Phase4 {
 
             // process static initialazations
             String staticInit = "";
-            initializers = completedInits.get(currentClass);
+            initializers = formerInits.get(currentClass);
             for (Phase1.Initializer init : initializers) {
                 if (init.isStatic) {
                     if (init.value.equals("")) 
