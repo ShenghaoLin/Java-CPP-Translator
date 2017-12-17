@@ -20,6 +20,7 @@ import edu.nyu.oop.util.JavaFiveImportParser;
 import edu.nyu.oop.util.SymbolTableUtil;
 import edu.nyu.oop.util.NodeUtil;
 import edu.nyu.oop.util.TypeUtil;
+
 import xtc.Constants;
 import xtc.lang.Java;
 import xtc.lang.JavaEntities;
@@ -129,7 +130,7 @@ public class Phase1 {
             this.methodScopeToMangledName = new HashMap<String, String>();
             this.initializers = new HashMap<String, ArrayList<Initializer>>();
         }
-
+        
         public final List<File> classpath() {
             return JavaEntities.classpath(runtime);
         }
@@ -314,7 +315,7 @@ public class Phase1 {
                         //Check if identifier is a type (Static methods)
                         Type potentialStaticType = JavaEntities.simpleNameToType(table, classpath(), currentScope, identifierName);
                         if (potentialStaticType != null) typeDot = potentialStaticType;
-                            //Otherwise, identifier is a variable (must find type)
+                        //Otherwise, identifier is a variable (must find type)
                         else typeDot = ((VariableT) table.lookup(identifierName)).getType();
                     }
                     //CallExpression (chained calls, i.e. "a.m().m()")
