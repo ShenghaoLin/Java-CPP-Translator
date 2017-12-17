@@ -1,3 +1,15 @@
+/**
+ * Necessary template declarations for non-primitive types
+ * no longer in use, will be removed in future implementations
+ *
+ * @author Goktug Saatcioglu
+ *
+ * @version 2.0
+ *
+ * @Deprecated
+ */
+
+
 package edu.nyu.oop;
 
 import java.lang.StringBuilder;

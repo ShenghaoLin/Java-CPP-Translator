@@ -5,6 +5,8 @@
  *
  * @author Shenghao Lin
  * @author Sai Akhil
+ *
+ * @version 2.0
  */
 
 package edu.nyu.oop;
@@ -23,7 +25,8 @@ import java.io.FileOutputStream;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
 
-/* Print out the information in the AST in a concrete C++ syntax generated from Phase 4
+/**
+ * Print out the information in the AST in a concrete C++ syntax generated from Phase 4
  * Under construction, working for most classes and methods
  * currently working on the seperation of main function
  * no indent
@@ -96,7 +99,8 @@ public class Phase5 extends Visitor {
         printer.pln("using namespace java::lang;").pln();
     }
 
-    /* Visitor for ClassDeclaration
+    /**
+     * Visitor for ClassDeclaration
      * Generate code for default constructor, Class method(class identity and its parent)
      * and vtable initialization.
      */
@@ -163,7 +167,8 @@ public class Phase5 extends Visitor {
         }
     }
 
-    /* Visitor for the instanceof statment
+    /**
+     * Visitor for the instanceof statment
      * has the stype "a->__vptr->getClass(a)->__vptr->isInstance(a->__vptr->getClass(a), __rt::java_cast<Object>(__B::__init(new __B()));"
      */
     public void visitInstanceOfExpression(GNode n) {
@@ -185,7 +190,8 @@ public class Phase5 extends Visitor {
 
     }
 
-    /* Visitor for CompilationUnit
+    /**
+     * Visitor for CompilationUnit
      * Generate information of the package and print namespace
      */
     public void visitCompilationUnit(GNode n) {
@@ -212,7 +218,8 @@ public class Phase5 extends Visitor {
         printer.pln().flush();
     }
 
-    /* Visitor for FieldDeclaration
+    /**
+     * Visitor for FieldDeclaration
      * Add ";" at the end of each statement
      */
     public void visitFieldDeclaration(GNode n) {
@@ -220,7 +227,8 @@ public class Phase5 extends Visitor {
         printer.pln(";").flush();
     }
 
-    /* Visitor for Block
+    /**
+     * Visitor for Block
      * Add brackets "{}" at beginning and ending
      */
     public void visitBlock(GNode n) {
@@ -231,7 +239,8 @@ public class Phase5 extends Visitor {
 
     }
 
-    /* Visitor for Arguments
+    /**
+     * Visitor for Arguments
      * Add brackets "()" at beginning and ending
      * add comma between elements
      */
@@ -260,14 +269,16 @@ public class Phase5 extends Visitor {
         printer.p(")").flush();
     }
 
-    /* Visitor for FormalParameters
+    /**
+     * Visitor for FormalParameters
      * Same as Arguments
      */
     public void visitFormalParameters(GNode n) {
         visitArguments(n);
     }
 
-    /* Visitor for ClassBody 
+    /**
+     * Visitor for ClassBody 
      * print everything other than FieldDeclaration
      * as class fields are defined in output.h
      */
@@ -285,7 +296,8 @@ public class Phase5 extends Visitor {
     /* Skip extension since we already have its info */
     public void visitExtension(GNode n) {}
 
-    /* Visitor for CastExpression
+    /**
+     * Visitor for CastExpression
      * Add "()" to the argument of __rt::java_cast<>
      */
     public void visitCastExpression(GNode n) {
@@ -302,7 +314,8 @@ public class Phase5 extends Visitor {
         printer.p(") ").flush();
     }
 
-    /* Visitor for CallExpression
+    /**
+     * Visitor for CallExpression
      * For cout, arguments should be placed after "<<"" instead of inside "()"
      */
     public void visitCallExpression(GNode n) {
@@ -335,7 +348,8 @@ public class Phase5 extends Visitor {
         inCout = false;
     }
 
-    /* Visitor for CallExpressionBlock defined in phase4
+    /**
+     * Visitor for CallExpressionBlock defined in phase4
      * add ({}) to the content
      */
     public void visitCallExpressionBlock(GNode n) {
@@ -345,7 +359,8 @@ public class Phase5 extends Visitor {
         printer.p("})").flush();
     }
 
-    /* Visitor for Check defined in phase4
+    /**
+     * Visitor for Check defined in phase4
      * print the check, and add () to its arguments 
      */
     public void visitCheck(GNode n) {
@@ -366,7 +381,8 @@ public class Phase5 extends Visitor {
 
     }
 
-    /* Visitor for ExpressionStatement
+    /**
+     * Visitor for ExpressionStatement
      * Add ";" at the end of statement
      * When it has a CallExpression with property of "initStatement"
      * add initializations after the current expression statement
@@ -393,7 +409,8 @@ public class Phase5 extends Visitor {
     }
 
 
-    /* Visitor for ReturnStatement
+    /**
+     * Visitor for ReturnStatement
      * print return, ending with ";"
      */
     public void visitReturnStatement(GNode n) {
@@ -402,14 +419,16 @@ public class Phase5 extends Visitor {
         printer.pln(";").flush();
     }
 
-    /* Visitor for VoidType
+    /**
+     * Visitor for VoidType
      * print "void"
      */
     public void visitVoidType(GNode n) {
         printer.p("void ").flush();
     }
 
-    /* Visitor for Declarator
+    /**
+     * Visitor for Declarator
      * adding "=" to the statement
      */
     public void visitDeclarator(GNode n) {
@@ -441,7 +460,8 @@ public class Phase5 extends Visitor {
 
     }
 
-    /* Visitor for WhileStatement
+    /**
+     * Visitor for WhileStatement
      * print while
      */
     public void visitWhileStatement(GNode n) {
@@ -449,7 +469,8 @@ public class Phase5 extends Visitor {
         visit(n);
     }
 
-    /* Visitor for RelationalExpression
+    /**
+     * Visitor for RelationalExpression
      * print () to contain its content
      */
     public void visitRelationalExpression(GNode n) {
@@ -458,7 +479,8 @@ public class Phase5 extends Visitor {
         printer.p(")").flush();
     }
 
-    /* Visitor for StringLiteral
+    /**
+     * Visitor for StringLiteral
      * print it as __rt::literal("")
      */
     public void visitStringLiteral(GNode n) {
@@ -469,7 +491,8 @@ public class Phase5 extends Visitor {
 
     }
 
-    /* Visitor for ForStatement
+    /**
+     * Visitor for ForStatement
      * print for and its following conditions in c++ style
      */
     public void visitForStatement(GNode n) {
@@ -484,7 +507,8 @@ public class Phase5 extends Visitor {
         dispatch(n.getNode(1));
     }
 
-    /* Visitor for SubscriptExpression
+    /**
+     * Visitor for SubscriptExpression
      * print array access in the format of a->__data[i]
      * if an AccessCheck is needed, add it before the access
      * and use ({}) to contain and return this access
@@ -544,7 +568,8 @@ public class Phase5 extends Visitor {
 
     }
 
-    /* Visitor for SelectionExpression
+    /**
+     * Visitor for SelectionExpression
      * If there is a check for the selection, add a ({}) block to contain
      */
     public void visitSelectionExpression(GNode n) {
@@ -564,7 +589,8 @@ public class Phase5 extends Visitor {
         }
     }
 
-    /* Visitor for NewArrayExpression
+    /**
+     * Visitor for NewArrayExpression
      * Print a statement to create a new array.
      * A initialization will be added to nested arrays
      */
@@ -585,7 +611,8 @@ public class Phase5 extends Visitor {
         }
     }
 
-    /* Vistor for NullLiteral
+    /**
+     * Vistor for NullLiteral
      * print __rt::null()
      */
     public void visitNullLiteral(GNode n) {
@@ -619,7 +646,8 @@ public class Phase5 extends Visitor {
     }
 
 
-    /* General visitor
+    /**
+     * General visitor
      * Besides dispatch, also print all String instances it meets
      */
     public void visit(Node node) {

@@ -5,7 +5,6 @@
  * before mutation happens, please check each method to get more details
  *
  * @author Shenghao Lin
- * @author Sai Akhil
  * @author Goktug Saatcioglu
  *
  * @version 2.0

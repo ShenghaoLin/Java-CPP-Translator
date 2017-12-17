@@ -6,7 +6,7 @@
  * @author Goktug Saatcioglu
  * @author Shenghao Lin
  *
- * @version 1.0
+ * @version 2.0
  */
 
 package edu.nyu.oop;
@@ -25,6 +25,12 @@ public class Constructor {
         this.parameters = parameters;
     }
 
+    /**
+     * equals method to see if two constructors are the same
+     *
+     * @param  Constructor takes in another constructor for the comparison
+     * @return true if two constructors are the same, false otherwise
+     */
     public boolean equals(Constructor other) {
         if (this.accessModifier.equals(other.accessModifier) && this.name.equals(other.name)) {
             if (this.parameters == null && other.parameters == null) return true;

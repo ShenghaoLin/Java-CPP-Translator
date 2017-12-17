@@ -1,3 +1,14 @@
+/**
+ * Container class for primitive arrays that takes in a
+ * primitive java type and gives back the correct template
+ * declaration of that primitive array
+ *
+ * @author Goktug Saatcioglu
+ *
+ * @version 2.0
+ */
+
+
 package edu.nyu.oop;
 
 import java.lang.StringBuilder;
@@ -40,24 +51,24 @@ public class PrimitiveArray {
     public String convertToCppType(String javaType) {
         String cppType;
         switch (javaType) {
-        case "long":
-            cppType = "int64_t";
-            break;
-        case "int":
-            cppType = "int32_t";
-            break;
-        case "short":
-            cppType = "int16_t";
-            break;
-        case "byte":
-            cppType = "int8_t";
-            break;
-        case "boolean":
-            cppType = "bool";
-            break;
-        default:
-            cppType = javaType;
-            break;
+            case "long":
+                cppType = "int64_t";
+                break;
+            case "int":
+                cppType = "int32_t";
+                break;
+            case "short":
+                cppType = "int16_t";
+                break;
+            case "byte":
+                cppType = "int8_t";
+                break;
+            case "boolean":
+                cppType = "bool";
+                break;
+            default:
+                cppType = javaType;
+                break;
         }
         return cppType;
     }
@@ -65,33 +76,33 @@ public class PrimitiveArray {
     public String convertToBigType(String javaType) {
         String bigType;
         switch (javaType) {
-        case "double":
-            bigType = "D";
-            break;
-        case "float":
-            bigType = "F";
-            break;
-        case "long":
-            bigType = "J";
-            break;
-        case "int":
-            bigType = "I";
-            break;
-        case "short":
-            bigType = "S";
-            break;
-        case "char":
-            bigType = "C";
-            break;
-        case "byte":
-            bigType = "B";
-            break;
-        case "boolean":
-            bigType = "Z";
-            break;
-        default:
-            bigType = "";
-            break;
+            case "double":
+                bigType = "D";
+                break;
+            case "float":
+                bigType = "F";
+                break;
+            case "long":
+                bigType = "J";
+                break;
+            case "int":
+                bigType = "I";
+                break;
+            case "short":
+                bigType = "S";
+                break;
+            case "char":
+                bigType = "C";
+                break;
+            case "byte":
+                bigType = "B";
+                break;
+            case "boolean":
+                bigType = "Z";
+                break;
+            default:
+                bigType = "";
+                break;
         }
         return bigType;
     }
