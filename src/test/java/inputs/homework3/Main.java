@@ -1,4 +1,4 @@
-package inputs.javalang;
+package inputs.homework3;
 
 class A {
     private char x;

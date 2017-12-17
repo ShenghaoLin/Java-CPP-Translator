@@ -630,6 +630,7 @@ public class Phase5 extends Visitor {
         mainPrinter.pln("using namespace " +
         packageInfo.substring(0, packageInfo.length() - 1).replace(".", "::") + ";").pln().flush();
         String info = packageInfo.substring(0, packageInfo.length() - 1).replace(".", "::");
+        String info2 = info.split("::")[1];
         mainPrinter.pln("int main(int argc, char* argv[]) {");
         mainPrinter.pln("  // Implement generic interface between C++'s main function and Java's main function");
         mainPrinter.pln("  __rt::Array<String> args = new __rt::__Array<String>(argc - 1);");
@@ -638,7 +639,7 @@ public class Phase5 extends Visitor {
         mainPrinter.pln("    (*args)[i] = __rt::literal(argv[i]);");
         mainPrinter.pln("   }");
         mainPrinter.pln();
-        mainPrinter.pln("  " + info + "::__Test" + info.substring(12,15) + "::main(args);");
+        mainPrinter.pln("  " + info + "::__" + info2.substring(0,1).toUpperCase() + info2.substring(1,info2.length()) + "::main(args);");
         mainPrinter.pln();
         mainPrinter.pln("  return 0;");
         mainPrinter.pln("}");
