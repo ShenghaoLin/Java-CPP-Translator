@@ -67,6 +67,7 @@ public class Phase2 {
         private ObjectRepList objectRepresentations = new ObjectRepList();
         private boolean mainFlag = false;
         private boolean constructorFlag = true;
+        private boolean methodFlag = false;
 
         /**
          * Visits Package Declaration and assigns packagename
@@ -154,6 +155,10 @@ public class Phase2 {
          * @param node node being visited
          */
         public void visitMethodDeclaration(GNode node) {
+
+            // set method flag
+            methodFlag = true;
+
             // modifiers
             String accessModifier = "";
             boolean isStatic = false;
@@ -213,6 +218,9 @@ public class Phase2 {
             }
 
             visit(node);
+
+            // set method flag off now
+            methodFlag = false;
         }
 
         /**
@@ -242,9 +250,9 @@ public class Phase2 {
             String initial = "";
             Node initial_node = node.getNode(2).getNode(0).getNode(2);
 
-            // add
+            // add if not declared in body of main or body of method (which can be a constructor or another method)
             Field field = new Field(accessModifier, isStatic, fieldType, fieldName, initial);
-            if (!mainFlag) objectRepresentations.getCurrent().classRep.fields.add(field);
+            if (!mainFlag && !methodFlag) objectRepresentations.getCurrent().classRep.fields.add(field);
 
             visit(node);
         }
