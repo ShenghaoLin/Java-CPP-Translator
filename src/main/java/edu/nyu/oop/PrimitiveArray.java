@@ -26,7 +26,7 @@ public class PrimitiveArray {
         temp.append("\t\t\t\t\t\t\t(java::lang::Class) __rt::null(),\n");
         temp.append("\t\t\t\t\t\t\ttrue);\n");
         temp.append("  static java::lang::Class k =\n");
-        temp.append("\tnew java::lang::__Class(literal(\"[");
+        temp.append("\tnew java::lang::__Class(__rt::literal(\"[");
         temp.append(convertToBigType(javaType));
         temp.append("\"),\n");
         temp.append("\t\t\t\t\t\t\tjava::lang::__Object::__class(),\n");

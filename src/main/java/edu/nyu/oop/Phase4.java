@@ -598,7 +598,6 @@ public class Phase4 {
                 String typeName = n.getNode(0).get(0).toString();
                 if (isPrimitiveType(typeName)) {
                     typeName = toCppType(typeName);
-                    primitiveArrays.add(new PrimitiveArray(typeName));
                 }
 
                 // get the concreteDimensions

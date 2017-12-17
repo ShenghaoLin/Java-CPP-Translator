@@ -77,7 +77,7 @@ public class Phase5 extends Visitor {
         dispatch(ast);
         printer.flush();
         if (null != ast.getProperty("RuntimeInfo")) {
-            printer.pln("namespace rt {");
+            printer.pln("namespace __rt {");
             printer.pln(ast.getProperty("RuntimeInfo").toString());
             printer.pln("}").flush();
         }
