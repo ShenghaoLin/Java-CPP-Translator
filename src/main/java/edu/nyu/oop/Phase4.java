@@ -160,6 +160,7 @@ public class Phase4 {
             info += p.dump();
         }
         if (!info.equals("")) {
+            System.out.println(info);
             n.setProperty("RuntimeInfo", info);
         }
         //bigArrays.addAll(visitor.bigArrays);
