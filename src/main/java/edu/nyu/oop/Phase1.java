@@ -342,7 +342,13 @@ public class Phase1 {
                         if(isPrivateType(method)) methodDispatchType = "private";
                         if(TypeUtil.isStaticType(method)) methodDispatchType = "static";
                         n.setProperty("methodDispatchType", methodDispatchType);
+<<<<<<< HEAD
                         n.setProperty("methodReturnType", method.getResult());
+=======
+                        //Set method return type
+                        String methodReturnType = method.getResult().toString();
+                        n.setProperty("methodReturnType", methodReturnType);
+>>>>>>> cc31dafe52c1cf6c05e7e137eadfcd9870e396b4
                     }
                 }
             }
@@ -419,6 +425,7 @@ public class Phase1 {
         }
     }
 
+<<<<<<< HEAD
     public static class Initializer {
         String name = "";
         boolean isStatic = false;
@@ -497,3 +504,6 @@ public class Phase1 {
     }
 
 }
+=======
+}
+>>>>>>> cc31dafe52c1cf6c05e7e137eadfcd9870e396b4
