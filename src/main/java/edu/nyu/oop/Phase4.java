@@ -152,9 +152,12 @@ public class Phase4 {
 
     /* process a single node */
     public Node runNode(Node n, SymbolTable table) {
+
+        //run the visitor
         Phase4Visitor visitor = new Phase4Visitor(table, runtime, formerInits, childrenToParents, inits);
         visitor.traverse(n);
 
+        //add primitive array info
         String info = "";
         for (PrimitiveArray p : visitor.primitiveArrays) {
             info += p.dump();
@@ -163,8 +166,7 @@ public class Phase4 {
             System.out.println(info);
             n.setProperty("RuntimeInfo", info);
         }
-        //bigArrays.addAll(visitor.bigArrays);
-        //primitiveArrays.addAll(visitor.primitiveArrays);
+
         return n;
     }
 
@@ -401,6 +403,7 @@ public class Phase4 {
                         staticInit += init.typeName + " __" + currentClass + "::" + init.name + " = " + init.value + ";\n";
                 }
             }
+
             // if there are static initialzations add them in
             if (!staticInit.equals("")) n.setProperty("staticInit", staticInit);
 
@@ -433,12 +436,12 @@ public class Phase4 {
 
                 isMain = true;
 
+                //cpp style main
                 n.set(2, "int32_t");
-                //cannot handling array now
-                //n.set(4, GNode.create("Arguments", GNode.create("VoidType")));
                 n.set(3, "__" + currentClass + "::" + n.get(3).toString());
                 visit(n);
 
+                //add return s
                 GNode blockContent = (GNode) NodeUtil.dfs(n, "Block");
                 GNode newBlock = GNode.create("Block");
                 for (Object o: blockContent) newBlock.add(o);
@@ -610,9 +613,13 @@ public class Phase4 {
                 // supports nested definition via expansion of typeDef
                 for (int i = concreteDimensions.size() - 1; i > -1; i--) {
                     if (i == concreteDimensions.size() - 1) typeDef = typeName;
+
                     else
                     { 
+                        //Type name recursive update
                         typeDef = "__rt::Array<" + typeDef + ">";
+
+                        //Initialization of nested arrays(using for loop to initialize the inner arrays)
                         String forDef = "for (int32_t i" + i + " = 0; i" + i + " < " + 
                             concreteDimensions.getNode(i).getString(0) + "; i" + i + "++) {\n";
                         String initStatement = "tmp";
@@ -620,6 +627,7 @@ public class Phase4 {
                         for (int j = 0; j < i + 1; j ++) {
                             initStatement += " -> __data[i" + j + "]";
                         } 
+
                         initStatement += " = __rt::__Array<" + typeDef + ">::__init(new __rt::__Array<" 
                             + typeDef + ">(__rt::checkNegativeIndex(" + concreteDimensions.getNode(i + 1).getString(0) + ")));\n";
                         innerDef = forDef + initStatement + innerDef + "}\n";
@@ -629,12 +637,12 @@ public class Phase4 {
                 n.setProperty("InitSubArray", innerDef);
                 n.setProperty("ArrayType", "__rt::Array<" + typeDef + ">");
 
-                // declaration = "__rt::__Array<" + typeName + ">::__init(new __rt::__Array<" + typeName + ">(__rt::checkNegativeIndex(" + length + ")))"; // temporarily here
+                //c++ array initialization
                 declaration = "__rt::__Array<" + typeDef + ">::__init(new __rt::__Array<" + typeDef + ">(__rt::checkNegativeIndex(" + length + ")))";
             
             }
 
-            // create an ArrayExpression node
+            // create an ArrayExpression node using declaration
             n.set(3, GNode.create("ArrayExpression", declaration));
 
             n.set(0, null);
@@ -711,6 +719,7 @@ public class Phase4 {
          * Visitor for Subscript Expression
          *
          * Implies there is some array processing happening
+         * If it is not check by checkStore,
          * Do arrayAccessCheck before accessing happens
          *
          */
@@ -792,7 +801,10 @@ public class Phase4 {
          *
          * This method visits an Expression Statement and checks if a store on an array is being made
          * If this is the case we need to check whether an array assignment is taking place and do
-         * the necessary checks
+         * the necessary checks.
+         *
+         * For primitive arrays, we only do checkIndex and checkNotNull, as checkArrayStore is not
+         * applicable to primitive types.
          *
          */
         public void visitExpressionStatement(GNode n) {
@@ -809,7 +821,7 @@ public class Phase4 {
                     Node setTo = expressionNode.getNode(2);
                     boolean isPrimitive = true;
 
-                    //find if the setTo is of primitive types
+                    //find if the setTo is of class types
                     if (setTo.hasName("PrimaryIdentifier")) {
                         Type toType = ((VariableT) table.current().lookup(setTo.get(0).toString())).getType();
                         if (toType.tag().equals("CLASS")) {
@@ -934,6 +946,7 @@ public class Phase4 {
                         constructorFlag = true;
                         n.set(2, "__" + currentClass + "::__init");
 
+                        // when this() is called, the initialization for data fields have been done
                         // String initStatements= "";
                         // ArrayList<Phase1.Initializer> initializers = completedInits.get(currentClass);
                         // for (Phase1.Initializer init: initializers) {

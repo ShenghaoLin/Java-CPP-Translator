@@ -47,6 +47,7 @@ public class Phase5 extends Visitor {
     public Phase5(String name) {
 
         Writer w = null;
+
         try {
             FileOutputStream fos = new FileOutputStream(outputLocation + name);
             OutputStreamWriter ows = new OutputStreamWriter(fos, "utf-8");
@@ -74,8 +75,11 @@ public class Phase5 extends Visitor {
 
     /* The actual print method */
     public void print(GNode ast) {
+
         dispatch(ast);
         printer.flush();
+
+        //Add run-time array definition if needed 
         if (null != ast.getProperty("RuntimeInfo")) {
             printer.pln("namespace __rt {");
             printer.pln(ast.getProperty("RuntimeInfo").toString());
@@ -159,18 +163,24 @@ public class Phase5 extends Visitor {
         }
     }
 
+    /* Visitor for the instanceof statment
+     * has the stype "a->__vptr->getClass(a)->__vptr->isInstance(a->__vptr->getClass(a), __rt::java_cast<Object>(__B::__init(new __B()));"
+     */
     public void visitInstanceOfExpression(GNode n) {
         dispatch((Node) n.get(0));
-        printer.p("-> __vptr -> getClass(").flush();
+        printer.p("-> __vptr -> getClass(");
         dispatch((Node) n.get(0));
         printer.p(')');
-        printer.p("-> __vptr -> isInstance( ").flush();
+        printer.p("-> __vptr -> isInstance( ");
         dispatch((Node) n.get(0));
-        printer.p("-> __vptr -> getClass(").flush();
+        printer.p("-> __vptr -> getClass(");
         dispatch((Node) n.get(0));
         printer.p(")").flush();
-        printer.p(", (Object) new __").flush();
+        printer.p(", __rt::java_cast<Object>(__");
         dispatch((Node) n.get(1));
+        printer.p("::__init(new __");
+        dispatch((Node) n.get(1));
+        printer.p("()))");
         printer.p("())").flush();
 
     }
@@ -246,6 +256,7 @@ public class Phase5 extends Visitor {
                 printer.p((String) child).flush();
             }
         } catch (Exception e) {}
+
         printer.p(")").flush();
     }
 
@@ -256,6 +267,10 @@ public class Phase5 extends Visitor {
         visitArguments(n);
     }
 
+    /* Visitor for ClassBody 
+     * print everything other than FieldDeclaration
+     * as class fields are defined in output.h
+     */
     public void visitClassBody(GNode n) {
         for (Object o : n) {
             if (o instanceof GNode) {
@@ -271,7 +286,7 @@ public class Phase5 extends Visitor {
     public void visitExtension(GNode n) {}
 
     /* Visitor for CastExpression
-     * Add "()" to the cast type
+     * Add "()" to the argument of __rt::java_cast<>
      */
     public void visitCastExpression(GNode n) {
 
@@ -289,7 +304,6 @@ public class Phase5 extends Visitor {
 
     /* Visitor for CallExpression
      * For cout, arguments should be placed after "<<"" instead of inside "()"
-     * toString() should be tranformed to to toString() -> data
      */
     public void visitCallExpression(GNode n) {
 
@@ -307,13 +321,6 @@ public class Phase5 extends Visitor {
                 if (o instanceof Node) {
                     GNode gnode = (GNode) o;
                     dispatch((Node) o);
-
-                    //toString handling
-                    // if (gnode.hasName("CallExpression")) {
-                    //     if (gnode.get(2).toString().endsWith("toString")) {
-                    //         printer.p("-> data ").flush();
-                    //     }
-                    // }
                 }
 
                 if (o instanceof String) printer.p(((String) o) + " ").flush();
@@ -323,15 +330,14 @@ public class Phase5 extends Visitor {
         //other calling will not be specialized.
         else {
             visit(n);
-
         }
 
         inCout = false;
-
-
-
     }
 
+    /* Visitor for CallExpressionBlock defined in phase4
+     * add ({}) to the content
+     */
     public void visitCallExpressionBlock(GNode n) {
 
         printer.p("({");
@@ -339,22 +345,35 @@ public class Phase5 extends Visitor {
         printer.p("})").flush();
     }
 
+    /* Visitor for Check defined in phase4
+     * print the check, and add () to its arguments 
+     */
     public void visitCheck(GNode n) {
+
         printer.p(n.getString(0));
+        
         printer.p("(");
+
         dispatch(n.getNode(1));
+        
+        //add comma
         for (int i = 2; i < n.size(); i++) {
             printer.p(", ");
             dispatch(n.getNode(i));
         }
+
         printer.pln(");").flush();
 
     }
 
     /* Visitor for ExpressionStatement
      * Add ";" at the end of statement
+     * When it has a CallExpression with property of "initStatement"
+     * add initializations after the current expression statement
      */
     public void visitExpressionStatement(GNode n) {
+        
+        //print current statement
         visit(n);
         printer.pln(";").flush();
 
@@ -364,6 +383,7 @@ public class Phase5 extends Visitor {
 
             GNode nn = (GNode) call;
 
+            //print out initializations 
             Object o = nn.getProperty("initStatements");
 
             if (o != null) {
@@ -421,17 +441,26 @@ public class Phase5 extends Visitor {
 
     }
 
+    /* Visitor for WhileStatement
+     * print while
+     */
     public void visitWhileStatement(GNode n) {
         printer.p("while ").flush();
         visit(n);
     }
 
+    /* Visitor for RelationalExpression
+     * print () to contain its content
+     */
     public void visitRelationalExpression(GNode n) {
         printer.p("(").flush();
         visit(n);
         printer.p(")").flush();
     }
 
+    /* Visitor for StringLiteral
+     * print it as __rt::literal("")
+     */
     public void visitStringLiteral(GNode n) {
 
         printer.p("__rt::literal(").flush();
@@ -440,6 +469,9 @@ public class Phase5 extends Visitor {
 
     }
 
+    /* Visitor for ForStatement
+     * print for and its following conditions in c++ style
+     */
     public void visitForStatement(GNode n) {
         printer.p("for (").flush();
         dispatch(n.getNode(0).getNode(1));
@@ -452,8 +484,14 @@ public class Phase5 extends Visitor {
         dispatch(n.getNode(1));
     }
 
+    /* Visitor for SubscriptExpression
+     * print array access in the format of a->__data[i]
+     * if an AccessCheck is needed, add it before the access
+     * and use ({}) to contain and return this access
+     */
     public void visitSubscriptExpression(GNode n) {
 
+        //Access check if needed
         if (null != n.getProperty("AccessCheck")) {
             printer.p("({");
             printer.p(n.getProperty("AccessCheck").toString());
@@ -478,6 +516,7 @@ public class Phase5 extends Visitor {
             printer.p(");\n");
         }
 
+        //print array name
         if (n.get(0) instanceof Node) {
             dispatch(n.getNode(0));
         }
@@ -485,6 +524,7 @@ public class Phase5 extends Visitor {
             printer.p(((String) n.get(0)) + " ");
         }
 
+        //print index
         printer.p("-> __data[").flush();
 
         if (n.get(1) instanceof Node) {
@@ -496,6 +536,7 @@ public class Phase5 extends Visitor {
 
         printer.p("]").flush();
 
+        //access check if needed
         if (null != n.getProperty("AccessCheck")) {
             printer.p(";})");
 
@@ -503,6 +544,9 @@ public class Phase5 extends Visitor {
 
     }
 
+    /* Visitor for SelectionExpression
+     * If there is a check for the selection, add a ({}) block to contain
+     */
     public void visitSelectionExpression(GNode n) {
         if (null != n.getProperty("Block")) {
             printer.p("({");
@@ -520,8 +564,13 @@ public class Phase5 extends Visitor {
         }
     }
 
+    /* Visitor for NewArrayExpression
+     * Print a statement to create a new array.
+     * A initialization will be added to nested arrays
+     */
     public void visitNewArrayExpression(GNode n) {
 
+        //nested array
         if (!n.getProperty("InitSubArray").toString().equals("")) {
 
             printer.p("({" + n.getProperty("ArrayType") + " tmp = " );
@@ -529,15 +578,19 @@ public class Phase5 extends Visitor {
             printer.p(";\n" + n.getProperty("InitSubArray"));
             printer.pln("tmp;})").flush();
         }
+
+        //1D array 
         else {
             visit(n);
         }
     }
 
+    /* Vistor for NullLiteral
+     * print __rt::null()
+     */
     public void visitNullLiteral(GNode n) {
         printer.p("__rt::null() ").flush();
     }
-
 
     //Prints main implementation seperately to main.cpp
     public void printmain(GNode n){
@@ -550,18 +603,18 @@ public class Phase5 extends Visitor {
         mainPrinter.pln("using namespace " +
         packageInfo.substring(0, packageInfo.length() - 1).replace(".", "::") + ";").pln().flush();
         String info = packageInfo.substring(0, packageInfo.length() - 1).replace(".", "::");
-        mainPrinter.pln("int main(int argc, char* argv[]) {\n" +
-                "  // Implement generic interface between C++'s main function and Java's main function\n" +
-                "  __rt::Array<String> args = new __rt::__Array<String>(argc - 1);\n" +
-                "\n" +
-                "  for (int32_t i = 1; i < argc; i++) {\n" +
-                "    (*args)[i] = __rt::literal(argv[i]);\n" +
-                "  }\n" +
-                "  \n" +
-                "  " + info + "::__Test" + info.substring(12,15) + "::main(args);\n" +
-                "  \n" +
-                "  return 0;\n" +
-                "}");
+        mainPrinter.pln("int main(int argc, char* argv[]) {");
+        mainPrinter.pln("  // Implement generic interface between C++'s main function and Java's main function");
+        mainPrinter.pln("  __rt::Array<String> args = new __rt::__Array<String>(argc - 1);");
+        mainPrinter.pln();
+        mainPrinter.pln("  for (int32_t i = 1; i < argc; i++) {");
+        mainPrinter.pln("    (*args)[i] = __rt::literal(argv[i]);");
+        mainPrinter.pln("   }");
+        mainPrinter.pln();
+        mainPrinter.pln("  " + info + "::__Test" + info.substring(12,15) + "::main(args);");
+        mainPrinter.pln();
+        mainPrinter.pln("  return 0;");
+        mainPrinter.pln("}");
         mainPrinter.flush();
     }
 
