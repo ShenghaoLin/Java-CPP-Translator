@@ -76,9 +76,11 @@ public class Phase5 extends Visitor {
     public void print(GNode ast) {
         dispatch(ast);
         printer.flush();
-        // if (null != ast.getProperty("RuntimeInfo")) {
-        //     printer.p(ast.getProperty("RuntimeInfo").toString()).flush();
-        // }
+        if (null != ast.getProperty("RuntimeInfo")) {
+            printer.pln("namespace rt {");
+            printer.pln(ast.getProperty("RuntimeInfo").toString());
+            printer.pln("}").flush();
+        }
     }
 
     /* The claim placed in the beginning of cpp files */
