@@ -187,7 +187,8 @@ public class Phase1 {
                 String typeName = n.getNode(1).getNode(0).getString(0);
                 String value = "";
                 if(n.getNode(2).getNode(0).getNode(2) != null) {
-                    if(!typeName.equals("String")) n.getNode(2).getNode(0).getNode(2).get(0).toString();
+                    System.out.println(n.getNode(2).getNode(0).getNode(2));
+                    if(!typeName.equals("String")) value = n.getNode(2).getNode(0).getNode(2).get(0).toString();
                         //Special case: string literals
                     else value = "__rt::literal(" + n.getNode(2).getNode(0).getNode(2).get(0).toString() + ")";
                 }

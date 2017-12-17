@@ -396,7 +396,7 @@ public class Phase4 {
             initializers = completedInits.get(currentClass);
             for (Phase1.Initializer init : initializers) {
                 if (init.isStatic) {
-                    if (init.value.equals(""))
+                    if (init.value.equals("")) 
                         staticInit += init.typeName + " __" + currentClass + "::" + init.name + " = " + init.initial + ";\n";
                     else
                         staticInit += init.typeName + " __" + currentClass + "::" + init.name + " = " + init.value + ";\n";
