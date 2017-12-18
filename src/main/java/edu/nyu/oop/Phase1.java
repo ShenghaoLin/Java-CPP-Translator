@@ -210,6 +210,7 @@ public class Phase1 {
             SymbolTableUtil.enterScope(table, n);
             table.mark(n);
 
+
             //Create new initializer list for the class
             initializers.put(JavaEntities.currentType(table).getName(), new ArrayList<Initializer>());
 
@@ -228,6 +229,7 @@ public class Phase1 {
         public void visitMethodDeclaration(GNode n) {
             SymbolTableUtil.enterScope(table, n);
             table.mark(n);
+
 
             String methodName = n.getString(3);
             //If the method isn't main, overriding one of Object's methods, or a constructor, mangle its name
@@ -290,7 +292,7 @@ public class Phase1 {
             if (n.getProperty("mangledName") == null) {
                 Type typeDot = null;
                 List<Type> parameters;
-                MethodT method;
+                MethodT method = null;
                 //Explicit this access
                 if ((receiver == null) &&
                         (!"super".equals(methodName)) &&
@@ -323,7 +325,7 @@ public class Phase1 {
                         else if (receiver.getNode(0).getName().equals("CastExpression")) receiver = receiver.getNode(0).getNode(1);
                         typeDot = returnTypeFromCallExpression(receiver);
                     }
-                        //CastExpression (casted calls, i.e. "((B)a).m()")
+                    //CastExpression (casted calls, i.e. "((B)a).m()")
                     else if (receiver.getName().equals("CastExpression"))
                         typeDot = JavaEntities.simpleNameToType(table, classpath(), table.current().getQualifiedName(), receiver.getNode(0).getNode(0).get(0).toString());
                         //ThisExpression (this calls, i.e. "this.m()")
@@ -336,8 +338,26 @@ public class Phase1 {
                     //Once we have the type to search for the method, we get the parameters
                     // (always in the same place in the CallExpression) and put the collected info into typeDotMethod to search
                     parameters = JavaEntities.typeList((List) dispatch(n.getNode(3)));
-                    method = JavaEntities.typeDotMethod(table, classpath(), typeDot, true, methodName, parameters);
-                    if (method != null) {
+                    ArrayList<Type> newParameters = new ArrayList<Type>();
+                    for(Type parameter : parameters) {
+                        newParameters.add(JavaEntities.resolveIfAlias(table, classpath(), table.current().getQualifiedName(), parameter));
+                    }
+
+                    //MANUAL METHOD LOOKUP
+                    List<MethodT> classMethods = JavaEntities.methodsOwnAndInherited(table, classpath(), typeDot);
+                    for(MethodT classMethod : classMethods) {
+                        if (classMethod.getName().equals(methodName)) {
+                            if(classMethod.getParameters().equals(parameters)){
+                                method = classMethod;
+                            }
+                        }
+                    }
+
+                    //IF NO PERFECT MATCH FOUND, TRY TYPEDOTMETHOD
+                    if(method == null) method = JavaEntities.typeDotMethod(table, classpath(), typeDot, true, methodName, parameters);
+
+                    if(method != null) {
+
                         //If a method is found, we find the correct mangled name using methodScopeToMangledName and add it,
                         // as well as some other information to be used later, to the CallExpression node as properties
                         n.setProperty("mangledName", methodScopeToMangledName.get(method.getScope()));
