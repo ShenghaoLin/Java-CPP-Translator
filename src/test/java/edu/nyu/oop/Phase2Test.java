@@ -26,10 +26,12 @@ public class Phase2Test {
     private static Node node;// = null;
     private static List<GNode> ast;
 
+    private static String testFile = "050";
+
     @BeforeClass
     public static void beforeClass() {
         logger.debug("Executing Phase2Test");
-        node = XtcTestUtils.loadTestFile("src/test/java/inputs/test050/Test050.java");
+        node = XtcTestUtils.loadTestFile("src/test/java/inputs/test"+testFile+"/Test"+testFile+".java");
         ast = Phase1.parse(node);
     }
 
@@ -37,52 +39,46 @@ public class Phase2Test {
     public void testInitializeRepList() { //throws xtc.tree.VisitingException{
         Phase2.ObjectRepList objList = Phase2.initializeRepList();
         assertTrue("OBJECT", objList.get(0).name.equals("Object"));
-        assertTrue("OBJECT", objList.get(1).name.equals("String"));
-        assertTrue("OBJECT", objList.get(2).name.equals("Class"));
-
+        assertTrue("STRING", objList.get(1).name.equals("String"));
+        assertTrue("CLASS", objList.get(2).name.equals("Class"));
     }
 
     @Test
     public void testGetObjectRepresentation() { //throws xtc.tree.VisitingException{
         Phase2.Phase2Visitor visitor = new Phase2.Phase2Visitor();
         visitor.traverse(node);
-
         Phase2.ObjectRepList unfilled = visitor.getObjectRepresentations();
-//        for(ObjectRep o: unfilled){
-//            System.out.println("Constructors: ");
-//            for(Constructor c: o.classRep.constructors){
-//                System.out.println(c.constructor_name +" "+ c.access_modifier);
-//            }
-//
-//            System.out.println("\nFields: ");
-//            for(Field f: o.classRep.fields){
-//                System.out.println(f.field_type +" "+ f.field_name);
-//            }
-//
-//            System.out.println("\nMethods: ");
-//            for(Method m: o.classRep.methods){
-//                System.out.println(m.return_type +" "+ m.method_name);
-//            }
-//            System.out.println("\n\n\nNew ObjectRepList");
-//        }
 
-        System.out.println(unfilled.size());
-        assertEquals("Size", 4, unfilled.size());
+        for(ObjectRep i: unfilled){
+            System.out.println(i.name);
+        }
 
-
-        assertTrue("A", unfilled.get(0).name.equals("A"));
-        assertTrue("B", unfilled.get(1).name.equals("B"));
-        assertTrue("C", unfilled.get(2).name.equals("C"));
-        assertTrue("Test050", unfilled.get(3).name.equals("Test050"));
-
-//        assertTrue("OBJECT", objList1.get(1).name.equals("String"));
-//        assertTrue("OBJECT", objList1.get(2).name.equals("Class"));
-
+        if(unfilled.size() == 1){
+            assertTrue("Test" + testFile, unfilled.get(0).name.equals("Test" + testFile));
+        }else{
+            assertTrue("A", unfilled.get(0).name.equals("A"));
+            if (unfilled.size() < 3) {
+                assertTrue("Test" + testFile, unfilled.get(1).name.equals("Test" + testFile));
+            } else {
+                assertTrue("B", unfilled.get(1).name.equals("B") || unfilled.get(1).name.equals("B1"));
+                if (unfilled.size() < 4) {
+                    assertTrue("Test" + testFile, unfilled.get(2).name.equals("Test" + testFile));
+                } else {
+                    assertTrue("C", unfilled.get(2).name.equals("C") || unfilled.get(2).name.equals("B2"));
+                    if (unfilled.size() < 5) {
+                        assertTrue("Test" + testFile, unfilled.get(3).name.equals("Test" + testFile));
+                    } else {
+                        assertTrue("D", unfilled.get(3).name.equals("D") || unfilled.get(3).name.equals("C"));
+                        assertTrue("Test" + testFile, unfilled.get(4).name.equals("Test" + testFile));
+                    }
+                }
+            }
+        }
     }
 
 
     @Test
-    public void testFill() { //throws xtc.tree.VisitingException{
+    public void testFillVTable() { //throws xtc.tree.VisitingException{
         Phase2.Phase2Visitor visitor = new Phase2.Phase2Visitor();
         visitor.traverse(node);
         Phase2.ObjectRepList unfilled = visitor.getObjectRepresentations();
@@ -90,62 +86,128 @@ public class Phase2Test {
 
         filled = Phase2.fill(filled, unfilled);
 
-        for(ObjectRep o: filled) {
-            System.out.println("\n\n\nNew ObjectRepList");
-            System.out.println("Constructors: ");
-            for(Constructor c: o.classRep.constructors) {
-                System.out.println(c.name +" "+ c.accessModifier);
-            }
+        List<Field> fields = filled.get(0).vtable.fields;
 
-            System.out.println("\nFields: ");
-            for(Field f: o.classRep.fields) {
-                System.out.println(f.fieldType +" "+ f.fieldName);
-            }
+        assertTrue("IS A Modifier",fields.get(0).accessModifier.equals("public"));
+        assertTrue("IS A fieldName",fields.get(0).fieldName.equals("__is_a"));
+        assertTrue("IS A fieldType",fields.get(0).fieldType.equals("Class"));
+        assertTrue("IS A inheritedFrom",fields.get(0).inheritedFrom.equals(""));
+        assertTrue("IS A Initial",fields.get(0).initial.equals(""));
 
-            System.out.println("\nMethods: ");
-            for(Method m: o.classRep.methods) {
-                System.out.println(m.returnType +" "+ m.name);
-            }
-        }
+        assertTrue("DELETE Modifier",fields.get(1).accessModifier.equals("public"));
+        assertTrue("DELETE fieldName",fields.get(1).fieldName.equals("*__delete"));
+        assertTrue("DELETE fieldType",fields.get(1).fieldType.equals("void"));
+        assertTrue("DELETE inheritedFrom",fields.get(1).inheritedFrom.equals(""));
+        assertTrue("DELETE Initial",fields.get(1).initial.equals("__Object*"));
+
+        assertTrue("HASHCODE Modifier",fields.get(2).accessModifier.equals("public"));
+        assertTrue("HASHCODE fieldName",fields.get(2).fieldName.equals("*hashCode"));
+        assertTrue("HASHCODE fieldType",fields.get(2).fieldType.equals("int32_t"));
+        assertTrue("HASHCODE inheritedFrom",fields.get(2).inheritedFrom.equals(""));
+        assertTrue("HASHCODE Initial",fields.get(2).initial.equals("Object"));
+
+        assertTrue("EQUALS Modifier",fields.get(3).accessModifier.equals("public"));
+        assertTrue("EQUALS fieldName",fields.get(3).fieldName.equals("*equals"));
+        assertTrue("EQUALS fieldType",fields.get(3).fieldType.equals("bool"));
+        assertTrue("EQUALS inheritedFrom",fields.get(3).inheritedFrom.equals(""));
+        assertTrue("EQUALS Initial",fields.get(3).initial.equals("Object, Object"));
+
+        assertTrue("GETCLASS Modifier",fields.get(4).accessModifier.equals("public"));
+        assertTrue("GETCLASS fieldName",fields.get(4).fieldName.equals("*getClass"));
+        assertTrue("GETCLASS fieldType",fields.get(4).fieldType.equals("Class"));
+        assertTrue("GETCLASS inheritedFrom",fields.get(4).inheritedFrom.equals(""));
+        assertTrue("GETCLASS Initial",fields.get(4).initial.equals("Object"));
+
+        assertTrue("TOSTRING Modifier",fields.get(5).accessModifier.equals("public"));
+        assertTrue("TOSTRING fieldName",fields.get(5).fieldName.equals("*toString"));
+        assertTrue("TOSTRING fieldType",fields.get(5).fieldType.equals("String"));
+        assertTrue("TOSTRING inheritedFrom",fields.get(5).inheritedFrom.equals(""));
+        assertTrue("TOSTRING Initial",fields.get(5).initial.equals("Object"));
 
 
-        assertTrue("A", unfilled.get(0).name.equals("A"));
-        assertTrue("B", unfilled.get(1).name.equals("B"));
-        assertTrue("C", unfilled.get(2).name.equals("C"));
-        assertTrue("Test050", unfilled.get(3).name.equals("Test050"));
+        List<VMethod> methods = filled.get(0).vtable.methods;
+
+        assertTrue("IS A VMethod Modifier", methods.get(0).accessModifier.equals("public"));
+        assertTrue("IS A VMethod Name", methods.get(0).name.equals("__is_a"));
+        assertTrue("IS A VMethod Initial",methods.get(0).initial.equals("(__Object::__class())"));
+
+        assertTrue("DELETE VMethod Modifier", methods.get(1).accessModifier.equals("public"));
+        assertTrue("DELETE VMethod Name", methods.get(1).name.equals("__delete"));
+        assertTrue("DELETE VMethod Initial",methods.get(1).initial.equals("(&__rt::__delete<__Object>)"));
+
+        assertTrue("HASHCODE VMethod Modifier", methods.get(2).accessModifier.equals("public"));
+        assertTrue("HASHCODE VMethod Name", methods.get(2).name.equals("hashCode"));
+        assertTrue("HASHCODE VMethod Initial",methods.get(2).initial.equals("(&__Object::__hashCode)"));
+
+        assertTrue("EQUALS VMethod Modifier", methods.get(3).accessModifier.equals("public"));
+        assertTrue("EQUALS VMethod Name", methods.get(3).name.equals("equals"));
+        assertTrue("EQUALS VMethod Initial",methods.get(3).initial.equals("(&__Object::__equals)"));
+
+        assertTrue("GETCLASS VMethod Modifier", methods.get(4).accessModifier.equals("public"));
+        assertTrue("GETCLASS VMethod Name", methods.get(4).name.equals("getClass"));
+        assertTrue("GETCLASS VMethod Initial",methods.get(4).initial.equals("(&__Object::__getClass)"));
+
+        assertTrue("TOSTRING VMethod Modifier", methods.get(5).accessModifier.equals("public"));
+        assertTrue("TOSTRING VMethod Name", methods.get(5).name.equals("toString"));
+        assertTrue("TOSTRING VMethod Initial",methods.get(5).initial.equals("(&__Object::__toString)"));
+
+        List<Constructor> constructorObj = filled.get(0).classRep.constructors;
+        assertTrue("OBJECT Modifier", constructorObj.get(0).accessModifier.equals("public"));
+        assertTrue("OBJECT Name", constructorObj.get(0).name.equals("Object"));
+
+        List<Constructor> constructorInit = filled.get(1).classRep.constructors;
+        assertTrue("OBJECT Modifier", constructorInit.get(0).accessModifier.equals("public"));
+        assertTrue("OBJECT Name", constructorInit.get(0).name.equals("init"));
+        assertTrue("OBJECT INIT NAME", constructorInit.get(0).parameters.get(0).type.equals("String"));
+        assertTrue("OBJECT INIT NAME", constructorInit.get(0).parameters.get(0).name.equals("__this"));
 
     }
 
     @Test
-    public void testBuidCppAst() {
-
+    public void testBuildCppAst() {
         Phase2.Phase2Visitor visitor = new Phase2.Phase2Visitor();
         visitor.traverse(node);
 
-        //Build list of class representations (java.lang, inheritance)
         Phase2.ObjectRepList unfilled = visitor.getObjectRepresentations();
         Phase2.ObjectRepList filled = Phase2.getFilledObjectRepList(unfilled);
 
         GNode g = (GNode) Phase2.buildCppAst(visitor.getPackageName(), filled);
 
-        assertTrue("Root Node", g.get(0).toString().equals("PackageDeclaration(\"inputs\")"));
-        assertTrue("Forward Declarations", g.get(1).toString().equals("ForwardDeclarations(\"A\", \"B\", \"C\")"));
-        assertTrue("Class A", g.get(2).toString().equals("ClassDeclaration(\"A\", DataLayout(FieldDeclarations(Field(IsStatic(\"false\"), FieldType(\"__A_VT*\"), FieldName(\"__vptr\"), Initial(\"\")), Field(IsStatic(\"true\"), FieldType(\"__A_VT\"), FieldName(\"__vtable\"), Initial(\"\"))), ConstructorDeclarations(ConstructorDeclaration(ConstructorName(\"A\"), ConstructorParameters())), MethodDeclarations(MethodDeclaration(IsStatic(\"true\"), ReturnType(\"Class\"), MethodName(\"__class\"), MethodParameters()), MethodDeclaration(IsStatic(\"false\"), ReturnType(\"void\"), MethodName(\"m\"), MethodParameters(Parameter(ParameterType(\"A\"), ParameterName(\"\")))), MethodDeclaration(IsStatic(\"false\"), ReturnType(\"A\"), MethodName(\"m\"), MethodParameters(Parameter(ParameterType(\"A\"), ParameterName(\"\")), Parameter(ParameterType(\"A\"), ParameterName(\"a\"))))), VFieldDec()), VTableLayout(\"A\", VFields(VField(FieldType(\"Class\"), FieldName(\"__is_a\"), Initial(\"\")), VField(FieldType(\"int32_t\"), FieldName(\"*hashCode\"), Initial(\"A\")), VField(FieldType(\"bool\"), FieldName(\"*equals\"), Initial(\"A, Object\")), VField(FieldType(\"Class\"), FieldName(\"*getClass\"), Initial(\"A\")), VField(FieldType(\"String\"), FieldName(\"*toString\"), Initial(\"A\")), VField(FieldType(\"void\"), FieldName(\"*m\"), Initial(\"A,A\")), VField(FieldType(\"A\"), FieldName(\"*m\"), Initial(\"A,A,A\"))), VMethods(VMethod(MethodName(\"__is_a\"), Initial(\"(__A::__class())\")), VMethod(MethodName(\"hashCode\"), Initial(\"((int32_t(*)(A)) &__Object::hashCode)\")), VMethod(MethodName(\"equals\"), Initial(\"((bool(*)(A, Object)) &__Object::equals)\")), VMethod(MethodName(\"getClass\"), Initial(\"((Class(*)(A)) &__Object::getClass)\")), VMethod(MethodName(\"toString\"), Initial(\"((String(*)(A)) &__Object::toString)\")), VMethod(MethodName(\"m\"), Initial(\"(&__A::m)\")), VMethod(MethodName(\"m\"), Initial(\"(&__A::m)\")))))"));
-        assertTrue("Class B", g.get(3).toString().equals("ClassDeclaration(\"B\", DataLayout(FieldDeclarations(Field(IsStatic(\"false\"), FieldType(\"__B_VT*\"), FieldName(\"__vptr\"), Initial(\"\")), Field(IsStatic(\"true\"), FieldType(\"__B_VT\"), FieldName(\"__vtable\"), Initial(\"\"))), ConstructorDeclarations(ConstructorDeclaration(ConstructorName(\"B\"), ConstructorParameters())), MethodDeclarations(MethodDeclaration(IsStatic(\"true\"), ReturnType(\"Class\"), MethodName(\"__class\"), MethodParameters()), MethodDeclaration(IsStatic(\"false\"), ReturnType(\"void\"), MethodName(\"m\"), MethodParameters(Parameter(ParameterType(\"B\"), ParameterName(\"\")))), MethodDeclaration(IsStatic(\"false\"), ReturnType(\"C\"), MethodName(\"m\"), MethodParameters(Parameter(ParameterType(\"B\"), ParameterName(\"\")), Parameter(ParameterType(\"B\"), ParameterName(\"b\")))), MethodDeclaration(IsStatic(\"false\"), ReturnType(\"A\"), MethodName(\"m\"), MethodParameters(Parameter(ParameterType(\"B\"), ParameterName(\"\")), Parameter(ParameterType(\"A\"), ParameterName(\"a\"))))), VFieldDec()), VTableLayout(\"B\", VFields(VField(FieldType(\"Class\"), FieldName(\"__is_a\"), Initial(\"\")), VField(FieldType(\"int32_t\"), FieldName(\"*hashCode\"), Initial(\"B\")), VField(FieldType(\"bool\"), FieldName(\"*equals\"), Initial(\"B, Object\")), VField(FieldType(\"Class\"), FieldName(\"*getClass\"), Initial(\"B\")), VField(FieldType(\"String\"), FieldName(\"*toString\"), Initial(\"B\")), VField(FieldType(\"void\"), FieldName(\"*m\"), Initial(\"B,B\")), VField(FieldType(\"C\"), FieldName(\"*m\"), Initial(\"B,B,B\")), VField(FieldType(\"A\"), FieldName(\"*m\"), Initial(\"B,B,A\")), VField(FieldType(\"void\"), FieldName(\"*m\"), Initial(\"B,B\")), VField(FieldType(\"C\"), FieldName(\"*m\"), Initial(\"B,B,B\")), VField(FieldType(\"A\"), FieldName(\"*m\"), Initial(\"B,B,A\"))), VMethods(VMethod(MethodName(\"__is_a\"), Initial(\"(__B::__class())\")), VMethod(MethodName(\"hashCode\"), Initial(\"((int32_t(*)(B)) &__Object::hashCode)\")), VMethod(MethodName(\"equals\"), Initial(\"((bool(*)(B, Object)) &__Object::equals)\")), VMethod(MethodName(\"getClass\"), Initial(\"((Class(*)(B)) &__Object::getClass)\")), VMethod(MethodName(\"toString\"), Initial(\"((String(*)(B)) &__Object::toString)\")), VMethod(MethodName(\"m\"), Initial(\"(&__B::m)\")), VMethod(MethodName(\"m\"), Initial(\"(&__B::m)\")), VMethod(MethodName(\"m\"), Initial(\"(&__B::m)\")), VMethod(MethodName(\"m\"), Initial(\"(&__B::m)\")), VMethod(MethodName(\"m\"), Initial(\"(&__B::m)\")), VMethod(MethodName(\"m\"), Initial(\"(&__B::m)\")))))"));
-        assertTrue("Class C", g.get(4).toString().equals("ClassDeclaration(\"C\", DataLayout(FieldDeclarations(Field(IsStatic(\"false\"), FieldType(\"__C_VT*\"), FieldName(\"__vptr\"), Initial(\"\")), Field(IsStatic(\"true\"), FieldType(\"__C_VT\"), FieldName(\"__vtable\"), Initial(\"\"))), ConstructorDeclarations(ConstructorDeclaration(ConstructorName(\"C\"), ConstructorParameters())), MethodDeclarations(MethodDeclaration(IsStatic(\"true\"), ReturnType(\"Class\"), MethodName(\"__class\"), MethodParameters()), MethodDeclaration(IsStatic(\"false\"), ReturnType(\"void\"), MethodName(\"m\"), MethodParameters(Parameter(ParameterType(\"C\"), ParameterName(\"\"))))), VFieldDec()), VTableLayout(\"C\", VFields(VField(FieldType(\"Class\"), FieldName(\"__is_a\"), Initial(\"\")), VField(FieldType(\"int32_t\"), FieldName(\"*hashCode\"), Initial(\"C\")), VField(FieldType(\"bool\"), FieldName(\"*equals\"), Initial(\"C, Object\")), VField(FieldType(\"Class\"), FieldName(\"*getClass\"), Initial(\"C\")), VField(FieldType(\"String\"), FieldName(\"*toString\"), Initial(\"C\")), VField(FieldType(\"void\"), FieldName(\"*m\"), Initial(\"C,C\")), VField(FieldType(\"void\"), FieldName(\"*m\"), Initial(\"C,C\"))), VMethods(VMethod(MethodName(\"__is_a\"), Initial(\"(__C::__class())\")), VMethod(MethodName(\"hashCode\"), Initial(\"((int32_t(*)(C)) &__Object::hashCode)\")), VMethod(MethodName(\"equals\"), Initial(\"((bool(*)(C, Object)) &__Object::equals)\")), VMethod(MethodName(\"getClass\"), Initial(\"((Class(*)(C)) &__Object::getClass)\")), VMethod(MethodName(\"toString\"), Initial(\"((String(*)(C)) &__Object::toString)\")), VMethod(MethodName(\"m\"), Initial(\"(&__C::m)\")), VMethod(MethodName(\"m\"), Initial(\"(&__C::m)\")))))"));
+        assertTrue("Root Node", g.get(0).toString().equals("PackageDeclaration(\"namespace inputs { \\nnamespace test"+testFile+" { \\n\")"));
+        assertTrue("Forward Declarations", g.get(1).toString().substring(0, 20).equals("ForwardDeclarations("));//\"__A\", \"__B\", \"__C\", \"__Test050\")"));
+
+        //System.out.println(g.get(3).toString().substring(0, 23));
+
+        if(g.size() < 4){
+            assertTrue("CLASSDECLARATION TEST"+testFile, g.get(2).toString().substring(0,28).equals("ClassDeclaration(\"__Test"+testFile+"\""));
+        } else {
+            assertTrue("Class A", g.get(2).toString().substring(0, 22).equals("ClassDeclaration(\"__A\""));
+            if(g.size() < 5){
+                assertTrue("CLASS DECLARATION TEST"+testFile, g.get(3).toString().substring(0,28).equals("ClassDeclaration(\"__Test"+testFile+"\""));
+            } else {
+                assertTrue("Class B", g.get(3).toString().substring(0, 22).equals("ClassDeclaration(\"__B\"") || g.get(3).toString().substring(0, 23).equals("ClassDeclaration(\"__B1\""));
+                if(g.size() < 6){
+                    assertTrue("CLASS DECLARATION TEST"+testFile, g.get(4).toString().substring(0,28).equals("ClassDeclaration(\"__Test"+testFile+"\""));
+                }else {
+                    assertTrue("Class C", g.get(4).toString().substring(0, 22).equals("ClassDeclaration(\"__C\"") || g.get(4).toString().substring(0, 23).equals("ClassDeclaration(\"__B2\""));
+                    if(g.size() < 7){
+                        assertTrue("CLASSDECLARATION TEST"+testFile, g.get(5).toString().substring(0,28).equals("ClassDeclaration(\"__Test"+testFile+"\""));
+                    } else {
+                        assertTrue("Class D", g.get(5).toString().substring(0, 22).equals("ClassDeclaration(\"__D\"") || g.get(5).toString().substring(0, 22).equals("ClassDeclaration(\"__C\""));
+                        assertTrue("CLASSDECLARATION TEST"+testFile, g.get(6).toString().substring(0,28).equals("ClassDeclaration(\"__Test"+testFile+"\""));
+                    }
+                }
+            }
+        }
     }
 
     @Test
     public void testBuildFieldNode() {
         Field field = new Field("mod", false, "String", "dus", "d");
-
         Node fieldNode = Phase2.buildFieldNode(field);
-
         assertTrue("IsStatic", fieldNode.get(0).toString().equals("IsStatic(\"false\")"));
         assertTrue("FieldType", fieldNode.get(1).toString().equals("FieldType(\"String\")"));
         assertTrue("FieldName", fieldNode.get(2).toString().equals("FieldName(\"dus\")"));
         assertTrue("Initial", fieldNode.get(3).toString().equals("Initial(\"d\")"));
-
     }
-
 }

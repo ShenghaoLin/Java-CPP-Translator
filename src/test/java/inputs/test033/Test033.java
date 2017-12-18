@@ -1,7 +1,7 @@
 package inputs.test033;
 
 class A {
-	int x = 4;
+    int x = 4;
 
     static int m(int i) {
         System.out.println("A.m(int)");

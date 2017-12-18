@@ -67,6 +67,7 @@ public class Phase2 {
         private ObjectRepList objectRepresentations = new ObjectRepList();
         private boolean mainFlag = false;
         private boolean constructorFlag = true;
+        private boolean methodFlag = false;
 
         /**
          * Visits Package Declaration and assigns packagename
@@ -154,6 +155,10 @@ public class Phase2 {
          * @param node node being visited
          */
         public void visitMethodDeclaration(GNode node) {
+
+            // set method flag
+            methodFlag = true;
+
             // modifiers
             String accessModifier = "";
             boolean isStatic = false;
@@ -208,11 +213,14 @@ public class Phase2 {
                     if (other.equals(constructor)) toAdd = false;
                 }
                 if (toAdd) objectRepresentations.getCurrent().classRep.constructors.add(constructor);
-                
-                
+
+
             }
 
             visit(node);
+
+            // set method flag off now
+            methodFlag = false;
         }
 
         /**
@@ -242,9 +250,9 @@ public class Phase2 {
             String initial = "";
             Node initial_node = node.getNode(2).getNode(0).getNode(2);
 
-            // add
+            // add if not declared in body of main or body of method (which can be a constructor or another method)
             Field field = new Field(accessModifier, isStatic, fieldType, fieldName, initial);
-            if (!mainFlag) objectRepresentations.getCurrent().classRep.fields.add(field);
+            if (!mainFlag && !methodFlag) objectRepresentations.getCurrent().classRep.fields.add(field);
 
             visit(node);
         }
@@ -371,6 +379,7 @@ public class Phase2 {
 
         // process reps
         for (ObjectRep rep : filled) {
+
             /* main goes here so ignore this, see below for new implementation
             if (!rep.name.equals("Object") && !rep.name.equals("String") && !rep.name.equals("Class")) {
                 // check if main is in the rep
@@ -782,8 +791,7 @@ public class Phase2 {
                 if (parentField.fieldName.equals("*__delete")) {
                     updatedFields.add(new Field("public", false, "void", "*__delete", "__" + current.name + "*"));
                     updatedVMethods.add(new VMethod("public", false, "__delete", "(&__rt::__delete<__" + current.name + ">)"));
-                }
-                else {
+                } else {
                     String inheritedFrom = "";
                     if (parentField.inheritedFrom.equals("")) inheritedFrom = "Object";
                     else inheritedFrom = parentField.inheritedFrom;
@@ -834,6 +842,16 @@ public class Phase2 {
         return current;
     }
 
+    /**
+     * Helper method for determineVTable, checks if two string are equals
+     * Preprocessing step of removes pointer (*) operator from name of name1
+     *
+     * @param name1 first name to be compared
+     * @param name2 second name to be compared
+     *
+     * @return true if name1 == name2, false o/w
+     *
+     */
     public static boolean checkTwoNames(String name1, String name2) {
         if (name1.replaceFirst("\\*","").equals(name2)) return true;
         return false;

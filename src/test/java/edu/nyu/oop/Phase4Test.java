@@ -1,50 +1,90 @@
 package edu.nyu.oop;
 
-import java.io.*;
-import org.junit.Before;
+
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.slf4j.Logger;
-import scala.collection.immutable.Stream;
 import xtc.tree.GNode;
 import xtc.tree.Node;
 import xtc.util.Runtime;
 
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
+import java.util.*;
 
 import static org.junit.Assert.*;
 
 public class Phase4Test {
     private static Logger logger = org.slf4j.LoggerFactory.getLogger(Phase1Test.class);
 
-    protected final Runtime runtime = new Runtime();
+    private static final Runtime runtime = new Runtime();
+    private static HashMap<String, String> childrenToParents = new HashMap<String, String>();
+    private static HashMap<String, ArrayList<Phase1.Initializer>> inits = new HashMap<String, ArrayList<Phase1.Initializer>>();
 
     private static Node node;// = null;
+
+    private static String testFile = "050";
 
     @BeforeClass
     public static void beforeClass() {
         logger.debug("Executing Phase4Test");
-        node = XtcTestUtils.loadTestFile("src/test/java/inputs/test012/Test012.java");
+        node = XtcTestUtils.loadTestFile("src/test/java/inputs/test"+testFile+"/Test"+testFile+".java");
+        List<GNode> javaAsts = Phase1.parse(node);
+
+        Phase4 phase4 = new Phase4(runtime, childrenToParents, inits);
+        ArrayList<Node> cppAsts = new ArrayList<Node>();
+
+        for (Node javaAst : javaAsts) {
+            Phase2 phase2 = new Phase2();
+            Node cppAst = Phase2.runPhase2(javaAst);
+            cppAsts.add(cppAst);
+            childrenToParents.putAll(Phase2.childrenToParents);
+        }
     }
 
     @Test
-    public void testProcess() { //throws xtc.tree.VisitingException{
-        List<GNode> javaAsts = Phase1.parse(node);
+    public void testInheritance() { //throws xtc.tree.VisitingException{
 
-        List<GNode> l = Phase4.process(javaAsts);
+        Object[] keySet = childrenToParents.keySet().toArray();
 
-//        for(GNode g: l){
-//            runtime.console().format(g).pln().flush();
-//        }
+        System.out.println("Length Key Set: "+ keySet.length);
+        for(Object key : keySet){
+            System.out.print("PARENT: "+ childrenToParents.get(key));
+            System.out.println("   KEY: "+ key);
+        }
 
-        assertTrue("Process", l.get(0).get(0).toString().equals("PackageDeclaration(null, QualifiedIdentifier(\"inputs\", \"test012\"))"));
-        assertTrue("A", l.get(0).get(1).toString().equals("ClassDeclaration(Modifiers(), \"A\", null, null, null, ClassBody(FieldDeclaration(Modifiers(), Type(QualifiedIdentifier(\"String\"), null), Declarators(Declarator(\"a\", null, null))), MethodDeclaration(Modifiers(), null, VoidType(), \"__A::setA\", FormalParameters(FormalParameter(Modifier(), Type(QualifiedIdentifier(\"A\"), null), null, \"__this\", null), FormalParameter(Modifiers(), Type(QualifiedIdentifier(\"String\"), null), null, \"x\", null)), null, null, Block(ExpressionStatement(Expression(PrimaryIdentifier(\"__this -> a\"), \"=\", PrimaryIdentifier(\"x\"))))), MethodDeclaration(Modifiers(), null, VoidType(), \"__A::printOther\", FormalParameters(FormalParameter(Modifier(), Type(QualifiedIdentifier(\"A\"), null), null, \"__this\", null), FormalParameter(Modifiers(), Type(QualifiedIdentifier(\"A\"), null), null, \"other\", null)), null, null, Block(ExpressionStatement(CallExpression(null, null, \"cout\", Arguments(CallExpression(PrimaryIdentifier(\"other\"), null, \"-> __vptr -> myToString\", Arguments(PrimaryIdentifier(\"other\"))), \"endl\"))))), MethodDeclaration(Modifiers(), null, Type(QualifiedIdentifier(\"String\"), null), \"__A::myToString\", FormalParameters(FormalParameter(Modifier(), Type(QualifiedIdentifier(\"A\"), null), null, \"__this\", null)), null, null, Block(ReturnStatement(PrimaryIdentifier(\"__this -> a\"))))))"));
-        assertTrue("B1", l.get(0).get(2).toString().equals("ClassDeclaration(Modifiers(), \"B1\", null, Extension(Type(QualifiedIdentifier(\"A\"), null)), null, ClassBody(FieldDeclaration(Modifiers(), Type(QualifiedIdentifier(\"String\"), null), Declarators(Declarator(\"b\", null, null)))))"));
-        assertTrue("B2", l.get(0).get(3).toString().equals("ClassDeclaration(Modifiers(), \"B2\", null, Extension(Type(QualifiedIdentifier(\"A\"), null)), null, ClassBody(FieldDeclaration(Modifiers(), Type(QualifiedIdentifier(\"String\"), null), Declarators(Declarator(\"b\", null, null)))))"));
-        assertTrue("C", l.get(0).get(4).toString().equals("ClassDeclaration(Modifiers(), \"C\", null, Extension(Type(QualifiedIdentifier(\"B1\"), null)), null, ClassBody(FieldDeclaration(Modifiers(), Type(QualifiedIdentifier(\"String\"), null), Declarators(Declarator(\"c\", null, null))), MethodDeclaration(Modifiers(), null, Type(QualifiedIdentifier(\"String\"), null), \"__C::myToString\", FormalParameters(FormalParameter(Modifier(), Type(QualifiedIdentifier(\"C\"), null), null, \"__this\", null)), null, null, Block(ReturnStatement(StringLiteral(\"\\\"still C\\\"\"))))))"));
-        assertTrue("Test012", l.get(0).get(5).toString().equals("ClassDeclaration(Modifiers(null), \"Test012\", null, null, null, ClassBody(MethodDeclaration(Modifiers(), null, \"int\", \"main\", Arguments(VoidType()), null, null, Block(FieldDeclaration(Modifiers(), Type(QualifiedIdentifier(\"A\"), null), Declarators(Declarator(\"a\", \"(A) \", Expression(\"__A::__init\", Arguments(NewClassExpression(null, null, QualifiedIdentifier(\"__A\"), Arguments(), null)))))), ExpressionStatement(CallExpression(PrimaryIdentifier(\"a\"), null, \"-> __vptr -> setA\", Arguments(PrimaryIdentifier(\"a\"), StringLiteral(\"\\\"A\\\"\")))), FieldDeclaration(Modifiers(), Type(QualifiedIdentifier(\"B1\"), null), Declarators(Declarator(\"b1\", \"(B1) \", Expression(\"__B1::__init\", Arguments(NewClassExpression(null, null, QualifiedIdentifier(\"__B1\"), Arguments(), null)))))), ExpressionStatement(CallExpression(PrimaryIdentifier(\"b1\"), null, \"-> __vptr -> setA\", Arguments(PrimaryIdentifier(\"b1\"), StringLiteral(\"\\\"B1\\\"\")))), FieldDeclaration(Modifiers(), Type(QualifiedIdentifier(\"B2\"), null), Declarators(Declarator(\"b2\", \"(B2) \", Expression(\"__B2::__init\", Arguments(NewClassExpression(null, null, QualifiedIdentifier(\"__B2\"), Arguments(), null)))))), ExpressionStatement(CallExpression(PrimaryIdentifier(\"b2\"), null, \"-> __vptr -> setA\", Arguments(PrimaryIdentifier(\"b2\"), StringLiteral(\"\\\"B2\\\"\")))), FieldDeclaration(Modifiers(), Type(QualifiedIdentifier(\"C\"), null), Declarators(Declarator(\"c\", \"(C) \", Expression(\"__C::__init\", Arguments(NewClassExpression(null, null, QualifiedIdentifier(\"__C\"), Arguments(), null)))))), ExpressionStatement(CallExpression(PrimaryIdentifier(\"c\"), null, \"-> __vptr -> setA\", Arguments(PrimaryIdentifier(\"c\"), StringLiteral(\"\\\"C\\\"\")))), ExpressionStatement(CallExpression(PrimaryIdentifier(\"a\"), null, \"-> __vptr -> printOther\", Arguments(PrimaryIdentifier(\"a\")))), ExpressionStatement(CallExpression(PrimaryIdentifier(\"a\"), null, \"-> __vptr -> printOther\", Arguments(PrimaryIdentifier(\"a\"), PrimaryIdentifier(\"b1\")))), ExpressionStatement(CallExpression(PrimaryIdentifier(\"a\"), null, \"-> __vptr -> printOther\", Arguments(PrimaryIdentifier(\"a\"), PrimaryIdentifier(\"b2\")))), ExpressionStatement(CallExpression(PrimaryIdentifier(\"a\"), null, \"-> __vptr -> printOther\", Arguments(PrimaryIdentifier(\"a\"), PrimaryIdentifier(\"c\")))), ReturnStatement(\"0\")))))"));
+        assertTrue("DERIVED CLASS", keySet[0].toString().equals("A")
+                                            || keySet[0].toString().equals("Test"+testFile)
+                                            || keySet[0].toString().equals("B2"));
+        assertTrue("Base 2", keySet[1].toString().equals("Test"+testFile)
+                                            || keySet[1].toString().equals("Class")
+                                            || keySet[1].toString().equals("B")
+                                            || keySet[1].toString().equals("A"));
+        assertTrue("Base 1", keySet[2].toString().equals("Class")
+                                            || keySet[2].toString().equals("String")
+                                            || keySet[2].toString().equals("Test"+testFile)
+                                            || keySet[2].toString().equals("A")
+                                            || keySet[2].toString().equals("B")
+                                            || keySet[2].toString().equals("C"));
+       if(keySet.length > 3) {
+           assertTrue("Base 0", keySet[3].toString().equals("String")
+                   || keySet[3].toString().equals("Class")
+                   || keySet[3].toString().equals("Test" + testFile)
+                   || keySet[3].toString().equals("C"));
+           if (keySet.length > 4) {
+               assertTrue("Base .", keySet[4].toString().equals("String")
+                       || keySet[4].toString().equals("Test" + testFile)
+                       || keySet[4].toString().equals("Class"));
+               if (keySet.length > 5) {
+                   assertTrue("Base .", keySet[5].toString().equals("String")
+                           || keySet[5].toString().equals("Test" + testFile)
+                           || keySet[5].toString().equals("Class"));
+                   if (keySet.length > 6) {
+                       assertTrue("Base .", keySet[6].toString().equals("String")
+                               || keySet[6].toString().equals("Test" + testFile)
+                               || keySet[6].toString().equals("Class")
+                               || keySet[6].toString().equals("B1"));
+                   }
+               }
+           }
+       }
     }
-
 }

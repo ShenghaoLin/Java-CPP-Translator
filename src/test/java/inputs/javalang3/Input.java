@@ -1,4 +1,4 @@
-package inputs.javalang;
+package inputs.javalang3;
 
 class A {
     private char x;
@@ -64,7 +64,7 @@ class B extends A {
 
 }
 
-public class Main {
+public class Input {
     public static void main(String[] args) {
         int[] a = new int[10];
         A[] aaa = new A[10];

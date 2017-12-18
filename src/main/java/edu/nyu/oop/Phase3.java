@@ -8,7 +8,8 @@
  * headOfFile() and endOfFile() does some simple pre and post processing
  * print method flushes output of printer to file
  * logic has been fully seperated so that Phase 2 and Phase 3 are
- * independent of each other
+ * independent of each other, some logic here has been moved to Phase 2
+ * to ensure full seperation of phases
  *
  * @author Sai Akhil
  * @author Goktug Saatcioglu

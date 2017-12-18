@@ -237,15 +237,37 @@ public class Boot extends Tool {
         }
 
         if (runtime.test("printPhase5")) {
-            List<GNode> list = Phase1.parse(n);
-            Phase4 p = new Phase4(runtime);
-            for (GNode unmangledAst : list) {
+
+            List<GNode> javaAsts = Phase1.parse(n);
+            HashMap<String, ArrayList<Phase1.Initializer>> inits = new HashMap<String, ArrayList<Phase1.Initializer>>();
+            LinkedList<SymbolTable> tables = new LinkedList<SymbolTable>();
+
+            for (GNode unmangledAst : javaAsts) {
                 SymbolTable table = new SymbolTableBuilder(runtime).getTable(unmangledAst);
-                Phase1.mangle(runtime, table, unmangledAst);
-                p.runNode(unmangledAst, table);
+                inits.putAll(Phase1.mangle(runtime, table, unmangledAst));
+                tables.add(table);
             }
+
+            ArrayList<Node> cppAsts = new ArrayList<Node>();
+            HashMap<String, String> childrenToParents = new HashMap<String, String>();
+
+            for (Node javaAst : javaAsts) {
+                Phase2 phase2 = new Phase2();
+                Node cppAst = phase2.runPhase2(javaAst);
+                cppAsts.add(cppAst);
+                childrenToParents.putAll(phase2.childrenToParents);
+            }
+
+            Phase4 phase4 = new Phase4(runtime, childrenToParents, inits);
+            ArrayList<GNode> asts = new ArrayList<GNode>();
+
+            for (Node javaAst : javaAsts) {
+                SymbolTable table = tables.poll();
+                asts.add((GNode) phase4.runNode((GNode) javaAst, table));
+            }
+
             Phase5 printer = new Phase5("output.cpp");
-            for (GNode node : list) {
+            for (GNode node : asts) {
                 printer.headOfFile();
                 printer.print(node);
             }

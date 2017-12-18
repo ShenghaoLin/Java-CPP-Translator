@@ -348,6 +348,15 @@ inline java::lang::String literal(const char * s)
     return new java::lang::__String(s);
 }
 
+inline int32_t checkNegativeIndex(int32_t index)
+{
+    if (0 > index)
+    {
+        throw new java::lang::NegativeArraySizeException();
+    }
+    return index;
+}
+
 // ========================================================================
 
 // Forward declarations of data layout and vtable.
@@ -369,6 +378,12 @@ struct __Array
     __Array_VT<T>* __vptr;
     const int32_t length;
     T* __data;
+
+    // The init method for the default constructor to use for arrays
+    static Array<T> __init(Array<T> __this)
+    {
+        return __this;
+    }
 
     // The constructor (defined inline).
     __Array(const int32_t length)
@@ -416,6 +431,12 @@ struct __Array<Ptr<T>>
     __Array_VT<Ptr<T>>* __vptr;
     const int32_t length;
     Ptr<T>* __data;
+
+    // The init method for the default constructor to use for arrays
+    static Array<Ptr<T>> __init(Array<Ptr<T>> __this)
+    {
+        return __this;
+    }
 
     // The constructor (defined inline).
     __Array(const int32_t length)
@@ -535,7 +556,7 @@ void checkStore(Array<T> array, U object)
     }
 }
 
-template <typename T, typename U>
+template<typename T, typename U>
 T java_cast(U object)
 {
     java::lang::Class c = T::value_type::__class();
@@ -546,7 +567,8 @@ T java_cast(U object)
     return T(object);
 }
 
-template <typename T>
+/* not working template for negative indices, DO NOT TOUCH!
+template <int32_t N>
 int32_t checkNegativeIndex(int32_t index)
 {
     if (0 > index)
@@ -555,6 +577,7 @@ int32_t checkNegativeIndex(int32_t index)
     }
     return index;
 }
+*/
 
 template <typename T, typename U>
 void arrayStoreCheck(Array<T> array, int32_t index, U object)

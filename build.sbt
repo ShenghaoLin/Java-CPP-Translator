@@ -6,7 +6,7 @@ scalaVersion := "2.11.7"
 
 scalacOptions := Seq("-unchecked", "-deprecation", "-encoding", "utf8")
 
-javacOptions ++= Seq("-source", "1.8", "-target", "1.8")
+javacOptions ++= Seq("-Xlint:unchecked", "-source", "1.8", "-target", "1.8")
 
 parallelExecution in Test := false
 
