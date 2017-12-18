@@ -1,22 +1,23 @@
 # Translator Java to C++
 
-This is a work in progress.
+This Java to C++ translator fully works for test inputs 000 to 050.
 
-The given task to translate Java programs to C++ was divided in 5 phases. The translator
-currently supports translation of header files for the first 20 test inputs given in
-src/test/java/inputs/. Furthermore, translation of implementation and main files are also
-supported for some inputs. However, this is conditional on the input for now since Phases 4
-and 5 are not fully working yet. For example, the translator will correctly translate 
-src/test/java/inputs/Input/Input.java (which is the exercise from java-lang-in-class) but
-may not translate other inputs due to lack of functionality in Phase 4. Thus, phases 4 and 5
-are still a work in progress for the first 20 inputs.
+The given task to translate Java programs to C++ was divided into 5 phases. The translator
+currently supports translation of header files and implementation files for all 51 inputs
+(000 to 050) given in src/test/java/inputs/. for the first 20 test inputs given in
+src/test/java/inputs/. This means that the translator support dynamic dispath, method
+overriding, method overloading, all runtime checks including arrays, Java casts,
+arrays and multidimensional arrays. Overall, this is a robust translator capable of
+translating a variety of test inputs successfully.
 
-The translator currently supports translations up to the Object initialization class done
-in class. Arrays and null checking are not supported. As stated above, the translation is 
-correct for the first 20 inputs for their header files. For the implementation and main
-files the translation is still condiitonal on the contents of the input.
+It should be noted that the translator does not support more complicated translations such
+as those that involve other Java packages (ex. java.util) or access to static variables
+through a child class. This behavior can be seen when translating homework2 under inputs
+folder. This file, named LinkedList.java, creates a linked list and is not supported under
+our current translator.
 
-You may run each separately or simply run the entire translator. The commands follow bellow.
+You may run each phase separately or simply run the entire translator. The commands follow
+bellow.
 
 Before running, initiate a SBT shell, compile and run Boot.java
 
@@ -25,7 +26,11 @@ Before running, initiate a SBT shell, compile and run Boot.java
 `runxtc -printPhasex <source file>`
 
 The output for phases 1, 2 and 4 are prompted in the shell. 
-The output for phases 3 and 4 are in the output directory.
+The output for phases 3 and 5 are in the output directory.
+
+### To view the name mangling scheme, type:
+
+`runxtc -printMangling <source file>`
 
 ### To run the tests for phase x, type:
 
@@ -33,11 +38,18 @@ The output for phases 3 and 4 are in the output directory.
 
 ### To run translator, type:
 
-`runxtc -translate [path/to/input]`
+`runxtc -translate <source file>`
 
 ### To run the translated code, type:
 
 `cpp`
+
+### Note:
+
+You may run into errors when translating inputs 042 to 050.
+This is due to an SBT error that we have been unable to figure
+out but the translation will work. You can continue with cpp
+on these inputs after running -translate.
 
 ### To format translated C++ code into prettier output, type:
 

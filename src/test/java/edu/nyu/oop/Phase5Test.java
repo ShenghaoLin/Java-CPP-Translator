@@ -31,6 +31,7 @@ public class Phase5Test {
         node = XtcTestUtils.loadTestFile("src/test/java/inputs/test050/Test050.java");
     }
 
+    
     @Test
     public void testProcess() { //throws xtc.tree.VisitingException{
         List<GNode> javaAsts = Phase1.parse(node);
@@ -42,7 +43,4 @@ public class Phase5Test {
         assertTrue("Head of File", printer.headoffile.equals("#include \"output.h\"\n#include <iostream>\n\nusing namespace java::lang;"));
 
     }
-
-
-
 }
