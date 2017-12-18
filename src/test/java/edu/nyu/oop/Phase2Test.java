@@ -48,11 +48,6 @@ public class Phase2Test {
         Phase2.Phase2Visitor visitor = new Phase2.Phase2Visitor();
         visitor.traverse(node);
         Phase2.ObjectRepList unfilled = visitor.getObjectRepresentations();
-
-        for(ObjectRep i: unfilled){
-            System.out.println(i.name);
-        }
-
         if(unfilled.size() == 1){
             assertTrue("Test" + testFile, unfilled.get(0).name.equals("Test" + testFile));
         }else{

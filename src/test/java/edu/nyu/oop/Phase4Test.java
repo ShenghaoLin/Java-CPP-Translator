@@ -45,12 +45,6 @@ public class Phase4Test {
 
         Object[] keySet = childrenToParents.keySet().toArray();
 
-        System.out.println("Length Key Set: "+ keySet.length);
-        for(Object key : keySet){
-            System.out.print("PARENT: "+ childrenToParents.get(key));
-            System.out.println("   KEY: "+ key);
-        }
-
         assertTrue("DERIVED CLASS", keySet[0].toString().equals("A")
                                             || keySet[0].toString().equals("Test"+testFile)
                                             || keySet[0].toString().equals("B2"));
