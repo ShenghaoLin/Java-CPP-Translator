@@ -5,29 +5,15 @@ using namespace java::lang;
 
 namespace inputs
 {
-<<<<<<< HEAD
-namespace test005
-{
-__A::__A() : __vptr(&__vtable) {}
-=======
 namespace test011
 {
 __A::__A() : a(__rt::null()), __vptr(&__vtable) {}
->>>>>>> 0d2f55a92af93a6978ad9c2c4cca35fdcc6c22f7
 
 A __A::__init(A __this) {
 __Object::__init(__this);
 return __this;
 }
 
-<<<<<<< HEAD
-String __A::toString (A __this ){
-return __rt::literal("A" );
-}
-
-Class __A::__class() {
-static Class k = new __Class(__rt::literal("inputs.test005.A"), __Object::__class());
-=======
 void __A::setA_String_ (A __this , String x ){
 __this -> a = x ;
 }
@@ -42,28 +28,11 @@ return __this -> a ;
 
 Class __A::__class() {
 static Class k = new __Class(__rt::literal("inputs.test011.A"), __Object::__class());
->>>>>>> 0d2f55a92af93a6978ad9c2c4cca35fdcc6c22f7
 return k;
 }
 
 __A_VT __A::__vtable;
 
-<<<<<<< HEAD
-__B::__B() : __vptr(&__vtable) {}
-
-B __B::__init(B __this) {
-__Object::__init(__this);
-return __this;
-}
-
-String __B::toString (B __this ){
-return __rt::literal("B" );
-}
-
-Class __B::__class() {
-static Class k = new __Class(__rt::literal("inputs.test005.B"), __A::__class());
-return k;
-=======
 __B1::__B1() : a(__rt::null()), b(__rt::null()), __vptr(&__vtable) {}
 
 B1 __B1::__init(B1 __this) {
@@ -83,7 +52,6 @@ __B2::__B2() : a(__rt::null()), b(__rt::null()), __vptr(&__vtable) {}
 B2 __B2::__init(B2 __this) {
 __A::__init(__this);
 return __this;
->>>>>>> 0d2f55a92af93a6978ad9c2c4cca35fdcc6c22f7
 }
 
 Class __B2::__class() {
@@ -91,36 +59,6 @@ static Class k = new __Class(__rt::literal("inputs.test011.B2"), __A::__class())
 return k;
 }
 
-<<<<<<< HEAD
-__Test005::__Test005() : __vptr(&__vtable) {}
-
-Test005 __Test005::__init(Test005 __this) {
-__Object::__init(__this);
-return __this;
-}
-
-int32_t __Test005::main (__rt::Array<String> args ){
-B b = __B::__init (new __B() );
-A a1 = __A::__init (new __A() );
-A a2 = b ;
-std::cout << ({A tmp  =  a1 ;
-__rt::checkNotNull(tmp );
-tmp -> __vptr -> toString (tmp );
-})<< std::endl ;
-std::cout << ({A tmp  =  a2 ;
-__rt::checkNotNull(tmp );
-tmp -> __vptr -> toString (tmp );
-})<< std::endl ;
-return 0 ;
-}
-
-Class __Test005::__class() {
-static Class k = new __Class(__rt::literal("inputs.test005.Test005"), __Object::__class());
-return k;
-}
-
-__Test005_VT __Test005::__vtable;
-=======
 __B2_VT __B2::__vtable;
 
 __C::__C() : a(__rt::null()), b(__rt::null()), c(__rt::null()), __vptr(&__vtable) {}
@@ -190,7 +128,6 @@ return k;
 }
 
 __Test011_VT __Test011::__vtable;
->>>>>>> 0d2f55a92af93a6978ad9c2c4cca35fdcc6c22f7
 
 }
 }

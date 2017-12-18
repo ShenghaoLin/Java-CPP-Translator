@@ -8,30 +8,11 @@ using namespace java::lang;
 #include <string>
 
 namespace inputs { 
-<<<<<<< HEAD
-namespace test005 { 
-=======
 namespace test011 { 
->>>>>>> 0d2f55a92af93a6978ad9c2c4cca35fdcc6c22f7
 
   struct __A;
   struct __A_VT;
 
-<<<<<<< HEAD
-  struct __B;
-  struct __B_VT;
-
-  struct __Test005;
-  struct __Test005_VT;
-
-  typedef __rt::Ptr<__A> A;
-  typedef __rt::Ptr<__B> B;
-  typedef __rt::Ptr<__Test005> Test005;
-
-  struct __A {
-
-    __A_VT* __vptr;
-=======
   struct __B1;
   struct __B1_VT;
 
@@ -54,17 +35,13 @@ namespace test011 {
 
     __A_VT* __vptr;
     String a;
->>>>>>> 0d2f55a92af93a6978ad9c2c4cca35fdcc6c22f7
 
     __A();
     static A __init(A __this);
 
     static String toString(A __this);
-<<<<<<< HEAD
-=======
     static void setA_String_(A __this, String x);
     static void printOther_A_(A __this, A other);
->>>>>>> 0d2f55a92af93a6978ad9c2c4cca35fdcc6c22f7
 
     static Class __class();
 
@@ -80,11 +57,8 @@ namespace test011 {
     bool (*equals)(A, Object);
     Class (*getClass)(A);
     String (*toString)(A);
-<<<<<<< HEAD
-=======
     void (*setA_String_)(A,String);
     void (*printOther_A_)(A,A);
->>>>>>> 0d2f55a92af93a6978ad9c2c4cca35fdcc6c22f7
 
     __A_VT()
       :__is_a(__A::__class()),
@@ -92,9 +66,6 @@ namespace test011 {
       hashCode((int32_t(*)(A)) &__Object::hashCode),
       equals((bool(*)(A, Object)) &__Object::equals),
       getClass((Class(*)(A)) &__Object::getClass),
-<<<<<<< HEAD
-      toString(&__A::toString)
-=======
       toString(&__A::toString),
       setA_String_(&__A::setA_String_),
       printOther_A_(&__A::printOther_A_)
@@ -178,44 +149,10 @@ namespace test011 {
       toString((String(*)(B2)) &__A::toString),
       setA_String_((void(*)(B2,String)) &__A::setA_String_),
       printOther_A_((void(*)(B2,A)) &__A::printOther_A_)
->>>>>>> 0d2f55a92af93a6978ad9c2c4cca35fdcc6c22f7
     {
     }
   };
 
-<<<<<<< HEAD
-  struct __B {
-
-    __B_VT* __vptr;
-
-    __B();
-    static B __init(B __this);
-
-    static String toString(B __this);
-
-    static Class __class();
-
-    static __B_VT __vtable;
-  };
-
-  struct __B_VT {
-
-    Class __is_a;
-
-    void (*__delete)(__B*);
-    int32_t (*hashCode)(B);
-    bool (*equals)(B, Object);
-    Class (*getClass)(B);
-    String (*toString)(B);
-
-    __B_VT()
-      :__is_a(__B::__class()),
-      __delete(&__rt::__delete<__B>),
-      hashCode((int32_t(*)(B)) &__Object::hashCode),
-      equals((bool(*)(B, Object)) &__Object::equals),
-      getClass((Class(*)(B)) &__Object::getClass),
-      toString(&__B::toString)
-=======
   struct __C {
 
     __C_VT* __vptr;
@@ -253,53 +190,21 @@ namespace test011 {
       toString((String(*)(C)) &__A::toString),
       setA_String_((void(*)(C,String)) &__A::setA_String_),
       printOther_A_((void(*)(C,A)) &__A::printOther_A_)
->>>>>>> 0d2f55a92af93a6978ad9c2c4cca35fdcc6c22f7
     {
     }
   };
 
-<<<<<<< HEAD
-  struct __Test005 {
-
-    __Test005_VT* __vptr;
-
-    __Test005();
-    static Test005 __init(Test005 __this);
-=======
   struct __Test011 {
 
     __Test011_VT* __vptr;
 
     __Test011();
     static Test011 __init(Test011 __this);
->>>>>>> 0d2f55a92af93a6978ad9c2c4cca35fdcc6c22f7
 
     static int32_t main(__rt::Array<String> args);
 
     static Class __class();
 
-<<<<<<< HEAD
-    static __Test005_VT __vtable;
-  };
-
-  struct __Test005_VT {
-
-    Class __is_a;
-
-    void (*__delete)(__Test005*);
-    int32_t (*hashCode)(Test005);
-    bool (*equals)(Test005, Object);
-    Class (*getClass)(Test005);
-    String (*toString)(Test005);
-
-    __Test005_VT()
-      :__is_a(__Test005::__class()),
-      __delete(&__rt::__delete<__Test005>),
-      hashCode((int32_t(*)(Test005)) &__Object::hashCode),
-      equals((bool(*)(Test005, Object)) &__Object::equals),
-      getClass((Class(*)(Test005)) &__Object::getClass),
-      toString((String(*)(Test005)) &__Object::toString)
-=======
     static __Test011_VT __vtable;
   };
 
@@ -320,7 +225,6 @@ namespace test011 {
       equals((bool(*)(Test011, Object)) &__Object::equals),
       getClass((Class(*)(Test011)) &__Object::getClass),
       toString((String(*)(Test011)) &__Object::toString)
->>>>>>> 0d2f55a92af93a6978ad9c2c4cca35fdcc6c22f7
     {
     }
   };
